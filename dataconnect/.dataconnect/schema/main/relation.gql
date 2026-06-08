@@ -1,0 +1,220 @@
+extend type User {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "User", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `User` table.
+  """
+  _count: Int! @fdc_generated(from: "User.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `aboutMe` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  aboutMe_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.aboutMe", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `address` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  address_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.address", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `city` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  city_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.city", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `company` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  company_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.company", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `country` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  country_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.country", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `creationDate` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  creationDate_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.creationDate", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `email` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  email_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.email", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `followers` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  followers_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.followers", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `following` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  following_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.following", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `language` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  language_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.language", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `name` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  name_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.name", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `postNotifications` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  postNotifications_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.postNotifications", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `postalCode` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  postalCode_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.postalCode", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `posts` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  posts_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.posts", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `profileImg` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  profileImg_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.profileImg", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `recentActivity` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  recentActivity_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.recentActivity", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `reminders` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  reminders_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.reminders", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `role` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  role_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.role", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `status` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  status_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.status", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `twoFactor` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  twoFactor_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.twoFactor", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `username` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  username_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.username", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `creationDate` field in the `User` table.
+  """
+  creationDate_min: Timestamp @fdc_generated(from: "User.creationDate", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `creationDate` field in the `User` table.
+  """
+  creationDate_max: Timestamp @fdc_generated(from: "User.creationDate", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "User.id", purpose: ENTITY_ID)
+}

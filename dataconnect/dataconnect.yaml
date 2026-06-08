@@ -1,0 +1,13 @@
+specVersion: "v1"
+serviceId: "circle-flow-3795f-service"
+location: "asia-southeast2"
+schemas:
+  - source: "./schema"
+    datasource:
+      postgresql:
+        database: "circle-flow-3795f-database"
+        cloudSql:
+          instanceId: "circle-flow-3795f-instance"
+          # schemaValidation: "STRICT"     # STRICT mode makes Postgres schema match Data Connect exactly.
+          # schemaValidation: "COMPATIBLE" # COMPATIBLE mode makes Postgres schema compatible with Data Connect.
+connectorDirs: ["./example"]

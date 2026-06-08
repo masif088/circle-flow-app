@@ -1,0 +1,8 @@
+# This is a file for you to write an un-named query.
+# Only one un-named query is allowed per file.
+query UserRead @auth(level: PUBLIC) {
+  users {
+    id
+    username
+  }
+}
