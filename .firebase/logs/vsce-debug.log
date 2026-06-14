@@ -46,3 +46,114 @@ Generated sources: index.d.ts [7751B] index.cjs.js [5218B] README.md [38232B] re
 [error] [Firebase Plugin] error:  {}
 [debug] [2026-06-08T17:20:37.877Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
 [debug] [2026-06-08T17:20:37.877Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
+[debug] [2026-06-11T03:01:23.988Z] [Firebase Plugin] Activating Firebase extension.
+[debug] [2026-06-11T03:01:37.152Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-06-11T03:01:37.193Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-11T03:01:37.196Z] > authorizing via signed-in user (mokhamadasif@gmail.com)
+[debug] [2026-06-11T03:01:37.213Z] Checked if tokens are valid: false, expires at: 1780942835909
+[debug] [2026-06-11T03:01:37.216Z] Checked if tokens are valid: false, expires at: 1780942835909
+[debug] [2026-06-11T03:01:37.221Z] > refreshing access token with scopes: []
+[debug] [2026-06-11T03:01:37.253Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-06-11T03:01:37.256Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-11T03:01:37.351Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.10) on port 50001
+[debug] [2026-06-11T03:01:40.034Z] I0611 10:01:39.976362    8312 control.go:100] [projects/emulator/locations/emulator/services/circle-flow-3795f-service c501] UpdateResources(): done
+Main schema: sources: schema\schema.gql [990B] 
+Connector "example": sources: example\queries.gql [741B] example\User_insert.gql [214B] example\User_read.gql [174B] example\mutations.gql [1158B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0611 10:01:39.976362    8312 control.go:100] [projects/emulator/locations/emulator/services/circle-flow-3795f-service c501] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [990B] \nConnector \"example\": sources: example\\queries.gql [741B] example\\User_insert.gql [214B] example\\User_read.gql [174B] example\\mutations.gql [1158B] \n"}}
+[debug] [2026-06-11T03:01:40.036Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-06-11T03:01:40.037Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-06-11T03:01:40.037Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\LENOVO\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.10.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=c:\\ASif Code\\circle-flow\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\LENOVO\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.10.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=c:\\\\ASif Code\\\\circle-flow\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-06-11T03:01:40.143Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-06-11T03:01:40.144Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-11T03:01:40.228Z] [Firebase Plugin] User found:  mokhamadasif@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-06-11T03:01:40.237Z] Checked if tokens are valid: true, expires at: 1781150499144
+[debug] [2026-06-11T03:01:40.239Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-06-11T03:01:40.257Z] I0611 10:01:40.187900   28508 load.go:31] Reloading schema and connectors...
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0611 10:01:40.187900   28508 load.go:31] Reloading schema and connectors...\n"}}
+[debug] [2026-06-11T03:01:40.283Z] I0611 10:01:40.281170   28508 control.go:100] [projects/emulator/locations/emulator/services/circle-flow-3795f-service feb2] UpdateResources(): done
+Main schema: sources: schema\schema.gql [990B] 
+Connector "example": sources: example\User_insert.gql [214B] example\User_read.gql [174B] example\mutations.gql [1158B] example\queries.gql [741B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0611 10:01:40.281170   28508 control.go:100] [projects/emulator/locations/emulator/services/circle-flow-3795f-service feb2] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [990B] \nConnector \"example\": sources: example\\User_insert.gql [214B] example\\User_read.gql [174B] example\\mutations.gql [1158B] example\\queries.gql [741B] \n"}}
+[debug] [2026-06-11T03:01:40.333Z] I0611 10:01:40.327405   28508 codegen.go:101] [connector "example" javascriptSdk] Generating sources into "c:\\ASif Code\\circle-flow\\src\\dataconnect-generated"
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0611 10:01:40.327405   28508 codegen.go:101] [connector \"example\" javascriptSdk] Generating sources into \"c:\\\\ASif Code\\\\circle-flow\\\\src\\\\dataconnect-generated\"\n"}}
+[debug] [2026-06-11T03:01:40.389Z] I0611 10:01:40.386569   28508 collector.go:107] schema extensions wrote into "c:\\ASif Code\\circle-flow\\dataconnect\\.dataconnect\\schema"
+Generated sources: main\mutation.gql [3515B] main\input.gql [19004B] main\relation.gql [8944B] prelude.gql [84995B] main\query.gql [1358B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0611 10:01:40.386569   28508 collector.go:107] schema extensions wrote into \"c:\\\\ASif Code\\\\circle-flow\\\\dataconnect\\\\.dataconnect\\\\schema\"\nGenerated sources: main\\mutation.gql [3515B] main\\input.gql [19004B] main\\relation.gql [8944B] prelude.gql [84995B] main\\query.gql [1358B] \n"}}
+[debug] [2026-06-11T03:01:40.463Z] I0611 10:01:40.457760   28508 collector.go:107] connector "example" javascriptSdk wrote into "c:\\ASif Code\\circle-flow\\src\\dataconnect-generated"
+Generated sources: esm\index.esm.js [4734B] index.cjs.js [5218B] react\esm\index.esm.js [2892B] .guides/setup.md [1682B] .guides/config.json [236B] esm\package.json [17B] README.md [38232B] react\package.json [460B] index.d.ts [7751B] .guides/usage.md [3195B] package.json [853B] react\index.d.ts [3509B] react\esm\package.json [17B] react\index.cjs.js [3041B] react\README.md [44970B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0611 10:01:40.457760   28508 collector.go:107] connector \"example\" javascriptSdk wrote into \"c:\\\\ASif Code\\\\circle-flow\\\\src\\\\dataconnect-generated\"\nGenerated sources: esm\\index.esm.js [4734B] index.cjs.js [5218B] react\\esm\\index.esm.js [2892B] .guides/setup.md [1682B] .guides/config.json [236B] esm\\package.json [17B] README.md [38232B] react\\package.json [460B] index.d.ts [7751B] .guides/usage.md [3195B] package.json [853B] react\\index.d.ts [3509B] react\\esm\\package.json [17B] react\\index.cjs.js [3041B] react\\README.md [44970B] \n"}}
+[debug] [2026-06-11T03:01:40.567Z] I0611 10:01:40.563119   28508 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation
+I0611 10:01:40.563948   28508 load.go:109] Finished reloading
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0611 10:01:40.563119   28508 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation\nI0611 10:01:40.563948   28508 load.go:109] Finished reloading\n"}}
+[debug] [2026-06-11T03:01:40.637Z] I0611 10:01:40.634610   28508 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0611 10:01:40.634610   28508 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[error] [Firebase Plugin] error:  {}
+[debug] [2026-06-11T03:01:41.236Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-06-11T03:01:41.237Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
+[debug] [2026-06-14T08:09:16.637Z] [Firebase Plugin] Activating Firebase extension.
+[debug] [2026-06-14T08:09:21.047Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-06-14T08:09:21.055Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-14T08:09:21.056Z] > authorizing via signed-in user (mokhamadasif@gmail.com)
+[debug] [2026-06-14T08:09:21.063Z] Checked if tokens are valid: false, expires at: 1781150499144
+[debug] [2026-06-14T08:09:21.064Z] Checked if tokens are valid: false, expires at: 1781150499144
+[debug] [2026-06-14T08:09:21.065Z] > refreshing access token with scopes: []
+[debug] [2026-06-14T08:09:21.070Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-06-14T08:09:21.070Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-14T08:09:21.100Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.10) on port 50001
+[debug] [2026-06-14T08:09:22.524Z] I0614 15:09:22.505122    4596 control.go:100] [projects/emulator/locations/emulator/services/circle-flow-3795f-service cfd6] UpdateResources(): done
+Main schema: sources: schema\schema.gql [990B] 
+Connector "example": sources: example\User_insert.gql [214B] example\User_read.gql [174B] example\mutations.gql [1158B] example\queries.gql [741B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0614 15:09:22.505122    4596 control.go:100] [projects/emulator/locations/emulator/services/circle-flow-3795f-service cfd6] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [990B] \nConnector \"example\": sources: example\\User_insert.gql [214B] example\\User_read.gql [174B] example\\mutations.gql [1158B] example\\queries.gql [741B] \n"}}
+[debug] [2026-06-14T08:09:22.525Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-06-14T08:09:22.526Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-06-14T08:09:22.526Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\LENOVO\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.10.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=c:\\ASif Code\\circle-flow\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\LENOVO\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.10.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=c:\\\\ASif Code\\\\circle-flow\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-06-14T08:09:22.574Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-06-14T08:09:22.575Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-14T08:09:22.623Z] [Firebase Plugin] User found:  mokhamadasif@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-06-14T08:09:22.625Z] Checked if tokens are valid: true, expires at: 1781428161575
+[debug] [2026-06-14T08:09:22.626Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-06-14T08:09:22.631Z] I0614 15:09:22.597151   33888 load.go:31] Reloading schema and connectors...
+I0614 15:09:22.618789   33888 control.go:100] [projects/emulator/locations/emulator/services/circle-flow-3795f-service 9ded] UpdateResources(): done
+Main schema: sources: schema\schema.gql [990B] 
+Connector "example": sources: example\User_insert.gql [214B] example\User_read.gql [174B] example\mutations.gql [1158B] example\queries.gql [741B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0614 15:09:22.597151   33888 load.go:31] Reloading schema and connectors...\nI0614 15:09:22.618789   33888 control.go:100] [projects/emulator/locations/emulator/services/circle-flow-3795f-service 9ded] UpdateResources(): done\nMain schema: sources: schema\\schema.gql [990B] \nConnector \"example\": sources: example\\User_insert.gql [214B] example\\User_read.gql [174B] example\\mutations.gql [1158B] example\\queries.gql [741B] \n"}}
+[debug] [2026-06-14T08:09:22.641Z] I0614 15:09:22.638879   33888 codegen.go:101] [connector "example" javascriptSdk] Generating sources into "c:\\ASif Code\\circle-flow\\src\\dataconnect-generated"
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0614 15:09:22.638879   33888 codegen.go:101] [connector \"example\" javascriptSdk] Generating sources into \"c:\\\\ASif Code\\\\circle-flow\\\\src\\\\dataconnect-generated\"\n"}}
+[debug] [2026-06-14T08:09:22.664Z] I0614 15:09:22.662902   33888 collector.go:107] schema extensions wrote into "c:\\ASif Code\\circle-flow\\dataconnect\\.dataconnect\\schema"
+Generated sources: prelude.gql [84995B] main\input.gql [19004B] main\relation.gql [8944B] main\query.gql [1358B] main\mutation.gql [3515B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0614 15:09:22.662902   33888 collector.go:107] schema extensions wrote into \"c:\\\\ASif Code\\\\circle-flow\\\\dataconnect\\\\.dataconnect\\\\schema\"\nGenerated sources: prelude.gql [84995B] main\\input.gql [19004B] main\\relation.gql [8944B] main\\query.gql [1358B] main\\mutation.gql [3515B] \n"}}
+[debug] [2026-06-14T08:09:22.699Z] I0614 15:09:22.697788   33888 collector.go:107] connector "example" javascriptSdk wrote into "c:\\ASif Code\\circle-flow\\src\\dataconnect-generated"
+Generated sources: package.json [853B] react\esm\package.json [17B] react\index.cjs.js [3041B] .guides/usage.md [3195B] .guides/setup.md [1682B] index.cjs.js [5218B] index.d.ts [7751B] esm\package.json [17B] react\index.d.ts [3509B] react\package.json [460B] react\esm\index.esm.js [2892B] react\README.md [44970B] .guides/config.json [236B] esm\index.esm.js [4734B] README.md [38232B] 
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0614 15:09:22.697788   33888 collector.go:107] connector \"example\" javascriptSdk wrote into \"c:\\\\ASif Code\\\\circle-flow\\\\src\\\\dataconnect-generated\"\nGenerated sources: package.json [853B] react\\esm\\package.json [17B] react\\index.cjs.js [3041B] .guides/usage.md [3195B] .guides/setup.md [1682B] index.cjs.js [5218B] index.d.ts [7751B] esm\\package.json [17B] react\\index.d.ts [3509B] react\\package.json [460B] react\\esm\\index.esm.js [2892B] react\\README.md [44970B] .guides/config.json [236B] esm\\index.esm.js [4734B] README.md [38232B] \n"}}
+[debug] [2026-06-14T08:09:22.799Z] I0614 15:09:22.798376   33888 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0614 15:09:22.798376   33888 installsdk.go:55] Package @dataconnect/generated is already installed. Skipping installation\n"}}
+[debug] [2026-06-14T08:09:22.800Z] I0614 15:09:22.799037   33888 load.go:109] Finished reloading
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0614 15:09:22.799037   33888 load.go:109] Finished reloading\n"}}
+[debug] [2026-06-14T08:09:22.817Z] I0614 15:09:22.817636   33888 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"I0614 15:09:22.817636   33888 dev.go:104] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[error] [Firebase Plugin] error:  {}
+[debug] [2026-06-14T08:09:23.338Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-06-14T08:09:23.338Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-06-14T08:15:46.042Z] [Firebase Plugin] Received CLI notification.
+[debug] [2026-06-14T08:15:46.083Z] [Firebase Plugin] Received emulators shutdown notification.
+[debug] [2026-06-14T08:19:05.168Z] [Firebase Plugin] Received emulators started notification. Running detection.
+[debug] [2026-06-14T08:19:05.179Z] Found emulator hub locator: {"version":"15.19.1","origins":["http://127.0.0.1:4400","http://[::1]:4400"],"pid":39684}
+[debug] [2026-06-14T08:19:05.180Z] >>> [apiv2][query] GET http://127.0.0.1:4400/emulators [none]
+[debug] [2026-06-14T08:19:05.214Z] <<< [apiv2][status] GET http://127.0.0.1:4400/emulators 200
+[debug] [2026-06-14T08:19:05.215Z] <<< [apiv2][body] GET http://127.0.0.1:4400/emulators {"hub":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"name":"hub","host":"127.0.0.1","port":4400},"ui":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"name":"ui","host":"127.0.0.1","port":4000},"logging":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"name":"logging","host":"127.0.0.1","port":4500},"extensions":{"name":"extensions","host":"127.0.0.1","port":5001},"functions":{"name":"functions","host":"127.0.0.1","port":5001},"firestore":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"name":"firestore","host":"127.0.0.1","port":8080,"pid":428,"reservedPorts":[9150],"webSocketHost":"127.0.0.1","webSocketPort":9150},"storage":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":9199}],"name":"storage","host":"127.0.0.1","port":9199},"eventarc":{"name":"eventarc","host":"127.0.0.1","port":9299},"tasks":{"name":"tasks","host":"127.0.0.1","port":9499}}
+[debug] [2026-06-14T08:24:49.465Z] [Firebase Plugin] Received emulators shutdown notification.
+[debug] [2026-06-14T08:25:10.489Z] [Firebase Plugin] Received emulators started notification. Running detection.
+[debug] [2026-06-14T08:25:10.490Z] Found emulator hub locator: {"version":"15.19.1","origins":["http://127.0.0.1:4400","http://[::1]:4400"],"pid":39684}
+[debug] [2026-06-14T08:25:10.491Z] >>> [apiv2][query] GET http://127.0.0.1:4400/emulators [none]
+[debug] [2026-06-14T08:25:10.530Z] <<< [apiv2][status] GET http://127.0.0.1:4400/emulators 200
+[debug] [2026-06-14T08:25:10.531Z] <<< [apiv2][body] GET http://127.0.0.1:4400/emulators {"hub":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"name":"hub","host":"127.0.0.1","port":4400},"ui":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"name":"ui","host":"127.0.0.1","port":4000},"logging":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"name":"logging","host":"127.0.0.1","port":4500},"extensions":{"name":"extensions","host":"127.0.0.1","port":5001},"auth":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"name":"auth","host":"127.0.0.1","port":9099},"functions":{"name":"functions","host":"127.0.0.1","port":5001},"firestore":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"name":"firestore","host":"127.0.0.1","port":8080,"pid":28848,"reservedPorts":[9150],"webSocketHost":"127.0.0.1","webSocketPort":9150},"storage":{"listen":[{"address":"127.0.0.1","family":"IPv4","port":9199}],"name":"storage","host":"127.0.0.1","port":9199},"eventarc":{"name":"eventarc","host":"127.0.0.1","port":9299},"tasks":{"name":"tasks","host":"127.0.0.1","port":9499}}

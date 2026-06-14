@@ -24,6 +24,8 @@ export default function LoginPage() {
   const { user, loading, loginWithEmail, signUpWithEmail } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState(0); // 0 = Login, 1 = Register
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -41,11 +43,13 @@ export default function LoginPage() {
     setError("");
     setEmail("");
     setPassword("");
+    setFirstName("");
+    setLastName("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!email || !password || (tab === 1 && (!firstName || !lastName))) {
       setError("Please fill in all fields.");
       return;
     }
@@ -56,7 +60,7 @@ export default function LoginPage() {
       if (tab === 0) {
         await loginWithEmail(email, password);
       } else {
-        await signUpWithEmail(email, password);
+        await signUpWithEmail(email, password, firstName, lastName);
       }
       router.push("/admin");
     } catch (err) {
@@ -152,6 +156,28 @@ export default function LoginPage() {
             )}
 
             <Box component="form" onSubmit={handleSubmit} noValidate>
+              {tab === 1 && (
+                <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="firstName"
+                    label="First Name"
+                    name="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                  <TextField
+                    required
+                    fullWidth
+                    id="lastName"
+                    label="Last Name"
+                    name="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </Box>
+              )}
               <TextField
                 margin="normal"
                 required
@@ -160,7 +186,6 @@ export default function LoginPage() {
                 label="Email Address"
                 name="email"
                 autoComplete="email"
-                autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 slotProps={{

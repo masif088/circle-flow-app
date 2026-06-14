@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,11 +14,12 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 // Use emulator if configured
 if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && typeof window !== "undefined") {
   // Prevent re-connecting if already connected (important for Next.js hot reloads)
-  if (!(auth as any)._emulatorConfig) {
+  if (!(auth as unknown as { _emulatorConfig?: unknown })._emulatorConfig) {
     try {
       connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
       console.log("Connected to Firebase Auth emulator");
@@ -25,6 +27,17 @@ if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && typeof window !== "undef
       console.warn("Failed to connect to Firebase Auth emulator:", error);
     }
   }
+
+  // Prevent re-connecting firestore if already connected (avoiding "Firestore has already been started" error)
+  const dbShim = db as unknown as { _settingsFrozen?: boolean };
+  if (!dbShim._settingsFrozen) {
+    try {
+      connectFirestoreEmulator(db, "localhost", 8080);
+      console.log("Connected to Firestore emulator");
+    } catch (error) {
+      console.warn("Failed to connect to Firestore emulator:", error);
+    }
+  }
 }
 
-export { app, auth };
+export { app, auth, db, firebaseConfig };

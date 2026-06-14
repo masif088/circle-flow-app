@@ -1,6 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut as firebaseSignOut, connectAuthEmulator } from "firebase/auth";
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { db, firebaseConfig } from "@/lib/firebase";
 import {
   Box,
   Typography,
@@ -47,97 +51,167 @@ interface UserRecord {
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserRecord[]>([
-    {
-      uid: "1",
-      name: "Jane Doe",
-      email: "jane@example.com",
-      role: "admin",
-      status: "active",
-      createdAt: "2026-05-10",
-    },
-    {
-      uid: "2",
-      name: "Alex Smith",
-      email: "alex@example.com",
-      role: "editor",
-      status: "active",
-      createdAt: "2026-06-01",
-    },
-    {
-      uid: "3",
-      name: "Bob Johnson",
-      email: "bob@example.com",
-      role: "viewer",
-      status: "suspended",
-      createdAt: "2026-06-05",
-    },
-  ]);
-
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
 
   // Form states
-  const [formName, setFormName] = useState("");
+  const [formFirstName, setFormFirstName] = useState("");
+  const [formLastName, setFormLastName] = useState("");
+  const [formPassword, setFormPassword] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formRole, setFormRole] = useState<"admin" | "editor" | "viewer">("viewer");
 
+  // Fetch users from Firestore on mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "users"));
+        const usersList: UserRecord[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          usersList.push({
+            uid: doc.id,
+            name: data.name || `${data.firstName || ""} ${data.lastName || ""}`.trim() || "No Name",
+            email: data.email || "",
+            role: data.role || "viewer",
+            status: data.status || "active",
+            createdAt: data.createdAt ? data.createdAt.split("T")[0] : "",
+          });
+        });
+        setUsers(usersList);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
   const handleOpenAdd = () => {
-    setFormName("");
+    setFormFirstName("");
+    setFormLastName("");
+    setFormPassword("");
     setFormEmail("");
     setFormRole("viewer");
     setOpenAddDialog(true);
   };
 
-  const handleAddUser = () => {
-    if (!formName || !formEmail) return;
-    const newUser: UserRecord = {
-      uid: Math.random().toString(36).substring(2, 9),
-      name: formName,
-      email: formEmail,
-      role: formRole,
-      status: "active",
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setUsers([...users, newUser]);
-    setOpenAddDialog(false);
+  const handleAddUser = async () => {
+    if (!formFirstName || !formLastName || !formEmail || !formPassword) return;
+    try {
+      // 1. Create user in Firebase Authentication using secondary app
+      const tempAppName = `temp-app-${Date.now()}`;
+      const tempApp = initializeApp(firebaseConfig, tempAppName);
+      const tempAuth = getAuth(tempApp);
+      if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true") {
+        connectAuthEmulator(tempAuth, "http://localhost:9099", { disableWarnings: true });
+      }
+      const userCredential = await createUserWithEmailAndPassword(tempAuth, formEmail, formPassword);
+      const createdUser = userCredential.user;
+      await firebaseSignOut(tempAuth);
+      await deleteApp(tempApp);
+
+      // 2. Save additional data to Firestore
+      const userData = {
+        firstName: formFirstName,
+        lastName: formLastName,
+        name: `${formFirstName} ${formLastName}`.trim(),
+        email: formEmail,
+        role: formRole,
+        status: "active" as const,
+        createdAt: new Date().toISOString(),
+      };
+      await setDoc(doc(db, "users", createdUser.uid), userData);
+
+      // 3. Update local UI state
+      const newUser: UserRecord = {
+        uid: createdUser.uid,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        status: userData.status,
+        createdAt: userData.createdAt.split("T")[0],
+      };
+      setUsers([...users, newUser]);
+      setOpenAddDialog(false);
+    } catch (error) {
+      console.error("Error adding user:", error);
+      alert(error instanceof Error ? error.message : "Failed to create user");
+    }
   };
 
   const handleOpenEdit = (user: UserRecord) => {
     setSelectedUser(user);
-    setFormName(user.name);
+    const nameParts = user.name.split(" ");
+    setFormFirstName(nameParts[0] || "");
+    setFormLastName(nameParts.slice(1).join(" ") || "");
     setFormEmail(user.email);
     setFormRole(user.role);
     setOpenEditDialog(true);
   };
 
-  const handleSaveEdit = () => {
-    if (!selectedUser || !formName || !formEmail) return;
-    setUsers(
-      users.map((u) =>
-        u.uid === selectedUser.uid
-          ? { ...u, name: formName, email: formEmail, role: formRole }
-          : u
-      )
-    );
-    setOpenEditDialog(false);
+  const handleSaveEdit = async () => {
+    if (!selectedUser || !formFirstName || !formLastName || !formEmail) return;
+    try {
+      const updatedName = `${formFirstName} ${formLastName}`.trim();
+      const userDocRef = doc(db, "users", selectedUser.uid);
+      await updateDoc(userDocRef, {
+        firstName: formFirstName,
+        lastName: formLastName,
+        name: updatedName,
+        email: formEmail,
+        role: formRole,
+      });
+
+      setUsers(
+        users.map((u) =>
+          u.uid === selectedUser.uid
+            ? { ...u, name: updatedName, email: formEmail, role: formRole }
+            : u
+        )
+      );
+      setOpenEditDialog(false);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      alert("Failed to update user in Firestore.");
+    }
   };
 
-  const toggleStatus = (uid: string) => {
-    setUsers(
-      users.map((u) =>
-        u.uid === uid
-          ? { ...u, status: u.status === "active" ? "suspended" : "active" }
-          : u
-      )
-    );
+  const toggleStatus = async (uid: string) => {
+    const userToUpdate = users.find((u) => u.uid === uid);
+    if (!userToUpdate) return;
+    const newStatus = userToUpdate.status === "active" ? "suspended" : "active";
+    try {
+      await updateDoc(doc(db, "users", uid), {
+        status: newStatus,
+      });
+      setUsers(
+        users.map((u) =>
+          u.uid === uid
+            ? { ...u, status: newStatus }
+            : u
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling user status:", error);
+      alert("Failed to update user status.");
+    }
   };
 
-  const handleDeleteUser = (uid: string) => {
-    if (confirm("Are you sure you want to delete this user?")) {
-      setUsers(users.filter((u) => u.uid !== uid));
+  const handleDeleteUser = async (uid: string) => {
+    if (confirm("Are you sure you want to delete this user from Firestore? (Note: This will not delete their Auth account directly from client SDK)")) {
+      try {
+        await deleteDoc(doc(db, "users", uid));
+        setUsers(users.filter((u) => u.uid !== uid));
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        alert("Failed to delete user document.");
+      }
     }
   };
 
@@ -277,19 +351,36 @@ export default function UsersPage() {
         <DialogTitle sx={{ fontWeight: 700 }}>Add New User</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              required
-            />
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                fullWidth
+                label="First Name"
+                value={formFirstName}
+                onChange={(e) => setFormFirstName(e.target.value)}
+                required
+              />
+              <TextField
+                fullWidth
+                label="Last Name"
+                value={formLastName}
+                onChange={(e) => setFormLastName(e.target.value)}
+                required
+              />
+            </Box>
             <TextField
               fullWidth
               label="Email Address"
               type="email"
               value={formEmail}
               onChange={(e) => setFormEmail(e.target.value)}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={formPassword}
+              onChange={(e) => setFormPassword(e.target.value)}
               required
             />
             <FormControl fullWidth>
@@ -308,7 +399,7 @@ export default function UsersPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={() => setOpenAddDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAddUser} disabled={!formName || !formEmail}>
+          <Button variant="contained" onClick={handleAddUser} disabled={!formFirstName || !formLastName || !formEmail || !formPassword}>
             Create User
           </Button>
         </DialogActions>
@@ -319,13 +410,22 @@ export default function UsersPage() {
         <DialogTitle sx={{ fontWeight: 700 }}>Edit User Settings</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              required
-            />
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                fullWidth
+                label="First Name"
+                value={formFirstName}
+                onChange={(e) => setFormFirstName(e.target.value)}
+                required
+              />
+              <TextField
+                fullWidth
+                label="Last Name"
+                value={formLastName}
+                onChange={(e) => setFormLastName(e.target.value)}
+                required
+              />
+            </Box>
             <TextField
               fullWidth
               label="Email Address"
@@ -350,7 +450,7 @@ export default function UsersPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveEdit} disabled={!formName || !formEmail}>
+          <Button variant="contained" onClick={handleSaveEdit} disabled={!formFirstName || !formLastName || !formEmail}>
             Save Changes
           </Button>
         </DialogActions>

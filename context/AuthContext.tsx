@@ -8,13 +8,14 @@ import {
   signOut,
   createUserWithEmailAndPassword,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   loginWithEmail: (email: string, password: string) => ReturnType<typeof signInWithEmailAndPassword>;
-  signUpWithEmail: (email: string, password: string) => ReturnType<typeof createUserWithEmailAndPassword>;
+  signUpWithEmail: (email: string, password: string, firstName: string, lastName: string) => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -37,8 +38,19 @@ export function AuthContextProvider({ children }: { children: React.ReactNode })
     return signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signUpWithEmail = (email: string, password: string) => {
-    return createUserWithEmailAndPassword(auth, email, password);
+  const signUpWithEmail = async (email: string, password: string, firstName: string, lastName: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const createdUser = userCredential.user;
+    
+    // Write extra user profile info to Firestore
+    await setDoc(doc(db, "users", createdUser.uid), {
+      email,
+      firstName,
+      lastName,
+      createdAt: new Date().toISOString(),
+    });
+
+    return createdUser;
   };
 
   const logout = () => {

@@ -1,0 +1,201 @@
+[debug] [2026-06-14T08:24:54.714Z] ----------------------------------------------------------------------
+[debug] [2026-06-14T08:24:54.717Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\LENOVO\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js emulators:start --project circle-flow-3795f
+[debug] [2026-06-14T08:24:54.717Z] CLI Version:   15.19.1
+[debug] [2026-06-14T08:24:54.717Z] Platform:      win32
+[debug] [2026-06-14T08:24:54.718Z] Node Version:  v22.18.0
+[debug] [2026-06-14T08:24:54.718Z] Time:          Sun Jun 14 2026 15:24:54 GMT+0700 (Western Indonesia Time)
+[debug] [2026-06-14T08:24:54.718Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-14T08:24:56.878Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-14T08:24:56.878Z] > authorizing via signed-in user (mokhamadasif@gmail.com)
+[debug] [2026-06-14T08:24:56.981Z] openjdk version "21.0.11" 2026-04-21 LTS
+
+[debug] [2026-06-14T08:24:56.982Z] OpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS)
+OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)
+
+[debug] [2026-06-14T08:24:56.991Z] Parsed Java major version: 21
+[info] i  emulators: Starting emulators: auth, functions, firestore, storage, extensions {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: auth, functions, firestore, storage, extensions"}}
+[debug] [2026-06-14T08:24:56.994Z] Checked if tokens are valid: true, expires at: 1781428161575
+[debug] [2026-06-14T08:24:56.994Z] Checked if tokens are valid: true, expires at: 1781428161575
+[debug] [2026-06-14T08:24:56.996Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/circle-flow-3795f [none]
+[debug] [2026-06-14T08:24:57.510Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/circle-flow-3795f 200
+[debug] [2026-06-14T08:24:57.511Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/circle-flow-3795f {"projectNumber":"368520167324","projectId":"circle-flow-3795f","lifecycleState":"ACTIVE","name":"circle-flow","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-06-07T14:36:48.244Z"}
+[debug] [2026-06-14T08:24:57.533Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-14T08:24:57.533Z] [auth] Authentication Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-14T08:24:57.533Z] [firestore] Firestore Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-14T08:24:57.533Z] [firestore.websocket] websocket server for firestore only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-14T08:24:57.534Z] [storage] Storage Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-14T08:24:57.534Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}],"storage":[{"address":"127.0.0.1","family":"IPv4","port":9199}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2026-06-14T08:24:57.543Z] Found emulator hub locator: {"version":"15.19.1","origins":["http://127.0.0.1:4400","http://[::1]:4400"],"pid":39684}
+[warn] !  emulators: It seems that you are running multiple instances of the emulator suite for project circle-flow-3795f. This may result in unexpected behavior. 
+[debug] [2026-06-14T08:24:57.565Z] [Extensions] Started Extensions emulator, this is a noop.
+[debug] [2026-06-14T08:24:57.576Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-14T08:24:57.577Z] [eventarc] Eventarc Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-14T08:24:57.578Z] [tasks] Cloud Tasks Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-06-14T08:24:57.578Z] late-assigned ports for functions and eventarc emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}],"storage":[{"address":"127.0.0.1","family":"IPv4","port":9199}],"functions":[{"address":"127.0.0.1","family":"IPv4","port":5001}],"eventarc":[{"address":"127.0.0.1","family":"IPv4","port":9299}],"tasks":[{"address":"127.0.0.1","family":"IPv4","port":9499}]},"metadata":{"message":"late-assigned ports for functions and eventarc emulators"}}
+[warn] !  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, database, hosting, pubsub, dataconnect {"metadata":{"emulator":{"name":"functions"},"message":"The following emulators are not running, calls to these services from the Functions emulator will affect production: \u001b[1mapphosting, database, hosting, pubsub, dataconnect\u001b[22m"}}
+[debug] [2026-06-14T08:24:57.678Z] defaultcredentials: writing to file C:\Users\LENOVO\AppData\Roaming\firebase\mokhamadasif_gmail_com_application_default_credentials.json
+[debug] [2026-06-14T08:24:57.684Z] Setting GAC to C:\Users\LENOVO\AppData\Roaming\firebase\mokhamadasif_gmail_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to C:\\Users\\LENOVO\\AppData\\Roaming\\firebase\\mokhamadasif_gmail_com_application_default_credentials.json"}}
+[debug] [2026-06-14T08:24:57.685Z] Checked if tokens are valid: true, expires at: 1781428161575
+[debug] [2026-06-14T08:24:57.685Z] Checked if tokens are valid: true, expires at: 1781428161575
+[debug] [2026-06-14T08:24:57.686Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/circle-flow-3795f/adminSdkConfig [none]
+[debug] [2026-06-14T08:24:58.941Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/circle-flow-3795f/adminSdkConfig 200
+[debug] [2026-06-14T08:24:58.942Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/circle-flow-3795f/adminSdkConfig {"projectId":"circle-flow-3795f","storageBucket":"circle-flow-3795f.firebasestorage.app"}
+[debug] [2026-06-14T08:24:58.962Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-06-14T08:24:58.962Z] Ignoring unsupported arg: single_project_mode_error {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: single_project_mode_error"}}
+[debug] [2026-06-14T08:24:58.962Z] Starting Firestore Emulator with command {"binary":"java","args":["-Dgoogle.cloud_firestore.debug_log_level=FINE","-Duser.language=en","-jar","C:\\Users\\LENOVO\\.cache\\firebase\\emulators\\cloud-firestore-emulator-v1.21.0.jar","--host","127.0.0.1","--port",8080,"--websocket_port",9150,"--database-edition","standard","--project_id","circle-flow-3795f","--rules","C:\\ASif Code\\circle-flow\\firestore.rules","--single_project_mode",true,"--functions_emulator","127.0.0.1:5001"],"optionalArgs":["port","webchannel_port","host","rules","websocket_port","database-edition","functions_emulator","seed_from_export","project_id","single_project_mode"],"joinArgs":false,"shell":false,"port":8080} {"metadata":{"emulator":{"name":"firestore"},"message":"Starting Firestore Emulator with command {\"binary\":\"java\",\"args\":[\"-Dgoogle.cloud_firestore.debug_log_level=FINE\",\"-Duser.language=en\",\"-jar\",\"C:\\\\Users\\\\LENOVO\\\\.cache\\\\firebase\\\\emulators\\\\cloud-firestore-emulator-v1.21.0.jar\",\"--host\",\"127.0.0.1\",\"--port\",8080,\"--websocket_port\",9150,\"--database-edition\",\"standard\",\"--project_id\",\"circle-flow-3795f\",\"--rules\",\"C:\\\\ASif Code\\\\circle-flow\\\\firestore.rules\",\"--single_project_mode\",true,\"--functions_emulator\",\"127.0.0.1:5001\"],\"optionalArgs\":[\"port\",\"webchannel_port\",\"host\",\"rules\",\"websocket_port\",\"database-edition\",\"functions_emulator\",\"seed_from_export\",\"project_id\",\"single_project_mode\"],\"joinArgs\":false,\"shell\":false,\"port\":8080}"}}
+[info] i  firestore: Firestore Emulator logging to firestore-debug.log {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator logging to \u001b[1mfirestore-debug.log\u001b[22m"}}
+[debug] [2026-06-14T08:25:00.906Z] Jun 14, 2026 3:25:00 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
+INFO: Started WebSocket server on ws://127.0.0.1:9150
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:25:00 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start\r\nINFO: Started WebSocket server on ws://127.0.0.1:9150\r\n"}}
+[debug] [2026-06-14T08:25:00.988Z] 
+API endpoint: http:// {"metadata":{"emulator":{"name":"firestore"},"message":"\nAPI endpoint: http://"}}
+[debug] [2026-06-14T08:25:00.989Z] 127.0.0.1:8080
+Database Edition: STANDARD
+Database Mode: CLOUD_FIRESTORE
+
+If you are using a library that supports the FIRESTORE_EMULATOR_HOST environment variable, run:
+
+   export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+
+If you are running a Firestore in Datastore Mode project, run:
+
+   export DATASTORE_EMULATOR_HOST=127.0.0.1:8080
+
+Note: Support for Datastore Mode is in preview. If you encounter any bugs please file at https://github.com/firebase/firebase-tools/issues.
+Dev App Server is now running.
+
+ {"metadata":{"emulator":{"name":"firestore"},"message":"127.0.0.1:8080\nDatabase Edition: STANDARD\nDatabase Mode: CLOUD_FIRESTORE\n\nIf you are using a library that supports the FIRESTORE_EMULATOR_HOST environment variable, run:\r\n\n   export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080\n\nIf you are running a Firestore in Datastore Mode project, run:\r\n\n   export DATASTORE_EMULATOR_HOST=127.0.0.1:8080\n\nNote: Support for Datastore Mode is in preview. If you encounter any bugs please file at https://github.com/firebase/firebase-tools/issues.\r\nDev App Server is now running.\n\r\n"}}
+[info] +  firestore: Firestore Emulator was started in standard edition. {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator was started in standard edition."}}
+[info] +  firestore: Firestore Emulator UI websocket is running on 9150. {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator UI websocket is running on 9150."}}
+[debug] [2026-06-14T08:25:08.816Z] Jun 14, 2026 3:25:05 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel
+INFO: Connected to new websocket client
+Jun 14, 2026 3:25:07 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler channelClosed
+INFO: Websocket client disconnected
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:25:05 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel\r\nINFO: Connected to new websocket client\r\nJun 14, 2026 3:25:07 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler channelClosed\r\nINFO: Websocket client disconnected\r\n"}}
+[debug] [2026-06-14T08:25:08.826Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"storage"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-06-14T08:25:10.029Z] Temp file directory for storage emulator: C:\Users\LENOVO\AppData\Local\Temp/firebase/storage/blobs {"metadata":{"emulator":{"name":"storage"},"message":"Temp file directory for storage emulator: C:\\Users\\LENOVO\\AppData\\Local\\Temp/firebase/storage/blobs"}}
+[debug] [2026-06-14T08:25:10.045Z] [Extensions] Connecting Extensions emulator, this is a noop.
+[info] i  functions: Watching "C:\ASif Code\circle-flow\functions" for Cloud Functions... {"metadata":{"emulator":{"name":"functions"},"message":"Watching \"C:\\ASif Code\\circle-flow\\functions\" for Cloud Functions..."}}
+[debug] [2026-06-14T08:25:10.048Z] Customer code is not Node
+[debug] [2026-06-14T08:25:10.049Z] Validating python source
+[debug] [2026-06-14T08:25:10.049Z] Building python source
+[debug] [2026-06-14T08:25:10.051Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-06-14T08:25:10.060Z] Running command with virtualenv: command="C:\ASif Code\circle-flow\functions\venv\Scripts\activate.bat", args=["","&&","python.exe","-c","\"import firebase_functions; import os; print(os.path.dirname(firebase_functions.__file__))\""]
+[debug] [2026-06-14T08:25:10.449Z] stderr: Traceback (most recent call last):
+
+[debug] [2026-06-14T08:25:10.457Z] stderr:   File "<string>", line 1, in <module>
+    import firebase_functions; import os; print(os.path.dirname(firebase_functions.__file__))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'firebase_functions'
+
+[error] !!  functions: Failed to load function definition from source: Error: spawn "C:\ASif Code\circle-flow\functions\venv\Scripts\activate.bat" ENOENT {"metadata":{"emulator":{"name":"functions"},"message":"Failed to load function definition from source: Error: spawn \"C:\\ASif Code\\circle-flow\\functions\\venv\\Scripts\\activate.bat\" ENOENT"}}
+[info] 
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+│ i  View Emulator UI at http://127.0.0.1:4000/               │
+└─────────────────────────────────────────────────────────────┘
+
+┌────────────────┬────────────────┬──────────────────────────────────┐
+│ Emulator       │ Host:Port      │ View in Emulator UI              │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Authentication │ 127.0.0.1:9099 │ http://127.0.0.1:4000/auth       │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Functions      │ 127.0.0.1:5001 │ http://127.0.0.1:4000/functions  │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Firestore      │ 127.0.0.1:8080 │ http://127.0.0.1:4000/firestore  │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Storage        │ 127.0.0.1:9199 │ http://127.0.0.1:4000/storage    │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Extensions     │ 127.0.0.1:5001 │ http://127.0.0.1:4000/extensions │
+└────────────────┴────────────────┴──────────────────────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500, 9150
+┌─────────────────────────┬───────────────┬─────────────────────┐
+│ Extension Instance Name │ Extension Ref │ View in Emulator UI │
+└─────────────────────────┴───────────────┴─────────────────────┘
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+[debug] [2026-06-14T08:25:11.045Z] Jun 14, 2026 3:25:11 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel
+INFO: Connected to new websocket client
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:25:11 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel\r\nINFO: Connected to new websocket client\r\n"}}
+[debug] [2026-06-14T08:25:14.313Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/circle-flow-3795f/trigger_multicast [none]
+[debug] [2026-06-14T08:25:14.314Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/circle-flow-3795f/trigger_multicast {"eventId":"34d36448-ef5a-489b-bb76-bcb6c4527867","eventType":"providers/firebase.auth/eventTypes/user.create","resource":{"name":"projects/circle-flow-3795f","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2026-06-14T08:25:14.313Z","data":{"uid":"b90wrmp05a7dvE1QXJmtNMiIARbm","email":"mokhamadasif@gmail.com","emailVerified":false,"metadata":{"creationTime":"2026-06-14T08:25:14.311Z","lastSignInTime":"2026-06-14T08:25:14.311Z"},"customClaims":{},"providerData":[{"rawId":"mokhamadasif@gmail.com","providerId":"password","email":"mokhamadasif@gmail.com","federatedId":"mokhamadasif@gmail.com"}]}}
+[debug] [2026-06-14T08:25:14.329Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/circle-flow-3795f/trigger_multicast 200
+[debug] [2026-06-14T08:25:14.329Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/circle-flow-3795f/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-06-14T08:25:14.678Z] Jun 14, 2026 3:25:14 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:25:14 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:25:15.713Z] Jun 14, 2026 3:25:15 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:25:15 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:25:16.040Z] Jun 14, 2026 3:25:16 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:25:16 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:16.863Z] Jun 14, 2026 3:26:16 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:16 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:16.871Z] Jun 14, 2026 3:26:16 PM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose
+INFO: channel closed
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:16 PM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose\r\nINFO: channel closed\r\n"}}
+[debug] [2026-06-14T08:26:30.161Z] Jun 14, 2026 3:26:30 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:30 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:30.664Z] Jun 14, 2026 3:26:30 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:30 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:30.928Z] Jun 14, 2026 3:26:30 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:30 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:55.622Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/circle-flow-3795f/trigger_multicast [none]
+[debug] [2026-06-14T08:26:55.622Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/circle-flow-3795f/trigger_multicast {"eventId":"d532f767-6f0b-4c0d-96db-46a62c801c66","eventType":"providers/firebase.auth/eventTypes/user.create","resource":{"name":"projects/circle-flow-3795f","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2026-06-14T08:26:55.621Z","data":{"uid":"l67hzjO2PyYxQQf8szu4IgyCEWHU","email":"masif@gmail.com","emailVerified":false,"metadata":{"creationTime":"2026-06-14T08:26:55.621Z","lastSignInTime":"2026-06-14T08:26:55.621Z"},"customClaims":{},"providerData":[{"rawId":"masif@gmail.com","providerId":"password","email":"masif@gmail.com","federatedId":"masif@gmail.com"}]}}
+[debug] [2026-06-14T08:26:55.631Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/circle-flow-3795f/trigger_multicast 200
+[debug] [2026-06-14T08:26:55.632Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/circle-flow-3795f/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2026-06-14T08:26:55.649Z] Jun 14, 2026 3:26:55 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:55 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:55.981Z] Jun 14, 2026 3:26:55 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:55 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:56.043Z] Jun 14, 2026 3:26:56 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:56 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:56.308Z] Jun 14, 2026 3:26:56 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:56 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:56.325Z] Jun 14, 2026 3:26:56 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:56 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:26:59.214Z] Jun 14, 2026 3:26:59 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler channelClosed
+INFO: Websocket client disconnected
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:59 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler channelClosed\r\nINFO: Websocket client disconnected\r\n"}}
+[debug] [2026-06-14T08:26:59.223Z] Jun 14, 2026 3:26:59 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel
+INFO: Connected to new websocket client
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:26:59 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel\r\nINFO: Connected to new websocket client\r\n"}}
+[debug] [2026-06-14T08:27:01.680Z] Jun 14, 2026 3:27:01 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:01 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:27:01.907Z] Jun 14, 2026 3:27:01 PM io.grpc.netty.TcpMetrics loadEpollInfo
+INFO: Epoll available during static init of TcpMetrics:false
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:01 PM io.grpc.netty.TcpMetrics loadEpollInfo\r\nINFO: Epoll available during static init of TcpMetrics:false\r\n"}}
+[debug] [2026-06-14T08:27:01.929Z] Jun 14, 2026 3:27:01 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:01 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:27:02.130Z] Jun 14, 2026 3:27:02 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:02 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:27:02.165Z] Jun 14, 2026 3:27:02 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:02 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:27:02.297Z] Jun 14, 2026 3:27:02 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:02 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:27:26.648Z] Jun 14, 2026 3:27:26 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:26 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:27:31.014Z] Jun 14, 2026 3:27:31 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:31 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\r\nINFO: Detected non-HTTP/2 connection.\r\n"}}
+[debug] [2026-06-14T08:27:31.020Z] Jun 14, 2026 3:27:31 PM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreListenHandler onClose
+INFO: channel closed
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Jun 14, 2026 3:27:31 PM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreListenHandler onClose\r\nINFO: channel closed\r\n"}}
