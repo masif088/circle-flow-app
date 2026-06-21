@@ -39,6 +39,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   Notifications as NotificationsIcon,
   Person as PersonIcon,
+  AccountBalanceWallet as FinanceIcon,
 } from "@mui/icons-material";
 import { updateProfile, updatePassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -160,6 +161,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const menuItems = [
     { text: "Dashboard", icon: <DashboardIcon />, path: "/admin" },
     { text: "Users", icon: <PeopleIcon />, path: "/admin/users" },
+    { text: "Companies", icon: <FinanceIcon />, path: "/admin/companies" },
+    { text: "Projects", icon: <DashboardIcon />, path: "/admin/projects" },
+    { text: "Gantt Chart", icon: <DashboardIcon />, path: "/admin/gantt" },
+    { text: "Presence", icon: <PersonIcon />, path: "/admin/presence" },
+    { text: "Finance", icon: <FinanceIcon />, path: "/admin/finance" },
     { text: "Settings", icon: <SettingsIcon />, path: "/admin/settings" },
   ];
 

@@ -4,16 +4,19 @@ import React, { useMemo } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { AuthContextProvider } from "@/context/AuthContext";
-import useMediaQuery from "@mui/material/useMediaQuery";
+import { registerLicense } from "@syncfusion/ej2-base";
+
+// Register Syncfusion license key for version 33
+// registerLicense("Ngo9BigBOggjHTQxAR8/V1JHaF5cWWdCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdlWXlfdnVcRmNdVEdyVkBWYEo=");
+registerLicense(process.env.NEXT_PUBLIC_SYNCFUSION_LICENSE_KEY || "");
+
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-
   const theme = useMemo(
     () =>
       createTheme({
         palette: {
-          mode: prefersDarkMode ? "dark" : "light",
+          mode: "light",
           primary: {
             main: "#6366f1", // Indigo
             light: "#818cf8",
@@ -25,12 +28,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
             dark: "#059669",
           },
           background: {
-            default: prefersDarkMode ? "#0b0f19" : "#f8fafc",
-            paper: prefersDarkMode ? "#111827" : "#ffffff",
+            default: "#f8fafc",
+            paper: "#ffffff",
           },
           text: {
-            primary: prefersDarkMode ? "#f3f4f6" : "#0f172a",
-            secondary: prefersDarkMode ? "#9ca3af" : "#475569",
+            primary: "#0f172a",
+            secondary: "#475569",
           },
         },
         typography: {
@@ -79,18 +82,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
             styleOverrides: {
               root: {
                 backgroundImage: "none",
-                border: prefersDarkMode
-                  ? "1px solid rgba(255, 255, 255, 0.08)"
-                  : "1px solid rgba(0, 0, 0, 0.08)",
-                boxShadow: prefersDarkMode
-                  ? "0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5)"
-                  : "0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)",
+                border: "1px solid rgba(0, 0, 0, 0.08)",
+                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)",
               },
             },
           },
         },
       }),
-    [prefersDarkMode]
+    []
   );
 
   return (

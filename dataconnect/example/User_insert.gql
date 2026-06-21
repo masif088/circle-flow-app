@@ -1,4 +1,0 @@
-# Named mutation for inserting/upserting a user.
-mutation CreateUser($id: String!, $username: String!, $email: String!) @auth(level: PUBLIC) {
-  user_upsert(data: { id: $id, username: $username, email: $email })
-}

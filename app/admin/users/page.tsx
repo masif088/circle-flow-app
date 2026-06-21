@@ -30,7 +30,6 @@ import {
   Select,
   MenuItem,
   InputAdornment,
-  Grid,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -388,7 +387,7 @@ export default function UsersPage() {
               <Select
                 value={formRole}
                 label="Role"
-                onChange={(e) => setFormRole(e.target.value as any)}
+                onChange={(e) => setFormRole(e.target.value as "viewer" | "editor" | "admin")}
               >
                 <MenuItem value="viewer">Viewer</MenuItem>
                 <MenuItem value="editor">Editor</MenuItem>
@@ -439,7 +438,7 @@ export default function UsersPage() {
               <Select
                 value={formRole}
                 label="Role"
-                onChange={(e) => setFormRole(e.target.value as any)}
+                onChange={(e) => setFormRole(e.target.value as "viewer" | "editor" | "admin")}
               >
                 <MenuItem value="viewer">Viewer</MenuItem>
                 <MenuItem value="editor">Editor</MenuItem>

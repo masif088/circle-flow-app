@@ -1,8 +1,60 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if user is logged in
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // Helper to get user document data
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Helper to check if user has admin role
+    function isAdmin() {
+      return isLoggedIn() && getUserData().role == 'admin';
+    }
+
+    // Helper to check if user is admin or manager
+    function isAdminOrManager() {
+      return isLoggedIn() && (getUserData().role == 'admin' || getUserData().role == 'editor'); // Di users/page.tsx, role manager dipetakan ke 'editor'/'admin'
+    }
+
+    // Rules for Users
+    match /users/{userId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+
+    // Rules for Companies
+    match /companies/{companyId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+
+    // Rules for Projects
+    match /projects/{projectId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+
+    // Rules for Cost People on Project
+    match /cost_people_on_project/{costId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdminOrManager();
+    }
+
+    // Rules for Presences
+    match /presences/{presenceId} {
+      allow create: if isLoggedIn() && request.resource.data.user_id == request.auth.uid;
+      allow read: if isLoggedIn() && (resource.data.user_id == request.auth.uid || isAdminOrManager());
+      allow update, delete: if isAdminOrManager();
+    }
+
+    // Default rule for other collections
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isLoggedIn();
     }
   }
 }

@@ -1,0 +1,23 @@
+wallet
+name: string
+type: "cash" | "bank" | "ewallet" | "other"
+total_transactions: number
+total_credit: number
+total_debit: number
+current_balance: number
+
+wallet_transaction
+id
+time_transaction
+wallet_id: string
+category: string
+description: string
+credit
+debit
+created_at
+updated_at
+current_balance
+
+monthly snap
+
+yearly snap

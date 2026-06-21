@@ -1,8 +1,21 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Helper function to check if user is logged in
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // Rules for presence photos
+    // Path: presences/{userId}/{filename}
+    match /presences/{userId}/{filename} {
+      allow write: if isLoggedIn() && request.auth.uid == userId;
+      allow read: if isLoggedIn();
+    }
+
+    // Default rule for all other files
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isLoggedIn();
     }
   }
 }
