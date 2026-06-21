@@ -231,7 +231,7 @@ export default function ProjectsPage() {
         border-radius: 4px; 
         background-color: ${proj.status === "Completed" ? "#d1fae5" : proj.status === "Planned" ? "#fef3c7" : "#e0e7ff"}; 
         color: ${proj.status === "Completed" ? "#065f46" : proj.status === "Planned" ? "#92400e" : "#3730a3"};
-      ">${proj.status || "Active"}</span>`;
+      ">${proj.status === "Completed" ? "Selesai" : proj.status === "Planned" ? "Direncanakan" : "Aktif"}</span>`;
 
       const formatPrice = (val?: number) => {
         if (!val) return "Rp 0";
@@ -245,7 +245,7 @@ export default function ProjectsPage() {
             ${statusBadge}
           </div>
           <p style="margin: 0 0 10px 0; font-size: 11px; color: #4b5563; line-height: 1.4;">
-            <strong>Budget:</strong> ${formatPrice(proj.value)}<br/>
+            <strong>Anggaran:</strong> ${formatPrice(proj.value)}<br/>
             <strong>Radius:</strong> ${proj.radius}m
           </p>
           <a href="/admin/projects/${proj.id}" style="
@@ -259,7 +259,7 @@ export default function ProjectsPage() {
             font-size: 11px; 
             font-weight: 600;
             box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
-          ">View Analysis</a>
+          ">Lihat Analisis</a>
         </div>
       `;
 
@@ -298,7 +298,7 @@ export default function ProjectsPage() {
         status: projStatus,
         createdAt: new Date().toISOString()
       });
-      showMsg(`Project "${projTitle}" added successfully.`);
+      showMsg(`Proyek "${projTitle}" berhasil ditambahkan.`);
       setOpenProjectDialog(false);
       setProjTitle("");
       setProjLat("");
@@ -308,17 +308,17 @@ export default function ProjectsPage() {
       setProjValue("");
       setProjStatus("Active");
     } catch (error: any) {
-      showMsg("Failed to add project: " + error.message, "error");
+      showMsg("Gagal menambahkan proyek: " + error.message, "error");
     }
   };
 
   const handleDeleteProject = async (id: string) => {
-    if (confirm("Are you sure you want to delete this project?")) {
+    if (confirm("Apakah Anda yakin ingin menghapus proyek ini?")) {
       try {
         await deleteDoc(doc(db, "projects", id));
-        showMsg("Project deleted.");
+        showMsg("Proyek dihapus.");
       } catch (error: any) {
-        showMsg("Delete failed: " + error.message, "error");
+        showMsg("Penghapusan gagal: " + error.message, "error");
       }
     }
   };
@@ -349,10 +349,10 @@ export default function ProjectsPage() {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
         <Box>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-            Projects Management
+            Manajemen Proyek
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Define project site coordinates and set safe radius thresholds.
+            Tentukan koordinat lokasi proyek dan tetapkan ambang batas radius aman.
           </Typography>
         </Box>
         <Button
@@ -365,7 +365,7 @@ export default function ProjectsPage() {
             color: "#ffffff"
           }}
         >
-          Add Project
+          Tambah Proyek
         </Button>
       </Box>
 
@@ -375,7 +375,7 @@ export default function ProjectsPage() {
       <Card sx={{ mb: 4, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-            <MapIcon color="primary" /> Project Locations Map
+            <MapIcon color="primary" /> Peta Lokasi Proyek
           </Typography>
           <Box
             id={mapContainerId}
@@ -401,27 +401,27 @@ export default function ProjectsPage() {
             <Table sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 600 }}>Project ID</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Project Title</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Company Owner</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Location Coordinates</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Geofence Radius</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Budget</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>ID Proyek</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Judul Proyek</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Perusahaan Pemilik</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Koordinat Lokasi</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Radius Geofence</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Anggaran</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                      Loading projects...
+                      Memuat proyek...
                     </TableCell>
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                      No projects found.
+                      Proyek tidak ditemukan.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -431,27 +431,33 @@ export default function ProjectsPage() {
                       <TableCell sx={{ fontWeight: 600 }}>{proj.title}</TableCell>
                       <TableCell>{getCompanyName(proj.company_id)}</TableCell>
                       <TableCell>{proj.latitude.toFixed(6)}, {proj.longitude.toFixed(6)}</TableCell>
-                      <TableCell>{proj.radius} meters</TableCell>
+                      <TableCell>{proj.radius} meter</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{formatPrice(proj.value)}</TableCell>
                       <TableCell>
                         <Chip
-                          label={proj.status || "Active"}
+                          label={
+                            proj.status === "Completed"
+                              ? "Selesai"
+                              : proj.status === "Planned"
+                              ? "Direncanakan"
+                              : "Aktif"
+                          }
                           size="small"
                           color={getStatusChipColor(proj.status)}
                           sx={{ fontWeight: 600, borderRadius: 1.5 }}
                         />
                       </TableCell>
                       <TableCell align="right">
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
                           <IconButton
                             color="primary"
                             onClick={() => window.location.href = `/admin/projects/${proj.id}`}
                             size="small"
-                            title="View Project Analysis Detail"
+                            title="Lihat Detail Analisis Proyek"
                           >
                             <ViewIcon />
                           </IconButton>
-                          <IconButton color="error" onClick={() => handleDeleteProject(proj.id)} size="small" title="Delete Project">
+                          <IconButton color="error" onClick={() => handleDeleteProject(proj.id)} size="small" title="Hapus Proyek">
                             <DeleteIcon />
                           </IconButton>
                         </Stack>
@@ -467,21 +473,21 @@ export default function ProjectsPage() {
 
       {/* Add Project Dialog */}
       <Dialog open={openProjectDialog} onClose={() => setOpenProjectDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Add Project Site</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Tambah Lokasi Proyek</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField
               fullWidth
-              label="Project Title"
+              label="Judul Proyek"
               required
               value={projTitle}
               onChange={(e) => setProjTitle(e.target.value)}
             />
             <FormControl fullWidth required>
-              <InputLabel>Assign Company</InputLabel>
+              <InputLabel>Tugaskan Perusahaan</InputLabel>
               <Select
                 value={projCompId}
-                label="Assign Company"
+                label="Tugaskan Perusahaan"
                 onChange={(e) => setProjCompId(e.target.value)}
               >
                 {companies.map((c) => (
@@ -490,10 +496,10 @@ export default function ProjectsPage() {
               </Select>
             </FormControl>
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
-                  label="Latitude Coordinate"
+                  label="Koordinat Latitude"
                   type="number"
                   required
                   placeholder="-6.2088"
@@ -501,10 +507,10 @@ export default function ProjectsPage() {
                   onChange={(e) => setProjLat(e.target.value)}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
-                  label="Longitude Coordinate"
+                  label="Koordinat Longitude"
                   type="number"
                   required
                   placeholder="106.8456"
@@ -515,33 +521,33 @@ export default function ProjectsPage() {
             </Grid>
             <TextField
               fullWidth
-              label="Geofence Radius (Meters)"
+              label="Radius Geofence (Meter)"
               type="number"
               value={projRadius}
               onChange={(e) => setProjRadius(e.target.value)}
             />
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
-                  label="Project Budget (IDR)"
+                  label="Anggaran Proyek (IDR)"
                   type="number"
-                  placeholder="e.g. 50000000"
+                  placeholder="misal: 50000000"
                   value={projValue}
                   onChange={(e) => setProjValue(e.target.value)}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <FormControl fullWidth required>
-                  <InputLabel>Project Status</InputLabel>
+                  <InputLabel>Status Proyek</InputLabel>
                   <Select
                     value={projStatus}
-                    label="Project Status"
+                    label="Status Proyek"
                     onChange={(e) => setProjStatus(e.target.value)}
                   >
-                    <MenuItem value="Active">Active</MenuItem>
-                    <MenuItem value="Completed">Completed</MenuItem>
-                    <MenuItem value="Planned">Planned</MenuItem>
+                    <MenuItem value="Active">Aktif</MenuItem>
+                    <MenuItem value="Completed">Selesai</MenuItem>
+                    <MenuItem value="Planned">Direncanakan</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -549,9 +555,9 @@ export default function ProjectsPage() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setOpenProjectDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenProjectDialog(false)}>Batal</Button>
           <Button variant="contained" onClick={handleAddProject} disabled={!projTitle || !projLat || !projLon || !projCompId}>
-            Save Project
+            Simpan Proyek
           </Button>
         </DialogActions>
       </Dialog>

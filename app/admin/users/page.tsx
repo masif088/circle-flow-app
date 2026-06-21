@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut as firebaseSignOut, connectAuthEmulator } from "firebase/auth";
 import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -28,8 +29,11 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Divider,
+  Grid,
+  Stack,
   MenuItem,
-  InputAdornment,
+  InputAdornment
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -38,6 +42,9 @@ import {
   Delete as DeleteIcon,
   Block as BlockIcon,
   CheckCircleOutlined as ActiveIcon,
+  Visibility as ViewIcon,
+  LocationOn as LocationIcon,
+  AttachMoney as MoneyIcon
 } from "@mui/icons-material";
 
 interface UserRecord {
@@ -51,11 +58,13 @@ interface UserRecord {
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
+
 
   // Form states
   const [formFirstName, setFormFirstName] = useState("");
@@ -214,6 +223,7 @@ export default function UsersPage() {
     }
   };
 
+
   const filteredUsers = users.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -316,6 +326,9 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell color="text.secondary">{user.createdAt}</TableCell>
                     <TableCell align="right">
+                      <IconButton color="primary" onClick={() => router.push(`/admin/users/${user.uid}`)} title="Lihat Detail & Riwayat Pengguna">
+                        <ViewIcon />
+                      </IconButton>
                       <IconButton
                         color={user.status === "active" ? "error" : "success"}
                         onClick={() => toggleStatus(user.uid)}

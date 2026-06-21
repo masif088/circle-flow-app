@@ -103,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setProfileError("");
     setProfileSuccess("");
     if (!profileName.trim()) {
-      setProfileError("Name cannot be empty.");
+      setProfileError("Nama tidak boleh kosong.");
       return;
     }
     setProfileSaving(true);
@@ -117,16 +117,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // Update password if entered
         if (profilePassword.trim()) {
           if (profilePassword.length < 6) {
-            throw new Error("Password must be at least 6 characters.");
+            throw new Error("Kata sandi harus minimal 6 karakter.");
           }
           await updatePassword(auth.currentUser, profilePassword);
         }
 
-        setProfileSuccess("Profile updated successfully!");
+        setProfileSuccess("Profil berhasil diperbarui!");
         setProfilePassword("");
       }
     } catch (err: any) {
-      setProfileError(err.message || "Failed to update profile.");
+      setProfileError(err.message || "Gagal memperbarui profil.");
     } finally {
       setProfileSaving(false);
     }
@@ -159,14 +159,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const menuItems = [
-    { text: "Dashboard", icon: <DashboardIcon />, path: "/admin" },
-    { text: "Users", icon: <PeopleIcon />, path: "/admin/users" },
-    { text: "Companies", icon: <FinanceIcon />, path: "/admin/companies" },
-    { text: "Projects", icon: <DashboardIcon />, path: "/admin/projects" },
-    { text: "Gantt Chart", icon: <DashboardIcon />, path: "/admin/gantt" },
-    { text: "Presence", icon: <PersonIcon />, path: "/admin/presence" },
-    { text: "Finance", icon: <FinanceIcon />, path: "/admin/finance" },
-    { text: "Settings", icon: <SettingsIcon />, path: "/admin/settings" },
+    { text: "Dasbor", icon: <DashboardIcon />, path: "/admin" },
+    { text: "Pengguna", icon: <PeopleIcon />, path: "/admin/users" },
+    { text: "Perusahaan", icon: <FinanceIcon />, path: "/admin/companies" },
+    { text: "Proyek", icon: <DashboardIcon />, path: "/admin/projects" },
+    { text: "Diagram Gantt", icon: <DashboardIcon />, path: "/admin/gantt" },
+    { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
+    { text: "Keuangan", icon: <FinanceIcon />, path: "/admin/finance" },
+    { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },
   ];
 
   const drawerContent = (
@@ -260,7 +260,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
               <LogoutIcon />
             </ListItemIcon>
-            <ListItemText primary="Logout" />
+            <ListItemText primary="Keluar" />
           </ListItemButton>
         </ListItem>
       </List>
@@ -294,7 +294,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <MenuIcon />
             </IconButton>
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-              {menuItems.find((item) => item.path === pathname)?.text || "Dashboard"}
+              {menuItems.find((item) => item.path === pathname)?.text || "Dasbor"}
             </Typography>
           </Box>
 
@@ -359,13 +359,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <ListItemIcon>
                   <PersonIcon fontSize="small" />
                 </ListItemIcon>
-                Profile Settings
+                Pengaturan Profil
               </MenuItem>
               <MenuItem onClick={handleLogout} sx={{ color: "error.main", py: 1 }}>
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" sx={{ color: "error.main" }} />
                 </ListItemIcon>
-                Sign Out
+                Keluar
               </MenuItem>
             </Menu>
           </Box>
@@ -435,7 +435,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Profile Settings Dialog */}
       <Dialog open={profileOpen} onClose={() => setProfileOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Profile Settings</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Pengaturan Profil</DialogTitle>
         <Box component="form" onSubmit={handleSaveProfile} noValidate>
           <DialogContent>
             {profileError && (
@@ -453,7 +453,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               required
               fullWidth
               id="profileName"
-              label="Display Name"
+              label="Nama Tampilan"
               name="profileName"
               value={profileName}
               onChange={(e) => setProfileName(e.target.value)}
@@ -464,18 +464,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               margin="normal"
               fullWidth
               name="profilePassword"
-              label="New Password (optional)"
+              label="Kata Sandi Baru (opsional)"
               type="password"
               id="profilePassword"
               value={profilePassword}
-              placeholder="Leave blank to keep current"
+              placeholder="Kosongkan untuk mempertahankan yang sekarang"
               onChange={(e) => setProfilePassword(e.target.value)}
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 3 }}>
-            <Button onClick={() => setProfileOpen(false)}>Close</Button>
+            <Button onClick={() => setProfileOpen(false)}>Tutup</Button>
             <Button type="submit" variant="contained" disabled={profileSaving}>
-              {profileSaving ? "Saving..." : "Save Settings"}
+              {profileSaving ? "Menyimpan..." : "Simpan Pengaturan"}
             </Button>
           </DialogActions>
         </Box>

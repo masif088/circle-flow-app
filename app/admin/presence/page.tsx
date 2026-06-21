@@ -40,7 +40,9 @@ import {
   Select,
   MenuItem,
   Stack,
-  Alert
+  Alert,
+  Divider,
+  Grid
 } from "@mui/material";
 import {
   Check as ApproveIcon,
@@ -50,8 +52,22 @@ import {
   LocationOn as LocationIcon,
   AttachMoney as MoneyIcon,
   Add as AddIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  Visibility as ViewIcon
 } from "@mui/icons-material";
+
+interface ActivityItem {
+  title: string;
+  longitude: number;
+  latitude: number;
+  radius: number;
+  photo?: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  project_id: string;
+}
 
 interface PresenceRecord {
   id: string;
@@ -75,6 +91,9 @@ interface PresenceRecord {
   rejected_at?: string;
   rejected_by?: string;
   rejected_note?: string;
+  activity?: {
+    [uuid: string]: ActivityItem;
+  };
 }
 
 interface UserRecord {
@@ -113,7 +132,7 @@ export default function PresenceAdminPage() {
   const [costAmount, setCostAmount] = useState("");
 
   // Approval Dialog States
-  const [openReviewDialog, setOpenReviewDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedPresence, setSelectedPresence] = useState<PresenceRecord | null>(null);
   const [actionNote, setActionNote] = useState("");
 
@@ -183,72 +202,147 @@ export default function PresenceAdminPage() {
   };
 
   // Edit Cost States
-  const [openCostEditDialog, setOpenCostEditDialog] = useState(false);
   const [editCostAmount, setEditCostAmount] = useState("");
-  const [editCostNote, setEditCostNote] = useState("");
 
-  const handleOpenReview = (presence: PresenceRecord) => {
+  const handleOpenDetail = (presence: PresenceRecord) => {
     setSelectedPresence(presence);
-    setActionNote("");
+    setActionNote(presence.approved_note || presence.rejected_note || "");
     setEditCostAmount(presence.cost_on_presence?.toString() || "0");
-    setOpenReviewDialog(true);
+    setOpenDetailDialog(true);
   };
 
-  const handleOpenCostEdit = (presence: PresenceRecord) => {
-    setSelectedPresence(presence);
-    setEditCostAmount(presence.cost_on_presence?.toString() || "0");
-    setEditCostNote(presence.approved_note || presence.note || "");
-    setOpenCostEditDialog(true);
-  };
-
-  const handleSaveCostEdit = async () => {
-    if (!selectedPresence || !editCostNote.trim()) return;
-    try {
-      const presenceRef = doc(db, "presences", selectedPresence.id);
-      await updateDoc(presenceRef, {
-        cost_on_presence: parseFloat(editCostAmount) || 0,
-        approved_note: editCostNote,
-        updated_at: new Date().toISOString()
-      });
-      showMsg("Cost for this presence log updated successfully.");
-      setOpenCostEditDialog(false);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        showMsg("Failed to update cost: " + error.message, "error");
-      } else {
-        showMsg("Failed to update cost: An unknown error occurred", "error");
-      }
-    }
-  };
-
-  const handleReviewAction = async (approve: boolean) => {
+  const handleReviewAction = async (status: "Approved" | "Rejected" | "Pending") => {
     if (!selectedPresence) return;
     try {
       const presenceRef = doc(db, "presences", selectedPresence.id);
       const reviewerId = user?.uid || "unknown_admin";
       const reviewerName = user?.displayName || user?.email || "Admin";
-      const updateData = approve ? {
-        status: "Approved",
-        cost_on_presence: parseFloat(editCostAmount) || 0,
-        approved_at: new Date().toISOString(),
-        approved_by: reviewerId,
-        approved_note: actionNote || `Approved by ${reviewerName}`
-      } : {
-        status: "Rejected",
-        rejected_at: new Date().toISOString(),
-        rejected_by: reviewerId,
-        rejected_note: actionNote || `Rejected by ${reviewerName}`
-      };
+      
+      let updateData: any = {};
+      if (status === "Approved") {
+        updateData = {
+          status: "Approved",
+          cost_on_presence: parseFloat(editCostAmount) || 0,
+          approved_at: new Date().toISOString(),
+          approved_by: reviewerId,
+          approved_note: actionNote || `Approved by ${reviewerName}`,
+          rejected_at: null,
+          rejected_by: null,
+          rejected_note: null
+        };
+      } else if (status === "Rejected") {
+        updateData = {
+          status: "Rejected",
+          rejected_at: new Date().toISOString(),
+          rejected_by: reviewerId,
+          rejected_note: actionNote || `Rejected by ${reviewerName}`,
+          approved_at: null,
+          approved_by: null,
+          approved_note: null
+        };
+      } else {
+        updateData = {
+          status: "Pending",
+          cost_on_presence: parseFloat(editCostAmount) || 0,
+          approved_at: null,
+          approved_by: null,
+          approved_note: null,
+          rejected_at: null,
+          rejected_by: null,
+          rejected_note: null
+        };
+      }
 
       await updateDoc(presenceRef, updateData);
-      showMsg(`Presence request successfully ${approve ? 'Approved' : 'Rejected'}.`);
-      setOpenReviewDialog(false);
+
+      // Trigger automatic expenditure synchronization
+      if (selectedPresence.project_id) {
+        await syncPresenceToExpenditure(
+          selectedPresence.user_id,
+          selectedPresence.project_id,
+          parseFloat(editCostAmount) || selectedPresence.cost_on_presence || 0
+        );
+      }
+      
+      // Update selectedPresence state locally so Dialog UI updates immediately
+      setSelectedPresence(prev => prev ? { ...prev, ...updateData } : null);
+
+      const statusText = status === "Approved" ? "Approved" : status === "Rejected" ? "Rejected" : "Pending";
+      showMsg(`Presence status successfully updated to: ${statusText}.`);
     } catch (error: unknown) {
       if (error instanceof Error) {
         showMsg(error.message || "Failed to update presence status", "error");
       } else {
         showMsg("Failed to update presence status: An unknown error occurred", "error");
       }
+    }
+  };
+
+  const syncPresenceToExpenditure = async (userId: string, projId: string, costOnPresence: number) => {
+    try {
+      const { query, collection, where, getDocs, doc, getDoc, setDoc } = await import("firebase/firestore");
+      // 1. Fetch all approved presences for this worker on this project
+      const presQ = query(
+        collection(db, "presences"),
+        where("user_id", "==", userId),
+        where("project_id", "==", projId),
+        where("status", "==", "Approved")
+      );
+      const snap = await getDocs(presQ);
+      const uniqueDays = new Set<string>();
+      snap.forEach((d) => {
+        const data = d.data();
+        if (data.created_at) {
+          const dateStr = data.created_at.split("T")[0];
+          uniqueDays.add(dateStr);
+        }
+      });
+
+      const quantity = uniqueDays.size;
+      const workerName = getUserName(userId);
+
+      // 2. Fetch the worker's wage rate
+      let dailyRate = costOnPresence;
+      const wageDocSnap = await getDoc(doc(db, "cost_people_on_project", `${userId}_${projId}`));
+      if (wageDocSnap.exists()) {
+        dailyRate = wageDocSnap.data().cost || costOnPresence;
+      }
+
+      // 3. Check if expenditure doc already exists to preserve manual payment fields
+      const expId = `wage_${userId}_${projId}`;
+      const expRef = doc(db, "project_expenditures", expId);
+      const expSnap = await getDoc(expRef);
+
+      let paidQty = 0;
+      let totalSpent = 0;
+      let currentStatus = "Belum Terbayar";
+
+      if (expSnap.exists()) {
+        const eData = expSnap.data();
+        paidQty = eData.paid_qty || 0;
+        totalSpent = eData.total_spent || 0;
+        currentStatus = eData.status || "Belum Terbayar";
+      }
+
+      // If quantity is 0 and no expenditure document exists, do not create one.
+      // If it exists, we update it to 0 quantity.
+      if (quantity > 0 || expSnap.exists()) {
+        await setDoc(expRef, {
+          project_id: projId,
+          item_name: `Upah - ${workerName}`,
+          category: "Jasa",
+          price: dailyRate,
+          quantity: quantity,
+          unit: "Hari",
+          paid_qty: paidQty,
+          total_spent: totalSpent,
+          status: currentStatus,
+          updated_at: new Date().toISOString(),
+          user_id: userId
+        }, { merge: true });
+      }
+    } catch (error) {
+      console.error("Failed to sync presence to expenditure:", error);
     }
   };
 
@@ -367,9 +461,52 @@ export default function PresenceAdminPage() {
         updatedAt: new Date().toISOString()
       });
 
+      const nowStr = new Date().toISOString();
+      const activityHQ = {
+        "act-hq-01": {
+          title: "Pengecekan Server Utama",
+          latitude: -6.20875,
+          longitude: 106.84555,
+          radius: 50,
+          photo: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=150&auto=format&fit=crop",
+          description: "Melakukan monitoring suhu server room dan backup database mingguan.",
+          created_at: nowStr,
+          updated_at: nowStr,
+          user_id: targetUserUid,
+          project_id: "proj-hq"
+        },
+        "act-hq-02": {
+          title: "Meeting Koordinasi Tim IT",
+          latitude: -6.20880,
+          longitude: 106.84560,
+          radius: 30,
+          photo: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=150&auto=format&fit=crop",
+          description: "Sinkronisasi progress development sprint 2 proyek circle-flow.",
+          created_at: nowStr,
+          updated_at: nowStr,
+          user_id: targetUserUid,
+          project_id: "proj-hq"
+        }
+      };
+
+      const activitySiteA = {
+        "act-site-01": {
+          title: "Survei Lapangan Area Pondasi",
+          latitude: -6.1752,
+          longitude: 106.8651,
+          radius: 100,
+          photo: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=150&auto=format&fit=crop",
+          description: "Pengukuran area pancang untuk kesiapan crane masuk.",
+          created_at: nowStr,
+          updated_at: nowStr,
+          user_id: targetUserUid,
+          project_id: "proj-site-a"
+        }
+      };
+
       await addDoc(collection(db, "presences"), {
         user_id: targetUserUid,
-        created_at: new Date().toISOString(),
+        created_at: nowStr,
         type: "Jam Kantor",
         status: "Pending",
         description: "Check-in HQ (In Range Simulation)",
@@ -379,12 +516,13 @@ export default function PresenceAdminPage() {
         device_id: "device_simulation_01",
         device_type: "Android",
         cost_on_presence: 250000,
-        photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop"
+        photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop",
+        activity: activityHQ
       });
 
       await addDoc(collection(db, "presences"), {
         user_id: targetUserUid,
-        created_at: new Date().toISOString(),
+        created_at: nowStr,
         type: "Jam Kantor",
         status: "Pending",
         description: "Check-in Site A (Out of Range Simulation)",
@@ -394,7 +532,8 @@ export default function PresenceAdminPage() {
         device_id: "device_simulation_01",
         device_type: "Android",
         cost_on_presence: 300000,
-        photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop"
+        photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop",
+        activity: activitySiteA
       });
 
       showMsg("Dummy data successfully generated. Triggering geofencing cloud functions in backend...");
@@ -579,13 +718,8 @@ export default function PresenceAdminPage() {
                         </TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-                            {pres.status === "Pending" && (
-                              <IconButton color="primary" onClick={() => handleOpenReview(pres)} size="small" title="Review Attendance">
-                                <ApproveIcon />
-                              </IconButton>
-                            )}
-                            <IconButton color="secondary" onClick={() => handleOpenCostEdit(pres)} size="small" title="Adjust Presence Cost (Overtime/etc)">
-                              <EditIcon />
+                            <IconButton color="primary" onClick={() => handleOpenDetail(pres)} size="small" title="Lihat Detail Peta Verifikasi GPS">
+                              <ViewIcon />
                             </IconButton>
                             <IconButton color="error" onClick={() => handleDeletePresence(pres.id)} size="small" title="Delete Log">
                               <DeleteIcon />
@@ -694,85 +828,197 @@ export default function PresenceAdminPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Review Dialog */}
-      <Dialog open={openReviewDialog} onClose={() => setOpenReviewDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Review Presence Request</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Reviewing presence request for <strong>{selectedPresence ? getUserName(selectedPresence.user_id) : ""}</strong>.
-            </Typography>
-            {selectedPresence?.note && (
-              <Alert severity="info" sx={{ py: 0.5 }}>
-                {selectedPresence.note}
-              </Alert>
-            )}
-            <TextField
-              fullWidth
-              label="Review Note"
-              placeholder="Provide reason for approval or rejection..."
-              multiline
-              rows={3}
-              value={actionNote}
-              onChange={(e) => setActionNote(e.target.value)}
-            />
-            <TextField
-              fullWidth
-              label="Adjust Cost Rate (IDR)"
-              type="number"
-              placeholder="Lock custom cost/overtime rate for this presence"
-              value={editCostAmount}
-              onChange={(e) => setEditCostAmount(e.target.value)}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3, justifyContent: "space-between" }}>
-          <Button onClick={() => setOpenReviewDialog(false)} variant="outlined">
-            Cancel
-          </Button>
-          <Stack direction="row" spacing={1}>
-            <Button variant="contained" color="error" startIcon={<RejectIcon />} onClick={() => handleReviewAction(false)}>
-              Reject
-            </Button>
-            <Button variant="contained" color="success" startIcon={<ApproveIcon />} onClick={() => handleReviewAction(true)}>
-              Approve
-            </Button>
-          </Stack>
-        </DialogActions>
-      </Dialog>
 
-      {/* Adjust Cost Dialog */}
-      <Dialog open={openCostEditDialog} onClose={() => setOpenCostEditDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Adjust Presence Cost</DialogTitle>
+      {/* View Presence Details Dialog */}
+      <Dialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Detail Verifikasi Kehadiran</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Modify the cost value for this specific attendance log (e.g. adding overtime pay or bonuses).
-            </Typography>
-            <TextField
-              fullWidth
-              label="Cost Value (IDR)"
-              type="number"
-              value={editCostAmount}
-              onChange={(e) => setEditCostAmount(e.target.value)}
-            />
-            <TextField
-              fullWidth
-              label="Adjustment Reason/Note"
-              placeholder="e.g. Overtime 2 hours, holiday bonus"
-              required
-              multiline
-              rows={2}
-              value={editCostNote}
-              onChange={(e) => setEditCostNote(e.target.value)}
-            />
-          </Box>
+          {selectedPresence && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
+              {selectedPresence.photo ? (
+                <Box
+                  component="img"
+                  src={selectedPresence.photo}
+                  alt="Foto Verifikasi"
+                  sx={{
+                    width: "100%",
+                    maxHeight: 320,
+                    borderRadius: "12px",
+                    objectFit: "cover",
+                    border: "1px solid #ddd"
+                  }}
+                />
+              ) : (
+                <Alert severity="warning">Tidak ada foto verifikasi kamera yang diunggah untuk kehadiran ini.</Alert>
+              )}
+
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>NAMA KARYAWAN</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                    {getUserName(selectedPresence.user_id)}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>WAKTU MASUK</Typography>
+                  <Typography variant="body1">
+                    {new Date(selectedPresence.created_at).toLocaleString("id-ID")}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>TIPE KEHADIRAN</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {selectedPresence.type}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>STATUS</Typography>
+                  <Chip
+                    label={selectedPresence.status === "Approved" ? "Disetujui" : selectedPresence.status === "Rejected" ? "Ditolak" : "Menunggu"}
+                    size="small"
+                    color={selectedPresence.status === "Approved" ? "success" : selectedPresence.status === "Rejected" ? "error" : "warning"}
+                    sx={{ fontWeight: 600, mt: 0.5 }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Divider />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>KOORDINAT GPS</Typography>
+                  {selectedPresence.latitude && selectedPresence.longitude ? (
+                    <Typography variant="body2" sx={{ fontFamily: "monospace", display: "flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
+                      <LocationIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+                      {selectedPresence.latitude.toFixed(6)}, {selectedPresence.longitude.toFixed(6)}
+                    </Typography>
+                  ) : "Tidak ada koordinat yang tercatat"}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>JARAK RADIUS GEOFENCE</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>
+                    {selectedPresence.radius !== undefined ? `${Math.round(selectedPresence.radius)} meter` : "Tidak dihitung"}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>DESKRIPSI / CATATAN</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5, bgcolor: "action.hover", p: 1.5, borderRadius: 1 }}>
+                    {selectedPresence.description || selectedPresence.note || "Tidak ada catatan yang diberikan oleh pengguna."}
+                  </Typography>
+                </Grid>
+                {selectedPresence.approved_note && (
+                  <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>CATATAN KEPUTUSAN MANAJER / ADMIN</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5, bgcolor: "info.light", color: "info.contrastText", p: 1.5, borderRadius: 1 }}>
+                      {selectedPresence.approved_note}
+                    </Typography>
+                  </Grid>
+                )}
+                {selectedPresence.activity && Object.keys(selectedPresence.activity).length > 0 && (
+                  <Grid size={{ xs: 12 }}>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1, fontWeight: 600 }}>
+                      DAFTAR AKTIVITAS ({Object.keys(selectedPresence.activity).length})
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      {Object.entries(selectedPresence.activity).map(([uuid, act]) => (
+                        <Box key={uuid} sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+                          <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+                            {act.photo && (
+                              <Box
+                                component="img"
+                                src={act.photo}
+                                alt={act.title}
+                                sx={{ width: 80, height: 80, borderRadius: 1, objectFit: "cover", border: "1px solid #eee" }}
+                              />
+                            )}
+                            <Box sx={{ flexGrow: 1 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{act.title}</Typography>
+                              {act.description && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                  {act.description}
+                                </Typography>
+                              )}
+                              <Grid container spacing={1} sx={{ mt: 1 }}>
+                                <Grid size={{ xs: 6 }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>Koordinat</Typography>
+                                  <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
+                                    {act.latitude.toFixed(5)}, {act.longitude.toFixed(5)}
+                                  </Typography>
+                                </Grid>
+                                <Grid size={{ xs: 6 }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>Radius Geofence</Typography>
+                                  <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>{act.radius} meter</Typography>
+                                </Grid>
+                                <Grid size={{ xs: 12 }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>Waktu</Typography>
+                                  <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
+                                    {act.created_at ? new Date(act.created_at).toLocaleString("id-ID") : "-"}
+                                  </Typography>
+                                </Grid>
+                              </Grid>
+                            </Box>
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Grid>
+                )}
+
+                <Grid size={{ xs: 12 }}>
+                  <Divider sx={{ my: 1.5 }} />
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1, fontWeight: 600 }}>
+                    KEPUTUSAN & TINJAUAN PRESENSI
+                  </Typography>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Catatan Tinjauan"
+                      placeholder="Masukkan catatan persetujuan atau penolakan..."
+                      multiline
+                      rows={2}
+                      value={actionNote}
+                      onChange={(e) => setActionNote(e.target.value)}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Penyesuaian Biaya Harian (IDR)"
+                      type="number"
+                      placeholder="Masukkan nominal jika ada penyesuaian biaya..."
+                      value={editCostAmount}
+                      onChange={(e) => setEditCostAmount(e.target.value)}
+                    />
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", mt: 1 }}>
+                      {selectedPresence.status !== "Pending" && (
+                        <Button
+                          variant="outlined"
+                          color="warning"
+                          onClick={() => handleReviewAction("Pending")}
+                        >
+                          Batalkan Keputusan (Reset ke Pending)
+                        </Button>
+                      )}
+                      <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => handleReviewAction("Rejected")}
+                      >
+                        Tolak Kehadiran
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={() => handleReviewAction("Approved")}
+                      >
+                        Setujui Kehadiran
+                      </Button>
+                    </Stack>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setOpenCostEditDialog(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleSaveCostEdit} disabled={!editCostNote.trim()}>
-            Save Cost Adjustments
-          </Button>
+          <Button onClick={() => setOpenDetailDialog(false)} variant="contained" color="inherit">Tutup Detail</Button>
         </DialogActions>
       </Dialog>
     </Box>

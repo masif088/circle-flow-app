@@ -48,6 +48,58 @@ import "@syncfusion/ej2-grids/styles/material.css";
 import "@syncfusion/ej2-treegrid/styles/material.css";
 import "@syncfusion/ej2-react-gantt/styles/material.css";
 
+interface GanttTask {
+  TaskID: number;
+  TaskName: string;
+  StartDate: Date | string | null;
+  EndDate?: Date | string | null;
+  Duration?: number;
+  Progress?: number;
+  ParentID?: number | null;
+  ProjectID: string;
+  Predecessor?: string | null;
+  Assignees?: (string | number | { uid?: string; resourceId?: number | string; id?: number | string })[];
+  firestoreDocId?: string;
+  subtasks?: GanttTask[];
+}
+
+interface GanttResource {
+  resourceId: number;
+  resourceName: string;
+  uid: string;
+}
+
+interface ImportTask {
+  TaskID?: string | number;
+  TaskName?: string;
+  StartDate?: string;
+  Duration?: string | number;
+  Progress?: string | number;
+  ParentID?: string | number | null;
+  Predecessor?: string | null;
+  Assignees?: unknown;
+}
+
+interface GanttTaskData {
+  TaskID: number;
+  TaskName?: string;
+  StartDate?: Date | string | null;
+  Duration?: number;
+  Progress?: number;
+  ParentID?: number | null;
+  Predecessor?: string | null;
+  Assignees?: (string | number | { uid?: string; resourceId?: number | string; id?: number | string })[];
+  ganttProperties?: {
+    resourceInfo?: (number | string | { uid?: string; resourceId?: number | string; id?: number | string })[];
+    resourceNames?: string;
+  };
+}
+
+interface ActionCompleteArgs {
+  requestType: string;
+  data?: GanttTaskData | GanttTaskData[];
+}
+
 const seedData = [
   {
     TaskID: 1,
@@ -129,9 +181,9 @@ const seedData = [
 ];
 
 // Helper function to build nested hierarchy (Tree) from flat array
-function arrayToTree(flatList: any[]) {
-  const map: { [key: number]: any } = {};
-  const tree: any[] = [];
+function arrayToTree(flatList: GanttTask[]) {
+  const map: { [key: number]: GanttTask & { subtasks: GanttTask[] } } = {};
+  const tree: GanttTask[] = [];
 
   flatList.forEach((item) => {
     map[item.TaskID] = { ...item, subtasks: [] };
@@ -150,8 +202,8 @@ function arrayToTree(flatList: any[]) {
 }
 
 export default function GanttChart({ projectId = "proj-1" }: { projectId?: string }) {
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [resources, setResources] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<GanttTask[]>([]);
+  const [resources, setResources] = useState<GanttResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [resourcesLoading, setResourcesLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
@@ -163,14 +215,20 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const loadedTasks: any[] = [];
+        const loadedTasks: GanttTask[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
           loadedTasks.push({
-            ...data,
-            // Convert string date from Firestore back to JS Date object
+            TaskID: Number(data.TaskID),
+            TaskName: String(data.TaskName || ""),
             StartDate: data.StartDate ? new Date(data.StartDate) : null,
             EndDate: data.EndDate ? new Date(data.EndDate) : null,
+            Duration: data.Duration !== undefined ? Number(data.Duration) : undefined,
+            Progress: data.Progress !== undefined ? Number(data.Progress) : undefined,
+            ParentID: data.ParentID !== undefined && data.ParentID !== null ? Number(data.ParentID) : null,
+            ProjectID: String(data.ProjectID || projectId),
+            Predecessor: data.Predecessor ? String(data.Predecessor) : null,
+            Assignees: Array.isArray(data.Assignees) ? data.Assignees : [],
             firestoreDocId: docSnap.id,
           });
         });
@@ -193,7 +251,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
     const fetchUsers = async () => {
       try {
         const snap = await getDocs(collection(db, "users"));
-        const list: any[] = [];
+        const list: GanttResource[] = [];
         let index = 1;
         snap.forEach((d) => {
           list.push({
@@ -218,7 +276,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
     return tasks.map(task => {
       const assigneeItems = Array.isArray(task.Assignees) ? task.Assignees : [];
       const numericIds = assigneeItems
-        .map((item: any) => {
+        .map((item: string | number | { uid?: string; resourceId?: number | string; id?: number | string }) => {
           if (typeof item === "object" && item !== null) {
             // It could be an object saved in Firestore
             const uid = item.uid;
@@ -369,7 +427,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
         const list = Array.isArray(parsed) ? parsed : [parsed];
 
         const batch = writeBatch(db);
-        list.forEach((item: any) => {
+        list.forEach((item: ImportTask) => {
           if (!item.TaskID) return;
           const docRef = doc(db, "gantt_tasks", `${projectId}_task_${item.TaskID}`);
           batch.set(docRef, {
@@ -386,9 +444,9 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
         });
 
         await batch.commit();
-        alert("Imported successfully!");
+        alert("Berhasil diimpor!");
       } catch (err) {
-        alert("Failed to parse JSON file or save to database. Please check the file format.");
+        alert("Gagal mengurai file JSON atau menyimpan ke database. Silakan periksa format file.");
         console.error(err);
       }
     };
@@ -397,7 +455,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
   };
 
   // Sync edits, additions, and deletions from Gantt component back to Firestore
-  const handleActionComplete = async (args: any) => {
+  const handleActionComplete = async (args: ActionCompleteArgs) => {
     console.log("Gantt Action Complete:", args.requestType, args);
 
     // Update task
@@ -407,7 +465,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
         const docRef = doc(db, "gantt_tasks", `${projectId}_task_${taskData.TaskID}`);
         
         // Extract assigned resource IDs
-        let assignedResourceIds: any[] = [];
+        let assignedResourceIds: (string | number | { uid?: string; resourceId?: number | string; id?: number | string })[] = [];
         if (taskData.ganttProperties && Array.isArray(taskData.ganttProperties.resourceInfo)) {
           assignedResourceIds = taskData.ganttProperties.resourceInfo;
         } else if (Array.isArray(taskData.Assignees)) {
@@ -461,10 +519,10 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
     }
     // Add task
     else if (args.requestType === "add" && args.data) {
-      const taskData = args.data;
+      const taskData = Array.isArray(args.data) ? args.data[0] : args.data;
       const docRef = doc(db, "gantt_tasks", `${projectId}_task_${taskData.TaskID}`);
       
-      let assignedResourceIds: any[] = [];
+      let assignedResourceIds: (string | number | { uid?: string; resourceId?: number | string; id?: number | string })[] = [];
       if (taskData.ganttProperties && Array.isArray(taskData.ganttProperties.resourceInfo)) {
         assignedResourceIds = taskData.ganttProperties.resourceInfo;
       } else if (Array.isArray(taskData.Assignees)) {
@@ -544,7 +602,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
       <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "400px", gap: 2 }}>
         <CircularProgress />
         <Typography variant="body2" color="text.secondary">
-          Loading Gantt data from Firestore...
+          Memuat data Gantt dari Firestore...
         </Typography>
       </Box>
     );
@@ -602,10 +660,10 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
     );
   };
 
-  const dialogFields: any = [
-    { type: "General", headerText: "General" },
-    { type: "Dependency" },
-    { type: "Resources" }
+  const dialogFields = [
+    { type: "General" as const, headerText: "General" },
+    { type: "Dependency" as const },
+    { type: "Resources" as const }
   ];
 
   if (tasks.length === 0) {
@@ -619,10 +677,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
           style={{ display: "none" }}
         />
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          No Gantt Tasks Found in Firestore
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", maxWidth: 450, mb: 1 }}>
-          It looks like the `gantt_tasks` collection is currently empty for this project. Start by adding your first task, seeding demo data, or importing from a JSON file.
+          Tidak ada Jadwal proyek yang dibuat
         </Typography>
 
         <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", justifyContent: "center", gap: 1.5 }}>
@@ -632,7 +687,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
             onClick={handleAddFirstTask}
             sx={{ borderRadius: 2 }}
           >
-            Add First Task
+            Tambah Tugas Pertama
           </Button>
           <Button
             variant="outlined"
@@ -641,7 +696,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
             disabled={seeding}
             sx={{ borderRadius: 2 }}
           >
-            Seed Demo Data
+            Isi Data Demo
           </Button>
           <Button
             variant="outlined"
@@ -650,7 +705,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
             onClick={triggerImportFile}
             sx={{ borderRadius: 2 }}
           >
-            Import JSON
+            Impor JSON
           </Button>
           <Button
             variant="outlined"
@@ -659,7 +714,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
             onClick={handleDownloadTemplate}
             sx={{ borderRadius: 2 }}
           >
-            Get Template
+            Unduh Templat
           </Button>
         </Stack>
       </Box>

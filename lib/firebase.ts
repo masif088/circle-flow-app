@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,9 +16,10 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Use emulator if configured
-if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && typeof window !== "undefined") {
+if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true") {
   // Prevent re-connecting if already connected (important for Next.js hot reloads)
   if (!(auth as unknown as { _emulatorConfig?: unknown })._emulatorConfig) {
     try {
@@ -38,6 +40,17 @@ if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && typeof window !== "undef
       console.warn("Failed to connect to Firestore emulator:", error);
     }
   }
+
+  // Storage emulator connection
+  const storageShim = storage as unknown as { _emulatorConfig?: unknown };
+  if (!storageShim._emulatorConfig) {
+    try {
+      connectStorageEmulator(storage, "localhost", 9199);
+      console.log("Connected to Firebase Storage emulator");
+    } catch (error) {
+      console.warn("Failed to connect to Firebase Storage emulator:", error);
+    }
+  }
 }
 
-export { app, auth, db, firebaseConfig };
+export { app, auth, db, storage, firebaseConfig };

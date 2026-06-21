@@ -49,7 +49,16 @@ service cloud.firestore {
     match /presences/{presenceId} {
       allow create: if isLoggedIn() && request.resource.data.user_id == request.auth.uid;
       allow read: if isLoggedIn() && (resource.data.user_id == request.auth.uid || isAdminOrManager());
-      allow update, delete: if isAdminOrManager();
+      allow update: if isLoggedIn() && (isAdminOrManager() || (resource.data.user_id == request.auth.uid && request.resource.data.user_id == request.auth.uid));
+      allow delete: if isAdminOrManager();
+    }
+
+    // Rules for Aktivitas
+    match /aktivitas/{aktivitasId} {
+      allow create: if isLoggedIn() && request.resource.data.user_id == request.auth.uid;
+      allow read: if isLoggedIn() && (resource.data.user_id == request.auth.uid || isAdminOrManager());
+      allow update: if isLoggedIn() && (isAdminOrManager() || (resource.data.user_id == request.auth.uid && request.resource.data.user_id == request.auth.uid));
+      allow delete: if isLoggedIn() && (isAdminOrManager() || resource.data.user_id == request.auth.uid);
     }
 
     // Default rule for other collections

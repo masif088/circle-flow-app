@@ -33,56 +33,56 @@ export default function AdminDashboard() {
 
   const stats = [
     {
-      title: "System CPU Load",
+      title: "Beban CPU Sistem",
       value: "24.6%",
       icon: <Speed sx={{ color: "#6366f1" }} />,
       progress: 24.6,
-      color: "primary",
+      color: "primary" as const,
     },
     {
-      title: "Active Nodes",
+      title: "Node Aktif",
       value: "18 / 20",
       icon: <Dns sx={{ color: "#10b981" }} />,
       progress: 90,
-      color: "secondary",
+      color: "secondary" as const,
     },
     {
-      title: "Storage Usage",
+      title: "Penggunaan Penyimpanan",
       value: "1.2 TB / 4.0 TB",
       icon: <Storage sx={{ color: "#f59e0b" }} />,
       progress: 30,
-      color: "warning",
+      color: "warning" as const,
     },
   ];
 
   const recentLogs = [
     {
       id: "1",
-      event: "User registration complete",
+      event: "Registrasi pengguna selesai",
       user: "john.doe@example.com",
       status: "Success",
-      time: "2 mins ago",
+      time: "2 menit lalu",
     },
     {
       id: "2",
-      event: "Emulator database reset",
+      event: "Reset database emulator",
       user: "system-admin",
       status: "Success",
-      time: "10 mins ago",
+      time: "10 menit lalu",
     },
     {
       id: "3",
-      event: "API rate limit warning",
+      event: "Peringatan batas laju API",
       user: "anonymous-client",
       status: "Warning",
-      time: "25 mins ago",
+      time: "25 menit lalu",
     },
     {
       id: "4",
-      event: "Security audit passed",
+      event: "Audit keamanan berhasil dilewati",
       user: "compliance-bot",
       status: "Success",
-      time: "1 hour ago",
+      time: "1 jam lalu",
     },
   ];
 
@@ -102,10 +102,10 @@ export default function AdminDashboard() {
       >
         <Box>
           <Typography variant="h4" component="h2" gutterBottom sx={{ fontWeight: 700 }}>
-            Welcome back, {user?.email?.split("@")[0] || "Admin"}
+            Selamat datang kembali, {user?.email?.split("@")[0] || "Admin"}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Here is what's happening with your platform status today.
+            Berikut adalah apa yang terjadi dengan status platform Anda hari ini.
           </Typography>
         </Box>
         <Button
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
           onClick={() => window.location.reload()}
           sx={{ borderRadius: 2 }}
         >
-          Refresh Data
+          Perbarui Data
         </Button>
       </Box>
 
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
                   <LinearProgress
                     variant="determinate"
                     value={stat.progress}
-                    color={stat.color as any}
+                    color={stat.color}
                     sx={{ height: 6, borderRadius: 3 }}
                   />
                 </Box>
@@ -184,16 +184,16 @@ export default function AdminDashboard() {
         <Card sx={{ height: "100%" }}>
           <CardContent sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-              Recent Activities
+              Aktivitas Terbaru
             </Typography>
             <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
               <Table sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Event</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Kejadian</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Pengguna</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Waktu</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
                       <TableCell color="text.secondary">{log.user}</TableCell>
                       <TableCell>
                         <Chip
-                          label={log.status}
+                          label={log.status === "Success" ? "Sukses" : "Peringatan"}
                           size="small"
                           color={log.status === "Success" ? "success" : "warning"}
                           variant="outlined"
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
         <Card sx={{ height: "100%" }}>
           <CardContent sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-              System Integrations
+              Integrasi Sistem
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
                     Firebase Auth SDK
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Connected and initialized
+                    Terhubung dan diinisialisasi
                   </Typography>
                 </Box>
               </Box>
@@ -244,7 +244,7 @@ export default function AdminDashboard() {
                     MUI Component Engine
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    v5 system loaded successfully
+                    Sistem v5 berhasil dimuat
                   </Typography>
                 </Box>
               </Box>
@@ -252,10 +252,10 @@ export default function AdminDashboard() {
                 <CheckCircle sx={{ color: "success.main" }} />
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Platform Emulators
+                    Platform Emulator
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Connected on local loopback
+                    Terhubung pada loopback lokal
                   </Typography>
                 </Box>
               </Box>
