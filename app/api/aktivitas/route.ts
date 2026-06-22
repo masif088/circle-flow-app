@@ -48,6 +48,23 @@ export async function GET(request: Request) {
   }
 }
 
+const getIndonesianTimeISOString = () => {
+  const d = new Date();
+  const offset = 7 * 60; // GMT+7 in minutes
+  const localTime = d.getTime() + (d.getTimezoneOffset() + offset) * 60000;
+  const localDate = new Date(localTime);
+  
+  const yyyy = localDate.getFullYear();
+  const mm = String(localDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(localDate.getDate()).padStart(2, '0');
+  const hh = String(localDate.getHours()).padStart(2, '0');
+  const min = String(localDate.getMinutes()).padStart(2, '0');
+  const ss = String(localDate.getSeconds()).padStart(2, '0');
+  const ms = String(localDate.getMilliseconds()).padStart(3, '0');
+  
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}.${ms}+07:00`;
+};
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -65,8 +82,8 @@ export async function POST(request: Request) {
       kategori,
       durasi_menit: Number(durasi_menit),
       photo: photo || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: getIndonesianTimeISOString(),
+      updated_at: getIndonesianTimeISOString(),
       deleted_at: null,
     };
 
@@ -87,7 +104,7 @@ export async function PUT(request: Request) {
     }
 
     const updates: any = {
-      updated_at: new Date().toISOString(),
+      updated_at: getIndonesianTimeISOString(),
     };
 
     if (judul !== undefined) updates.judul = judul;
@@ -113,7 +130,7 @@ export async function DELETE(request: Request) {
     }
 
     await updateDoc(doc(db, "aktivitas", id), {
-      deleted_at: new Date().toISOString(),
+      deleted_at: getIndonesianTimeISOString(),
     });
 
     return NextResponse.json({ success: true, message: "Activity soft deleted successfully" });

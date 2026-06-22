@@ -296,14 +296,7 @@ export default function ProjectDetailPage() {
 
   // Date Filter State
   const getTodayStr = () => {
-    const d = new Date();
-    const offset = 7 * 60; // GMT+7 Asia/Jakarta
-    const localTime = d.getTime() + (d.getTimezoneOffset() + offset) * 60000;
-    const localDate = new Date(localTime);
-    const yyyy = localDate.getFullYear();
-    const mm = String(localDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(localDate.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return "2026-06-22";
   };
   const todayStr = getTodayStr();
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -710,8 +703,7 @@ export default function ProjectDetailPage() {
     // Listen to presences for this project in real-time
     const q = query(
       collection(db, "presences"),
-      where("project_id", "==", projectId as string),
-      orderBy("created_at", "desc")
+      where("project_id", "==", projectId as string)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list: PresenceRecord[] = [];
@@ -739,10 +731,12 @@ export default function ProjectDetailPage() {
           activity: data.activity
         });
       });
+      // Sort client-side to avoid index requirements
+      list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setPresences(list);
       setLoading(false);
     }, (err) => {
-      console.error(err);
+      console.error("Firestore presences query error:", err);
       setLoading(false);
     });
 
@@ -814,9 +808,27 @@ export default function ProjectDetailPage() {
     }
   }, []);
 
+  // Helper to format ISO UTC string to local date string (YYYY-MM-DD)
+  const getLocalDateStr = (isoString: string) => {
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return "";
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    } catch {
+      return "";
+    }
+  };
+
   // Filter presences registered on the selectedDate (any status: Pending, Approved, Rejected)
   const filteredPresences = React.useMemo(() => {
-    return presences.filter(p => p.created_at && p.created_at.startsWith(selectedDate));
+    return presences.filter(p => {
+      if (!p.created_at) return false;
+      const localDate = getLocalDateStr(p.created_at);
+      return localDate === selectedDate;
+    });
   }, [presences, selectedDate]);
 
   // Setup/Update Map for Check-in sebaran (Filtered by selectedDate)
@@ -929,8 +941,65 @@ export default function ProjectDetailPage() {
       `);
     });
 
-    if (checkinPresences.length > 0) {
-      const allPoints = [[projLat, projLng], ...checkinPresences.map(p => [p.latitude!, p.longitude!])];
+    // Plot activity markers
+    const activityPoints: number[][] = [];
+    filteredPresences.forEach((pres) => {
+      const userName = getUserName(pres.user_id);
+      if (pres.activity) {
+        Object.values(pres.activity).forEach((act) => {
+          if (act.latitude !== undefined && act.latitude !== null && act.longitude !== undefined && act.longitude !== null) {
+            activityPoints.push([act.latitude, act.longitude]);
+
+            const actTimeStr = act.created_at
+              ? new Date(act.created_at).toLocaleString("id-ID", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " WIB"
+              : "-";
+
+            const activityIcon = L.divIcon({
+              html: `
+                <div style="
+                  background-color: #9333ea; 
+                  width: 10px; 
+                  height: 10px; 
+                  border-radius: 50%; 
+                  border: 2px solid #ffffff; 
+                  box-shadow: 0 0 6px rgba(147, 51, 234, 0.6);
+                "></div>
+              `,
+              className: "worker-activity-pin",
+              iconSize: [10, 10],
+              iconAnchor: [5, 5]
+            });
+
+            const activityMarker = L.marker([act.latitude, act.longitude], { icon: activityIcon }).addTo(map);
+            
+            const photoHtml = act.photo
+              ? `<img src="${act.photo}" style="width:100%; max-height:80px; object-fit:cover; border-radius:4px; margin-top:6px;" />`
+              : "";
+
+            activityMarker.bindPopup(`
+              <div style="font-family: 'Outfit', sans-serif; padding: 4px; min-width: 180px;">
+                <h5 style="margin:0 0 4px 0; color:#6b21a8; font-weight:700; font-size:12px;">Aktivitas Kerja</h5>
+                <p style="margin:0 0 4px 0; font-size:12px; color:#1e293b;"><strong>${act.title}</strong></p>
+                <div style="font-size:11px; margin-bottom:4px; color:#4b5563;">
+                  <strong>Oleh:</strong> ${userName}<br/>
+                  <strong>Kategori:</strong> ${act.kategori || 'Lainnya'}<br/>
+                  <strong>Waktu:</strong> ${actTimeStr}
+                </div>
+                ${act.description ? `<p style="margin:0 0 4px 0; font-size:11px; color:#475569; font-style:italic;">"${act.description}"</p>` : ''}
+                ${photoHtml}
+              </div>
+            `);
+          }
+        });
+      }
+    });
+
+    if (checkinPresences.length > 0 || activityPoints.length > 0) {
+      const allPoints = [
+        [projLat, projLng],
+        ...checkinPresences.map(p => [p.latitude!, p.longitude!]),
+        ...activityPoints
+      ];
       const bounds = L.latLngBounds(allPoints);
       map.fitBounds(bounds, { padding: [50, 50] });
     }
@@ -1532,10 +1601,10 @@ export default function ProjectDetailPage() {
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3, display: "flex", flexDirection: "column" }}>
           <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-            <MapIcon color="primary" /> Peta Lokasi Kehadiran
+            <MapIcon color="primary" /> Peta Lokasi Proyek
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-            Distribusi real-time koordinat kehadiran pekerja relatif terhadap batas proyek (Difilter berdasarkan Tanggal: {selectedDate})
+            Distribusi real-time koordinat kehadiran (check-in) dan aktivitas pekerja relatif terhadap batas proyek (Difilter berdasarkan Tanggal: {selectedDate})
           </Typography>
           <Box
             id={mapContainerId}
@@ -1928,7 +1997,7 @@ export default function ProjectDetailPage() {
                                 <Grid size={{ xs: 6 }}>
                                   <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>Koordinat</Typography>
                                   <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
-                                    {act.latitude.toFixed(5)}, {act.longitude.toFixed(5)}
+                                    {act.latitude ? `${act.latitude.toFixed(5)}, ${act.longitude?.toFixed(5)}` : "-"}
                                   </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6 }}>

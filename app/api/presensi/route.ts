@@ -48,6 +48,23 @@ export async function GET(request: Request) {
   }
 }
 
+const getIndonesianTimeISOString = () => {
+  const d = new Date();
+  const offset = 7 * 60; // GMT+7 in minutes
+  const localTime = d.getTime() + (d.getTimezoneOffset() + offset) * 60000;
+  const localDate = new Date(localTime);
+  
+  const yyyy = localDate.getFullYear();
+  const mm = String(localDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(localDate.getDate()).padStart(2, '0');
+  const hh = String(localDate.getHours()).padStart(2, '0');
+  const min = String(localDate.getMinutes()).padStart(2, '0');
+  const ss = String(localDate.getSeconds()).padStart(2, '0');
+  const ms = String(localDate.getMilliseconds()).padStart(3, '0');
+  
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}.${ms}+07:00`;
+};
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -57,7 +74,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
     }
 
-    const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const todayStr = getIndonesianTimeISOString().split("T")[0]; // YYYY-MM-DD in Indonesia Time
 
     if (action === "checkin") {
       // Check if already checked in today
@@ -74,7 +91,7 @@ export async function POST(request: Request) {
 
       const newPresence = {
         user_id,
-        created_at: new Date().toISOString(),
+        created_at: getIndonesianTimeISOString(),
         tanggal: todayStr,
         type: type || "Jam Kantor",
         status: "Pending",
@@ -110,7 +127,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Already checked out today" }, { status: 400 });
       }
 
-      const checkoutTime = new Date().toISOString();
+      const checkoutTime = getIndonesianTimeISOString();
       await updateDoc(doc(db, "presences", presenceDoc.id), {
         checked_out_at: checkoutTime,
       });
