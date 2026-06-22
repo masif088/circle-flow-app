@@ -390,6 +390,15 @@ export default function ProjectDetailPage() {
         cost: parseFloat(wageAmount) || 0,
         updatedAt: new Date().toISOString()
       });
+
+      // Update activeProjects in user document
+      if (project) {
+        const { updateDoc } = await import("firebase/firestore");
+        await updateDoc(doc(db, "users", wageUserId), {
+          [`activeProjects.${projectId}`]: project.title
+        });
+      }
+
       showMsg("Tarif upah pekerja berhasil disimpan.");
       setOpenWageDialog(false);
     } catch (e: any) {
@@ -401,6 +410,16 @@ export default function ProjectDetailPage() {
     if (confirm("Apakah Anda yakin ingin menghapus pengaturan upah pekerja ini?")) {
       try {
         await deleteDoc(doc(db, "cost_people_on_project", wageId));
+
+        // Remove activeProject from user document
+        const [userId] = wageId.split('_');
+        if (userId) {
+          const { updateDoc, deleteField } = await import("firebase/firestore");
+          await updateDoc(doc(db, "users", userId), {
+            [`activeProjects.${projectId}`]: deleteField()
+          });
+        }
+
         showMsg("Pengaturan upah pekerja berhasil dihapus.");
       } catch (e: any) {
         showMsg("Gagal menghapus upah pekerja: " + e.message, "error");
