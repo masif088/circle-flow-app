@@ -28,13 +28,17 @@ export async function GET(request: Request) {
       where("user_id", "==", userId)
     );
 
-    if (from) {
-      q = query(q, where("tanggal", ">=", from));
+    if (from && to && from === to) {
+      q = query(q, where("tanggal", "==", from));
+    } else {
+      if (from) {
+        q = query(q, where("tanggal", ">=", from));
+      }
+      if (to) {
+        q = query(q, where("tanggal", "<=", to));
+      }
+      q = query(q, orderBy("tanggal", "desc"));
     }
-    if (to) {
-      q = query(q, where("tanggal", "<=", to));
-    }
-    q = query(q, orderBy("tanggal", "desc"));
 
     const snapshot = await getDocs(q);
     const presences: any[] = [];
