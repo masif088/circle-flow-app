@@ -16,17 +16,16 @@ export async function GET(request: Request) {
       .collection("aktivitas")
       .where("user_id", "==", userId)
       .where("deleted_at", "==", null);
-
-    if (from) {
-      queryRef = queryRef.where("tanggal", ">=", from);
-    }
-    if (to) {
-      queryRef = queryRef.where("tanggal", "<=", to);
-    }
-    const snapshot = await queryRef.get();
-    const activities: any[] = [];
+    let activities: any[] = [];
     snapshot.forEach((doc: any) => {
-      activities.push({ id: doc.id, ...doc.data() });
+      const data = doc.data();
+      const tanggal = data.tanggal || '';
+      
+      // Perform date filtering in-memory
+      if (from && tanggal < from) return;
+      if (to && tanggal > to) return;
+      
+      activities.push({ id: doc.id, ...data });
     });
 
     // Sort descending by tanggal in-memory to bypass Firestore composite index requirement
