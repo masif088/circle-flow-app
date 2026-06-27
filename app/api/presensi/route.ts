@@ -1,16 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  addDoc,
-  doc,
-  updateDoc,
-  limit,
-} from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(request: Request) {
   try {
@@ -23,26 +12,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing user_id parameter" }, { status: 400 });
     }
 
-    let q = query(
-      collection(db, "presences"),
-      where("user_id", "==", userId)
-    );
+    let queryRef: any = adminDb.collection("presences").where("user_id", "==", userId);
 
     if (from && to && from === to) {
-      q = query(q, where("tanggal", "==", from));
+      queryRef = queryRef.where("tanggal", "==", from);
     } else {
       if (from) {
-        q = query(q, where("tanggal", ">=", from));
+        queryRef = queryRef.where("tanggal", ">=", from);
       }
       if (to) {
-        q = query(q, where("tanggal", "<=", to));
+        queryRef = queryRef.where("tanggal", "<=", to);
       }
-      q = query(q, orderBy("tanggal", "desc"));
+      queryRef = queryRef.orderBy("tanggal", "desc");
     }
 
-    const snapshot = await getDocs(q);
+    const snapshot = await queryRef.get();
     const presences: any[] = [];
-    snapshot.forEach((doc) => {
+    snapshot.forEach((doc: any) => {
       presences.push({ id: doc.id, ...doc.data() });
     });
 
@@ -82,17 +68,19 @@ export async function POST(request: Request) {
 
     if (action === "checkin") {
       // Check if already checked in today (excluding rejected check-ins, allowing re-check-in)
-      const checkQuery = query(
-        collection(db, "presences"),
-        where("user_id", "==", user_id),
-        where("tanggal", "==", todayStr)
-      );
-      const checkSnap = await getDocs(checkQuery);
+      const checkSnap = await adminDb
+        .collection("presences")
+        .where("user_id", "==", user_id)
+        .where("tanggal", "==", todayStr)
+        .get();
       
       // If there is an entry that is Approved or Pending, block re-checkin
-      const activePresence = checkSnap.docs.find(doc => {
+      let activePresence = null;
+      checkSnap.forEach((doc: any) => {
         const data = doc.data();
-        return data.status === "Approved" || data.status === "Pending";
+        if (data.status === "Approved" || data.status === "Pending") {
+          activePresence = { id: doc.id, ...data };
+        }
       });
 
       if (activePresence) {
@@ -115,18 +103,18 @@ export async function POST(request: Request) {
         photo: photo || null,
       };
 
-      const docRef = await addDoc(collection(db, "presences"), newPresence);
+      const docRef = await adminDb.collection("presences").add(newPresence);
       return NextResponse.json({ success: true, data: { id: docRef.id, ...newPresence } });
 
     } else if (action === "checkout") {
       // Find today's checkin
-      const checkQuery = query(
-        collection(db, "presences"),
-        where("user_id", "==", user_id),
-        where("tanggal", "==", todayStr),
-        limit(1)
-      );
-      const checkSnap = await getDocs(checkQuery);
+      const checkSnap = await adminDb
+        .collection("presences")
+        .where("user_id", "==", user_id)
+        .where("tanggal", "==", todayStr)
+        .limit(1)
+        .get();
+
       if (checkSnap.empty) {
         return NextResponse.json({ error: "No check-in record found for today" }, { status: 400 });
       }
@@ -138,7 +126,7 @@ export async function POST(request: Request) {
       }
 
       const checkoutTime = getIndonesianTimeISOString();
-      await updateDoc(doc(db, "presences", presenceDoc.id), {
+      await adminDb.collection("presences").doc(presenceDoc.id).update({
         checked_out_at: checkoutTime,
       });
 

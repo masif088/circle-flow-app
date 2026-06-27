@@ -1,15 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  addDoc,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(request: Request) {
   try {
@@ -22,23 +12,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing user_id parameter" }, { status: 400 });
     }
 
-    let q = query(
-      collection(db, "aktivitas"),
-      where("user_id", "==", userId),
-      where("deleted_at", "==", null)
-    );
+    let queryRef: any = adminDb
+      .collection("aktivitas")
+      .where("user_id", "==", userId)
+      .where("deleted_at", "==", null);
 
     if (from) {
-      q = query(q, where("tanggal", ">=", from));
+      queryRef = queryRef.where("tanggal", ">=", from);
     }
     if (to) {
-      q = query(q, where("tanggal", "<=", to));
+      queryRef = queryRef.where("tanggal", "<=", to);
     }
-    q = query(q, orderBy("tanggal", "desc"));
+    queryRef = queryRef.orderBy("tanggal", "desc");
 
-    const snapshot = await getDocs(q);
+    const snapshot = await queryRef.get();
     const activities: any[] = [];
-    snapshot.forEach((doc) => {
+    snapshot.forEach((doc: any) => {
       activities.push({ id: doc.id, ...doc.data() });
     });
 
@@ -87,7 +76,7 @@ export async function POST(request: Request) {
       deleted_at: null,
     };
 
-    const docRef = await addDoc(collection(db, "aktivitas"), newActivity);
+    const docRef = await adminDb.collection("aktivitas").add(newActivity);
     return NextResponse.json({ success: true, data: { id: docRef.id, ...newActivity } });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -113,7 +102,7 @@ export async function PUT(request: Request) {
     if (durasi_menit !== undefined) updates.durasi_menit = Number(durasi_menit);
     if (photo !== undefined) updates.photo = photo;
 
-    await updateDoc(doc(db, "aktivitas", id), updates);
+    await adminDb.collection("aktivitas").doc(id).update(updates);
     return NextResponse.json({ success: true, message: "Activity updated successfully" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -129,7 +118,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Missing activity id parameter" }, { status: 400 });
     }
 
-    await updateDoc(doc(db, "aktivitas", id), {
+    await adminDb.collection("aktivitas").doc(id).update({
       deleted_at: getIndonesianTimeISOString(),
     });
 
