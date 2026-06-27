@@ -77,15 +77,21 @@ export async function POST(request: Request) {
     const todayStr = getIndonesianTimeISOString().split("T")[0]; // YYYY-MM-DD in Indonesia Time
 
     if (action === "checkin") {
-      // Check if already checked in today
+      // Check if already checked in today (excluding rejected check-ins, allowing re-check-in)
       const checkQuery = query(
         collection(db, "presences"),
         where("user_id", "==", user_id),
-        where("tanggal", "==", todayStr),
-        limit(1)
+        where("tanggal", "==", todayStr)
       );
       const checkSnap = await getDocs(checkQuery);
-      if (!checkSnap.empty) {
+      
+      // If there is an entry that is Approved or Pending, block re-checkin
+      const activePresence = checkSnap.docs.find(doc => {
+        const data = doc.data();
+        return data.status === "Approved" || data.status === "Pending";
+      });
+
+      if (activePresence) {
         return NextResponse.json({ error: "Already checked in today" }, { status: 400 });
       }
 
