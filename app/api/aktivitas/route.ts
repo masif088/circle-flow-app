@@ -16,6 +16,7 @@ export async function GET(request: Request) {
       .collection("aktivitas")
       .where("user_id", "==", userId)
       .where("deleted_at", "==", null);
+    const snapshot = await queryRef.get();
     let activities: any[] = [];
     snapshot.forEach((doc: any) => {
       const data = doc.data();
