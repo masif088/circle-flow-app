@@ -23,12 +23,17 @@ export async function GET(request: Request) {
     if (to) {
       queryRef = queryRef.where("tanggal", "<=", to);
     }
-    queryRef = queryRef.orderBy("tanggal", "desc");
-
     const snapshot = await queryRef.get();
     const activities: any[] = [];
     snapshot.forEach((doc: any) => {
       activities.push({ id: doc.id, ...doc.data() });
+    });
+
+    // Sort descending by tanggal in-memory to bypass Firestore composite index requirement
+    activities.sort((a, b) => {
+      const dateA = a.tanggal || '';
+      const dateB = b.tanggal || '';
+      return dateB.localeCompare(dateA);
     });
 
     return NextResponse.json({ success: true, data: activities });
