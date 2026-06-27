@@ -99,6 +99,7 @@ interface ActivityItem {
   updated_at: string;
   user_id: string;
   project_id: string;
+  kategori?: string;
 }
 
 interface PresenceRecord {
