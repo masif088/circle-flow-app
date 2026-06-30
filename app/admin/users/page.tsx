@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut as firebaseSignOut, connectAuthEmulator } from "firebase/auth";
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db, firebaseConfig } from "@/lib/firebase";
 import {
   Box,
@@ -33,7 +33,10 @@ import {
   Grid,
   Stack,
   MenuItem,
-  InputAdornment
+  InputAdornment,
+  Checkbox,
+  ListItemText,
+  OutlinedInput
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -54,6 +57,12 @@ interface UserRecord {
   role: "admin" | "editor" | "viewer";
   status: "active" | "suspended";
   createdAt: string;
+  teamIds: string[];
+}
+
+interface TeamRecord {
+  id: string;
+  title: string;
 }
 
 export default function UsersPage() {
@@ -64,6 +73,7 @@ export default function UsersPage() {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
+  const [teams, setTeams] = useState<TeamRecord[]>([]);
 
 
   // Form states
@@ -72,6 +82,7 @@ export default function UsersPage() {
   const [formPassword, setFormPassword] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formRole, setFormRole] = useState<"admin" | "editor" | "viewer">("viewer");
+  const [formTeamIds, setFormTeamIds] = useState<string[]>([]);
 
   // Fetch users from Firestore on mount
   useEffect(() => {
@@ -88,6 +99,7 @@ export default function UsersPage() {
             role: data.role || "viewer",
             status: data.status || "active",
             createdAt: data.createdAt ? data.createdAt.split("T")[0] : "",
+            teamIds: data.teamIds || [],
           });
         });
         setUsers(usersList);
@@ -98,6 +110,20 @@ export default function UsersPage() {
       }
     };
     fetchUsers();
+
+    const fetchTeams = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "teams"));
+        const teamsList: TeamRecord[] = [];
+        querySnapshot.forEach((doc) => {
+          teamsList.push({ id: doc.id, title: doc.data().title || doc.id });
+        });
+        setTeams(teamsList);
+      } catch (error) {
+        console.error("Error fetching teams:", error);
+      }
+    };
+    fetchTeams();
   }, []);
 
   const handleOpenAdd = () => {
@@ -144,6 +170,7 @@ export default function UsersPage() {
         role: userData.role,
         status: userData.status,
         createdAt: userData.createdAt.split("T")[0],
+        teamIds: [],
       };
       setUsers([...users, newUser]);
       setOpenAddDialog(false);
@@ -160,6 +187,7 @@ export default function UsersPage() {
     setFormLastName(nameParts.slice(1).join(" ") || "");
     setFormEmail(user.email);
     setFormRole(user.role);
+    setFormTeamIds(user.teamIds || []);
     setOpenEditDialog(true);
   };
 
@@ -174,12 +202,26 @@ export default function UsersPage() {
         name: updatedName,
         email: formEmail,
         role: formRole,
+        teamIds: formTeamIds,
       });
+
+      // Keep each team's memberIds in sync with the user's team assignment
+      const prevTeamIds = selectedUser.teamIds || [];
+      const addedTeamIds = formTeamIds.filter((id) => !prevTeamIds.includes(id));
+      const removedTeamIds = prevTeamIds.filter((id) => !formTeamIds.includes(id));
+      await Promise.all([
+        ...addedTeamIds.map((teamId) =>
+          updateDoc(doc(db, "teams", teamId), { memberIds: arrayUnion(selectedUser.uid) })
+        ),
+        ...removedTeamIds.map((teamId) =>
+          updateDoc(doc(db, "teams", teamId), { memberIds: arrayRemove(selectedUser.uid) })
+        ),
+      ]);
 
       setUsers(
         users.map((u) =>
           u.uid === selectedUser.uid
-            ? { ...u, name: updatedName, email: formEmail, role: formRole }
+            ? { ...u, name: updatedName, email: formEmail, role: formRole, teamIds: formTeamIds }
             : u
         )
       );
@@ -456,6 +498,37 @@ export default function UsersPage() {
                 <MenuItem value="viewer">Viewer</MenuItem>
                 <MenuItem value="editor">Editor</MenuItem>
                 <MenuItem value="admin">Administrator</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Tim</InputLabel>
+              <Select
+                multiple
+                value={formTeamIds}
+                onChange={(e) =>
+                  setFormTeamIds(
+                    typeof e.target.value === "string" ? e.target.value.split(",") : e.target.value
+                  )
+                }
+                input={<OutlinedInput label="Tim" />}
+                renderValue={(selected) =>
+                  (selected as string[])
+                    .map((id) => teams.find((t) => t.id === id)?.title || id)
+                    .join(", ")
+                }
+              >
+                {teams.length === 0 ? (
+                  <MenuItem value="" disabled>
+                    Belum ada tim tersedia
+                  </MenuItem>
+                ) : (
+                  teams.map((team) => (
+                    <MenuItem key={team.id} value={team.id}>
+                      <Checkbox checked={formTeamIds.includes(team.id)} />
+                      <ListItemText primary={team.title} />
+                    </MenuItem>
+                  ))
+                )}
               </Select>
             </FormControl>
           </Box>

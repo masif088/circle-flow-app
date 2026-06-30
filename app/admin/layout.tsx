@@ -40,6 +40,7 @@ import {
   Notifications as NotificationsIcon,
   Person as PersonIcon,
   AccountBalanceWallet as FinanceIcon,
+  Groups as GroupsIcon,
 } from "@mui/icons-material";
 import { updateProfile, updatePassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -161,9 +162,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const menuItems = [
     { text: "Dasbor", icon: <DashboardIcon />, path: "/admin" },
     { text: "Pengguna", icon: <PeopleIcon />, path: "/admin/users" },
+    { text: "Tim", icon: <GroupsIcon />, path: "/admin/teams" },
     { text: "Perusahaan", icon: <FinanceIcon />, path: "/admin/companies" },
     { text: "Proyek", icon: <DashboardIcon />, path: "/admin/projects" },
-    { text: "Diagram Gantt", icon: <DashboardIcon />, path: "/admin/gantt" },
     { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
     { text: "Keuangan", icon: <FinanceIcon />, path: "/admin/finance" },
     { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },

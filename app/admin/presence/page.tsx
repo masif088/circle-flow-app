@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -100,7 +101,10 @@ interface UserRecord {
   uid: string;
   name: string;
   email: string;
+  role?: string;
 }
+
+const PRESENCE_TYPES = ["Jam Kantor", "Keluar", "Cuti", "Izin", "Tugas Luar", "Sakit", "Libur", "Lainnya"];
 
 interface ProjectRecord {
   id: string;
@@ -116,6 +120,7 @@ interface CostRecord {
 
 export default function PresenceAdminPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [presences, setPresences] = useState<PresenceRecord[]>([]);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
@@ -135,6 +140,17 @@ export default function PresenceAdminPage() {
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedPresence, setSelectedPresence] = useState<PresenceRecord | null>(null);
   const [actionNote, setActionNote] = useState("");
+
+  // Manual Add Presence (Admin only) States
+  const [openAddPresenceDialog, setOpenAddPresenceDialog] = useState(false);
+  const [addPresenceSaving, setAddPresenceSaving] = useState(false);
+  const [addUserId, setAddUserId] = useState("");
+  const [addProjectId, setAddProjectId] = useState("");
+  const [addType, setAddType] = useState("Jam Kantor");
+  const [addStatus, setAddStatus] = useState<"Pending" | "Approved" | "Rejected">("Approved");
+  const [addDateTime, setAddDateTime] = useState("");
+  const [addCost, setAddCost] = useState("");
+  const [addDescription, setAddDescription] = useState("");
 
   const loadAllData = async () => {
     try {
@@ -156,7 +172,8 @@ export default function PresenceAdminPage() {
         uList.push({
           uid: d.id,
           name: d.data().name || d.data().firstName || "User",
-          email: d.data().email || ""
+          email: d.data().email || "",
+          role: d.data().role || "viewer"
         });
       });
       setUsers(uList);
@@ -560,6 +577,71 @@ export default function PresenceAdminPage() {
     return p ? p.title : pid;
   };
 
+  const currentUserRole = users.find((u) => u.uid === user?.uid)?.role;
+  const isAdmin = currentUserRole === "admin";
+
+  const getLocalDateTimeInputValue = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const handleOpenAddPresence = () => {
+    setAddUserId("");
+    setAddProjectId("");
+    setAddType("Jam Kantor");
+    setAddStatus("Approved");
+    setAddDateTime(getLocalDateTimeInputValue(new Date()));
+    setAddCost("");
+    setAddDescription("");
+    setOpenAddPresenceDialog(true);
+  };
+
+  const handleAddManualPresence = async () => {
+    if (!addUserId || !addType || !addDateTime) return;
+    setAddPresenceSaving(true);
+    try {
+      const reviewerId = user?.uid || "unknown_admin";
+      const reviewerName = user?.displayName || user?.email || "Admin";
+      const createdAtIso = new Date(addDateTime).toISOString();
+      const costValue = parseFloat(addCost) || 0;
+
+      const presenceData: Record<string, unknown> = {
+        user_id: addUserId,
+        created_at: createdAtIso,
+        type: addType,
+        status: addStatus,
+        description: addDescription || `Ditambahkan manual oleh ${reviewerName}`,
+        project_id: addProjectId || null,
+        cost_on_presence: costValue,
+        added_manually: true,
+        added_by: reviewerId
+      };
+
+      if (addStatus === "Approved") {
+        presenceData.approved_at = new Date().toISOString();
+        presenceData.approved_by = reviewerId;
+        presenceData.approved_note = `Ditambahkan & disetujui manual oleh ${reviewerName}`;
+      } else if (addStatus === "Rejected") {
+        presenceData.rejected_at = new Date().toISOString();
+        presenceData.rejected_by = reviewerId;
+        presenceData.rejected_note = `Ditambahkan & ditolak manual oleh ${reviewerName}`;
+      }
+
+      await addDoc(collection(db, "presences"), presenceData);
+
+      if (addStatus === "Approved" && addProjectId) {
+        await syncPresenceToExpenditure(addUserId, addProjectId, costValue);
+      }
+
+      showMsg("Presensi manual berhasil ditambahkan.");
+      setOpenAddPresenceDialog(false);
+    } catch (error: unknown) {
+      showMsg("Gagal menambahkan presensi: " + (error instanceof Error ? error.message : "Terjadi kesalahan"), "error");
+    } finally {
+      setAddPresenceSaving(false);
+    }
+  };
+
   const formatPrice = (val?: number) => {
     if (val === undefined || val === null) return "-";
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
@@ -587,16 +669,29 @@ export default function PresenceAdminPage() {
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            startIcon={<DummyIcon />}
-            onClick={handleGenerateDummy}
-            disabled={dummyLoading}
-            sx={{ borderRadius: 2, fontWeight: 600 }}
-          >
-            {dummyLoading ? "Generating..." : "Gen Dummy Data"}
-          </Button>
+          {process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<DummyIcon />}
+              onClick={handleGenerateDummy}
+              disabled={dummyLoading}
+              sx={{ borderRadius: 2, fontWeight: 600 }}
+            >
+              {dummyLoading ? "Generating..." : "Gen Dummy Data"}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<AddIcon />}
+              onClick={handleOpenAddPresence}
+              sx={{ borderRadius: 2, fontWeight: 600 }}
+            >
+              Tambah Presensi Manual
+            </Button>
+          )}
           <Button
             variant="contained"
             color="primary"
@@ -675,7 +770,22 @@ export default function PresenceAdminPage() {
                           </Stack>
                         </TableCell>
                         <TableCell sx={{ fontWeight: 500 }}>
-                          {getProjectName(pres.project_id)}
+                          {pres.project_id ? (
+                            <Typography
+                              variant="body2"
+                              onClick={() => router.push(`/admin/projects/${pres.project_id}`)}
+                              sx={{
+                                fontWeight: 600,
+                                color: "primary.main",
+                                cursor: "pointer",
+                                "&:hover": { textDecoration: "underline" }
+                              }}
+                            >
+                              {getProjectName(pres.project_id)}
+                            </Typography>
+                          ) : (
+                            getProjectName(pres.project_id)
+                          )}
                         </TableCell>
                         <TableCell>
                           <Chip label={pres.type} size="small" variant="outlined" />
@@ -829,6 +939,98 @@ export default function PresenceAdminPage() {
       </Dialog>
 
 
+      {/* Manual Add Presence Dialog (Admin Only) */}
+      <Dialog open={openAddPresenceDialog} onClose={() => setOpenAddPresenceDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Tambah Presensi Manual</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            <FormControl fullWidth required>
+              <InputLabel>Karyawan</InputLabel>
+              <Select
+                value={addUserId}
+                label="Karyawan"
+                onChange={(e) => setAddUserId(e.target.value)}
+              >
+                {users.map((u) => (
+                  <MenuItem key={u.uid} value={u.uid}>{u.name} ({u.email})</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Proyek (Opsional)</InputLabel>
+              <Select
+                value={addProjectId}
+                label="Proyek (Opsional)"
+                onChange={(e) => setAddProjectId(e.target.value)}
+              >
+                <MenuItem value="">Tanpa Proyek</MenuItem>
+                {projects.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>{p.title}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth required>
+              <InputLabel>Tipe Kehadiran</InputLabel>
+              <Select
+                value={addType}
+                label="Tipe Kehadiran"
+                onChange={(e) => setAddType(e.target.value)}
+              >
+                {PRESENCE_TYPES.map((t) => (
+                  <MenuItem key={t} value={t}>{t}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth required>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={addStatus}
+                label="Status"
+                onChange={(e) => setAddStatus(e.target.value as "Pending" | "Approved" | "Rejected")}
+              >
+                <MenuItem value="Approved">Disetujui</MenuItem>
+                <MenuItem value="Pending">Menunggu</MenuItem>
+                <MenuItem value="Rejected">Ditolak</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              label="Tanggal & Waktu"
+              type="datetime-local"
+              required
+              value={addDateTime}
+              onChange={(e) => setAddDateTime(e.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              fullWidth
+              label="Biaya Harian (IDR)"
+              type="number"
+              value={addCost}
+              onChange={(e) => setAddCost(e.target.value)}
+            />
+            <TextField
+              fullWidth
+              label="Catatan / Deskripsi"
+              multiline
+              rows={2}
+              value={addDescription}
+              onChange={(e) => setAddDescription(e.target.value)}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setOpenAddPresenceDialog(false)}>Batal</Button>
+          <Button
+            variant="contained"
+            onClick={handleAddManualPresence}
+            disabled={!addUserId || !addType || !addDateTime || addPresenceSaving}
+          >
+            {addPresenceSaving ? "Menyimpan..." : "Simpan Presensi"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* View Presence Details Dialog */}
       <Dialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Detail Verifikasi Kehadiran</DialogTitle>
@@ -844,7 +1046,8 @@ export default function PresenceAdminPage() {
                     width: "100%",
                     maxHeight: 320,
                     borderRadius: "12px",
-                    objectFit: "cover",
+                    objectFit: "contain",
+                    bgcolor: "action.hover",
                     border: "1px solid #ddd"
                   }}
                 />

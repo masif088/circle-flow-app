@@ -689,15 +689,17 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
           >
             Tambah Tugas Pertama
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<SeedIcon />}
-            onClick={handleSeedData}
-            disabled={seeding}
-            sx={{ borderRadius: 2 }}
-          >
-            Isi Data Demo
-          </Button>
+          {process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && (
+            <Button
+              variant="outlined"
+              startIcon={<SeedIcon />}
+              onClick={handleSeedData}
+              disabled={seeding}
+              sx={{ borderRadius: 2 }}
+            >
+              Isi Data Demo
+            </Button>
+          )}
           <Button
             variant="outlined"
             color="success"

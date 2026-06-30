@@ -69,7 +69,11 @@ import {
   LocationOn as LocationIcon,
   Visibility as ViewIcon,
   Map as MapIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Close as CloseIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  PictureAsPdf as PdfIcon
 } from "@mui/icons-material";
 
 interface ProjectRecord {
@@ -130,6 +134,15 @@ interface UserRecord {
   uid: string;
   name: string;
   email: string;
+}
+
+interface GalleryItem {
+  url: string;
+  title: string;
+  date: string;
+  type: "Aktivitas" | "Kehadiran";
+  author: string;
+  presence: PresenceRecord;
 }
 
 interface DaySummary {
@@ -211,6 +224,13 @@ export default function ProjectDetailPage() {
   const [showPresencePhotos, setShowPresencePhotos] = useState(false);
   const [galleryLimit, setGalleryLimit] = useState(10);
 
+  // Gallery Lightbox States
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // PDF Report State
+  const [generatingReport, setGeneratingReport] = useState(false);
+
   // Worker Wage Settings States
   const [projectWages, setProjectWages] = useState<any[]>([]);
   const [openWageDialog, setOpenWageDialog] = useState(false);
@@ -236,56 +256,6 @@ export default function ProjectDetailPage() {
     return u ? u.name : uid;
   }, [users]);
 
-  const galleryItems = React.useMemo(() => {
-    interface GalleryItem {
-      url: string;
-      title: string;
-      date: string;
-      type: "Aktivitas" | "Kehadiran";
-      author: string;
-      presence: PresenceRecord;
-    }
-    const items: GalleryItem[] = [];
-    
-    presences.forEach((p) => {
-      const userName = getUserName(p.user_id);
-      
-      // 1. Activity photos (always included)
-      if (p.activity) {
-        Object.values(p.activity).forEach((act) => {
-          if (act.photo) {
-            items.push({
-              url: act.photo,
-              title: act.title || "Foto Aktivitas",
-              date: act.created_at || p.created_at,
-              type: "Aktivitas",
-              author: userName,
-              presence: p
-            });
-          }
-        });
-      }
-      
-      // 2. Presence check-in photos (included only if checkbox is checked)
-      if (showPresencePhotos && p.photo) {
-        items.push({
-          url: p.photo,
-          title: "Foto Check-in Kehadiran",
-          date: p.created_at,
-          type: "Kehadiran",
-          author: userName,
-          presence: p
-        });
-      }
-    });
-    
-    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [presences, showPresencePhotos, getUserName]);
-
-  const displayedGalleryItems = React.useMemo(() => {
-    return galleryItems.slice(0, galleryLimit);
-  }, [galleryItems, galleryLimit]);
-
   const handleLoadMore = () => {
     setGalleryLimit((prev) => prev + 10);
   };
@@ -295,12 +265,17 @@ export default function ProjectDetailPage() {
   const mapRef = useRef<{ remove: () => void } | null>(null);
   const mapContainerId = "project-checkin-map";
 
-  // Date Filter State
+  // Date Range Filter State
   const getTodayStr = () => {
-    return "2026-06-22";
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   };
   const todayStr = getTodayStr();
-  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
 
   const getUserEmail = (uid: string) => {
     const u = users.find((x) => x.uid === uid);
@@ -823,14 +798,296 @@ export default function ProjectDetailPage() {
     }
   };
 
-  // Filter presences registered on the selectedDate (any status: Pending, Approved, Rejected)
+  // Filter presences registered within the selected date range (any status: Pending, Approved, Rejected)
   const filteredPresences = React.useMemo(() => {
     return presences.filter(p => {
       if (!p.created_at) return false;
       const localDate = getLocalDateStr(p.created_at);
-      return localDate === selectedDate;
+      return localDate >= startDate && localDate <= endDate;
     });
-  }, [presences, selectedDate]);
+  }, [presences, startDate, endDate]);
+
+  const galleryItems = React.useMemo(() => {
+    const items: GalleryItem[] = [];
+
+    filteredPresences.forEach((p) => {
+      const userName = getUserName(p.user_id);
+
+      // 1. Activity photos (always included)
+      if (p.activity) {
+        Object.values(p.activity).forEach((act) => {
+          if (act.photo) {
+            items.push({
+              url: act.photo,
+              title: act.title || "Foto Aktivitas",
+              date: act.created_at || p.created_at,
+              type: "Aktivitas",
+              author: userName,
+              presence: p
+            });
+          }
+        });
+      }
+
+      // 2. Presence check-in photos (included only if checkbox is checked)
+      if (showPresencePhotos && p.photo) {
+        items.push({
+          url: p.photo,
+          title: "Foto Check-in Kehadiran",
+          date: p.created_at,
+          type: "Kehadiran",
+          author: userName,
+          presence: p
+        });
+      }
+    });
+
+    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredPresences, showPresencePhotos, getUserName]);
+
+  const displayedGalleryItems = React.useMemo(() => {
+    return galleryItems.slice(0, galleryLimit);
+  }, [galleryItems, galleryLimit]);
+
+  const handleOpenLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const handleLightboxPrev = React.useCallback(() => {
+    setLightboxIndex((prev) => (prev - 1 + galleryItems.length) % galleryItems.length);
+  }, [galleryItems.length]);
+
+  const handleLightboxNext = React.useCallback(() => {
+    setLightboxIndex((prev) => (prev + 1) % galleryItems.length);
+  }, [galleryItems.length]);
+
+  // Keyboard navigation for lightbox (Left/Right/Escape)
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") handleLightboxPrev();
+      else if (e.key === "ArrowRight") handleLightboxNext();
+      else if (e.key === "Escape") setLightboxOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxOpen, handleLightboxPrev, handleLightboxNext]);
+
+  // Convert a (possibly cross-origin) image URL into a base64 data URL for embedding in the PDF
+  const loadImageAsDataURL = async (url: string): Promise<string | null> => {
+    try {
+      // Route through our own API so Firebase Storage's CORS policy doesn't block the browser fetch
+      const proxiedUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxiedUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error("Gagal memuat gambar untuk PDF:", url, e);
+      return null;
+    }
+  };
+
+  const getImageFormat = (dataUrl: string): "PNG" | "JPEG" => (dataUrl.includes("image/png") ? "PNG" : "JPEG");
+
+  // Compute draw dimensions/offsets that fit an image inside a box without distorting its aspect ratio
+  const getContainBox = (
+    pdf: InstanceType<Awaited<typeof import("jspdf")>["default"]>,
+    imgData: string,
+    maxW: number,
+    maxH: number
+  ) => {
+    const props = pdf.getImageProperties(imgData);
+    const ratio = Math.min(maxW / props.width, maxH / props.height);
+    const w = props.width * ratio;
+    const h = props.height * ratio;
+    return { w, h, offsetX: (maxW - w) / 2, offsetY: (maxH - h) / 2 };
+  };
+
+  const handleGenerateReport = async () => {
+    if (!project) return;
+    setGeneratingReport(true);
+    try {
+      const { default: JsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const pdf = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+
+      // Header
+      pdf.setFontSize(15);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`Laporan Kehadiran - ${project.title}`, margin, 15);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Periode: ${startDate} s/d ${endDate}`, margin, 21);
+      pdf.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, margin, 26);
+
+      // Pre-load presence check-in photos for the table thumbnails
+      const presenceImages = new Map<string, string | null>();
+      for (const pres of filteredPresences) {
+        if (pres.photo && !presenceImages.has(pres.id)) {
+          presenceImages.set(pres.id, await loadImageAsDataURL(pres.photo));
+        }
+      }
+
+      const tableBody = filteredPresences.map((pres) => [
+        "",
+        getUserName(pres.user_id),
+        pres.type || "-",
+        pres.status === "Approved" ? "Disetujui" : pres.status === "Rejected" ? "Ditolak" : "Menunggu",
+        formatPrice(pres.cost_on_presence),
+        pres.created_at ? new Date(pres.created_at).toLocaleString("id-ID") : "-"
+      ]);
+
+      const photoCellSize = 26;
+      autoTable(pdf, {
+        startY: 31,
+        head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Waktu Masuk"]],
+        body: tableBody,
+        styles: { fontSize: 7.5, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
+        headStyles: { fillColor: [99, 102, 241] },
+        columnStyles: { 0: { cellWidth: photoCellSize + 4 } },
+        margin: { left: margin, right: margin },
+        didDrawCell: (data) => {
+          if (data.section === "body" && data.column.index === 0) {
+            const pres = filteredPresences[data.row.index];
+            const imgData = pres ? presenceImages.get(pres.id) : null;
+            if (imgData) {
+              try {
+                const box = getContainBox(pdf, imgData, photoCellSize, photoCellSize);
+                pdf.addImage(
+                  imgData,
+                  getImageFormat(imgData),
+                  data.cell.x + 2 + box.offsetX,
+                  data.cell.y + 2 + box.offsetY,
+                  box.w,
+                  box.h
+                );
+              } catch (err) {
+                console.error("Gagal menggambar foto presensi:", err);
+              }
+            }
+          }
+        }
+      });
+
+      // --- Cost Totals ---
+      const totalCostAll = filteredPresences.reduce((sum, p) => sum + (p.cost_on_presence || 0), 0);
+      const perPersonCost = new Map<string, number>();
+      filteredPresences.forEach((p) => {
+        perPersonCost.set(p.user_id, (perPersonCost.get(p.user_id) || 0) + (p.cost_on_presence || 0));
+      });
+
+      let cursorY = (pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`Total Biaya Keseluruhan: ${formatPrice(totalCostAll)}`, margin, cursorY);
+      cursorY += 8;
+
+      autoTable(pdf, {
+        startY: cursorY,
+        head: [["Karyawan", "Total Biaya"]],
+        body: Array.from(perPersonCost.entries()).map(([uid, total]) => [getUserName(uid), formatPrice(total)]),
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [16, 185, 129] },
+        margin: { left: margin, right: margin },
+        tableWidth: pageWidth - margin * 2
+      });
+
+      // Activity photos section
+      const activityPhotos: { url: string; title: string; author: string; date: string }[] = [];
+      filteredPresences.forEach((pres) => {
+        if (pres.activity) {
+          Object.values(pres.activity).forEach((act) => {
+            if (act.photo) {
+              activityPhotos.push({
+                url: act.photo,
+                title: act.title || "Foto Aktivitas",
+                author: getUserName(pres.user_id),
+                date: act.created_at || pres.created_at
+              });
+            }
+          });
+        }
+      });
+
+      if (activityPhotos.length > 0) {
+        pdf.addPage();
+        pdf.setFontSize(13);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Dokumentasi Foto Kegiatan", margin, 14);
+
+        const cols = 2;
+        const gap = 6;
+        const imgWidth = (pageWidth - margin * 2 - gap * (cols - 1)) / cols;
+        const imgHeight = imgWidth * 0.75;
+        const cellHeight = imgHeight + 14;
+
+        let x = margin;
+        let y = 22;
+        let col = 0;
+
+        for (const item of activityPhotos) {
+          if (y + cellHeight > pageHeight - margin) {
+            pdf.addPage();
+            y = 16;
+            x = margin;
+            col = 0;
+          }
+
+          const imgData = await loadImageAsDataURL(item.url);
+          pdf.setDrawColor(220);
+          pdf.rect(x, y, imgWidth, imgHeight);
+          if (imgData) {
+            try {
+              const box = getContainBox(pdf, imgData, imgWidth, imgHeight);
+              pdf.addImage(imgData, getImageFormat(imgData), x + box.offsetX, y + box.offsetY, box.w, box.h);
+            } catch (err) {
+              console.error("Gagal menggambar foto aktivitas:", err);
+            }
+          }
+
+          pdf.setFontSize(8);
+          pdf.setFont("helvetica", "bold");
+          const titleLines = pdf.splitTextToSize(item.title, imgWidth);
+          pdf.text(titleLines, x, y + imgHeight + 4);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(7);
+          pdf.text(
+            `${item.author} - ${item.date ? new Date(item.date).toLocaleDateString("id-ID") : ""}`,
+            x,
+            y + imgHeight + 9
+          );
+
+          col += 1;
+          if (col >= cols) {
+            col = 0;
+            x = margin;
+            y += cellHeight;
+          } else {
+            x += imgWidth + gap;
+          }
+        }
+      }
+
+      pdf.save(`Laporan-Kehadiran-${project.title.replace(/\s+/g, "_")}-${startDate}_${endDate}.pdf`);
+    } catch (e: unknown) {
+      console.error("Gagal membuat laporan PDF:", e);
+      showMsg("Gagal membuat laporan PDF: " + (e instanceof Error ? e.message : String(e)), "error");
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
 
   // Setup/Update Map for Check-in sebaran (Filtered by selectedDate)
   useEffect(() => {
@@ -1581,19 +1838,38 @@ export default function ProjectDetailPage() {
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           Verifikasi Kehadiran & Geolokasi
         </Typography>
-        <Card sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 2, borderRadius: 2, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+        <Card sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 2, borderRadius: 2, boxShadow: "0 2px 10px rgba(0,0,0,0.05)", flexWrap: "wrap" }}>
           <DateIcon color="action" />
           <TextField
-            label="Filter Tanggal"
+            label="Dari Tanggal"
             type="date"
             size="small"
             slotProps={{
-      inputLabel: {
-        shrink: true,
-      },
-    }}
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+              inputLabel: {
+                shrink: true,
+              },
+              htmlInput: {
+                max: endDate,
+              },
+            }}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <Typography variant="body2" color="text.secondary">s/d</Typography>
+          <TextField
+            label="Sampai Tanggal"
+            type="date"
+            size="small"
+            slotProps={{
+              inputLabel: {
+                shrink: true,
+              },
+              htmlInput: {
+                min: startDate,
+              },
+            }}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
         </Card>
       </Box>
@@ -1605,7 +1881,7 @@ export default function ProjectDetailPage() {
             <MapIcon color="primary" /> Peta Lokasi Proyek
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-            Distribusi real-time koordinat kehadiran (check-in) dan aktivitas pekerja relatif terhadap batas proyek (Difilter berdasarkan Tanggal: {selectedDate})
+            Distribusi real-time koordinat kehadiran (check-in) dan aktivitas pekerja relatif terhadap batas proyek (Difilter berdasarkan Tanggal: {startDate} s/d {endDate})
           </Typography>
           <Box
             id={mapContainerId}
@@ -1667,7 +1943,7 @@ export default function ProjectDetailPage() {
                 {displayedGalleryItems.map((item, index) => (
                   <Grid key={index} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                     <Card
-                      onClick={() => handleOpenDetail(item.presence)}
+                      onClick={() => handleOpenLightbox(index)}
                       sx={{
                         cursor: "pointer",
                         height: "100%",
@@ -1749,9 +2025,20 @@ export default function ProjectDetailPage() {
       {/* Detailed Presence Logs Table (Filtered by selectedDate) */}
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-            Log Kehadiran Detail & Verifikasi Geofencing (Difilter)
-          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Log Kehadiran Detail & Verifikasi Geofencing (Difilter)
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={generatingReport ? <CircularProgress size={16} /> : <PdfIcon />}
+              onClick={handleGenerateReport}
+              disabled={generatingReport || filteredPresences.length === 0}
+              sx={{ borderRadius: 2, textTransform: "none" }}
+            >
+              {generatingReport ? "Membuat Laporan..." : "Unduh Laporan PDF"}
+            </Button>
+          </Box>
           <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
             <Table sx={{ minWidth: 800 }}>
               <TableHead>
@@ -1886,6 +2173,119 @@ export default function ProjectDetailPage() {
       </Card>
 
 
+      {/* Gallery Photo Lightbox (Full Screen with Next/Prev navigation) */}
+      <Dialog
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        maxWidth={false}
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: "rgba(0,0,0,0.95)",
+              boxShadow: "none",
+              m: 0,
+              width: "100vw",
+              height: "100vh",
+              maxWidth: "100vw",
+              maxHeight: "100vh",
+              borderRadius: 0
+            }
+          }
+        }}
+      >
+        {galleryItems.length > 0 && galleryItems[lightboxIndex] && (
+          <Box
+            sx={{
+              position: "relative",
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            <IconButton
+              onClick={() => setLightboxOpen(false)}
+              sx={{ position: "absolute", top: 16, right: 16, color: "#fff", bgcolor: "rgba(255,255,255,0.1)", "&:hover": { bgcolor: "rgba(255,255,255,0.2)" } }}
+            >
+              <CloseIcon />
+            </IconButton>
+
+            {galleryItems.length > 1 && (
+              <IconButton
+                onClick={handleLightboxPrev}
+                sx={{
+                  position: "absolute",
+                  left: { xs: 8, md: 24 },
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#fff",
+                  bgcolor: "rgba(255,255,255,0.1)",
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" }
+                }}
+              >
+                <ChevronLeftIcon fontSize="large" />
+              </IconButton>
+            )}
+
+            <Box
+              component="img"
+              src={galleryItems[lightboxIndex].url}
+              alt={galleryItems[lightboxIndex].title}
+              sx={{
+                maxWidth: "90%",
+                maxHeight: "75vh",
+                objectFit: "contain",
+                borderRadius: 1,
+                boxShadow: "0 8px 40px rgba(0,0,0,0.6)"
+              }}
+            />
+
+            {galleryItems.length > 1 && (
+              <IconButton
+                onClick={handleLightboxNext}
+                sx={{
+                  position: "absolute",
+                  right: { xs: 8, md: 24 },
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#fff",
+                  bgcolor: "rgba(255,255,255,0.1)",
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" }
+                }}
+              >
+                <ChevronRightIcon fontSize="large" />
+              </IconButton>
+            )}
+
+            <Box sx={{ mt: 2, textAlign: "center", color: "#fff", px: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                {galleryItems[lightboxIndex].title}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)" }}>
+                {galleryItems[lightboxIndex].author} &middot; {new Date(galleryItems[lightboxIndex].date).toLocaleString("id-ID")}
+              </Typography>
+              <Typography variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.5)", mt: 0.5 }}>
+                {lightboxIndex + 1} / {galleryItems.length}
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ mt: 1.5, color: "#fff", borderColor: "rgba(255,255,255,0.4)", textTransform: "none" }}
+                onClick={() => {
+                  setLightboxOpen(false);
+                  handleOpenDetail(galleryItems[lightboxIndex].presence);
+                }}
+              >
+                Lihat Detail Verifikasi
+              </Button>
+            </Box>
+          </Box>
+        )}
+      </Dialog>
+
       {/* View Presence Details Dialog */}
       <Dialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Detail Verifikasi Kehadiran</DialogTitle>
@@ -1901,7 +2301,8 @@ export default function ProjectDetailPage() {
                     width: "100%",
                     maxHeight: 320,
                     borderRadius: "12px",
-                    objectFit: "cover",
+                    objectFit: "contain",
+                    bgcolor: "action.hover",
                     border: "1px solid #ddd"
                   }}
                 />
