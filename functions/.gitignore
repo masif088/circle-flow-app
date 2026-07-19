@@ -4,3 +4,10 @@ __pycache__/
 # Python virtual environment
 venv/
 *.local
+
+# Node
+node_modules/
+lib/
+
+# Secrets
+.env

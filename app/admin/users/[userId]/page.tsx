@@ -31,20 +31,24 @@ import {
   Chip,
   Alert,
   TextField,
+  IconButton,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
   LocationOn as LocationIcon,
   PictureAsPdf as PdfIcon,
+  Visibility as ViewIcon,
 } from "@mui/icons-material";
 
 interface UserRecord {
   uid: string;
   name: string;
   email: string;
-  role: "admin" | "editor" | "viewer";
+  role: "admin" | "client" | "staff";
+  company_id?: string;
   status: "active" | "suspended";
   createdAt: string;
+  position?: string;
 }
 
 export default function UserDetailPage() {
@@ -52,6 +56,7 @@ export default function UserDetailPage() {
   const router = useRouter();
 
   const [userRecord, setUserRecord] = useState<UserRecord | null>(null);
+  const [companyName, setCompanyName] = useState<string>("");
   const [presences, setPresences] = useState<any[]>([]);
   const [costs, setCosts] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -68,7 +73,7 @@ export default function UserDetailPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
   const today = getTodayStr();
-  const [startDate, setStartDate] = useState(today);
+  const [startDate, setStartDate] = useState(today.substring(0, 8) + "01");
   const [endDate, setEndDate] = useState(today);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
@@ -89,14 +94,22 @@ export default function UserDetailPage() {
         }
 
         const data = userDocSnap.data();
-        setUserRecord({
+        const record: UserRecord = {
           uid: userDocSnap.id,
           name: data.name || `${data.firstName || ""} ${data.lastName || ""}`.trim() || "Tanpa Nama",
           email: data.email || "",
-          role: data.role || "viewer",
+          role: data.role || "staff",
+          company_id: data.company_id || "",
           status: data.status || "active",
           createdAt: data.createdAt ? data.createdAt.split("T")[0] : "",
-        });
+          position: data.position || "",
+        };
+        setUserRecord(record);
+
+        if (data.company_id) {
+          const companySnap = await getDoc(doc(db, "companies", data.company_id));
+          if (companySnap.exists()) setCompanyName(companySnap.data().name || data.company_id);
+        }
 
         // 2. Fetch User Presences
         const presSnap = await getDocs(
@@ -366,18 +379,26 @@ export default function UserDetailPage() {
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>HAK AKSES / ROLE</Typography>
                   <Chip
-                    label={userRecord.role.toUpperCase()}
+                    label={
+                      userRecord.role === "admin" ? "Super Admin"
+                      : userRecord.role === "client" ? "Client"
+                      : "Staff"
+                    }
                     size="small"
                     color={
-                      userRecord.role === "admin"
-                        ? "primary"
-                        : userRecord.role === "editor"
-                        ? "secondary"
-                        : "default"
+                      userRecord.role === "admin" ? "primary"
+                      : userRecord.role === "client" ? "info"
+                      : "warning"
                     }
                     sx={{ fontWeight: 700 }}
                   />
                 </Grid>
+                {userRecord.role === "client" && (
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>PERUSAHAAN</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>{companyName || userRecord.company_id || "—"}</Typography>
+                  </Grid>
+                )}
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>STATUS AKUN</Typography>
                   <Chip
@@ -386,6 +407,13 @@ export default function UserDetailPage() {
                     color={userRecord.status === "active" ? "success" : "error"}
                     sx={{ fontWeight: 700 }}
                   />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>POSISI / JABATAN</Typography>
+                  {userRecord.position
+                    ? <Chip label={userRecord.position} size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 1.5 }} />
+                    : <Typography variant="body2" color="text.secondary">—</Typography>
+                  }
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>TANGGAL TERDAFTAR</Typography>
@@ -399,23 +427,20 @@ export default function UserDetailPage() {
 
               <Divider sx={{ my: 3 }} />
 
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                Statistik Kehadiran
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Total Log Presensi</Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{presences.length}</Typography>
+              <Stack direction="row" spacing={3} sx={{ justifyContent: "space-around", textAlign: "center" }}>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 800 }}>{presences.length}</Typography>
+                  <Typography variant="caption" color="text.secondary">Total</Typography>
                 </Box>
-                <Box sx={{ p: 2, bgcolor: "success.light", color: "success.contrastText", borderRadius: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Kehadiran Disetujui</Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{presences.filter(p => p.status === "Approved").length}</Typography>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 800, color: "success.main" }}>{presences.filter(p => p.status === "Approved").length}</Typography>
+                  <Typography variant="caption" color="text.secondary">Disetujui</Typography>
                 </Box>
-                <Box sx={{ p: 2, bgcolor: "error.light", color: "error.contrastText", borderRadius: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Kehadiran Ditolak</Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{presences.filter(p => p.status === "Rejected").length}</Typography>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 800, color: "error.main" }}>{presences.filter(p => p.status === "Rejected").length}</Typography>
+                  <Typography variant="caption" color="text.secondary">Ditolak</Typography>
                 </Box>
-              </Box>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
@@ -432,33 +457,36 @@ export default function UserDetailPage() {
                   Tidak ada tarif kustom yang dikonfigurasi untuk pengguna ini.
                 </Typography>
               ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ border: "1px solid", borderColor: "divider" }}>
-                  <Table size="small">
+                <TableContainer component={Paper} elevation={0}>
+                  <Table>
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 600 }}>Nama Proyek</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Tarif per Hari</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Tarif per Hari</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {costs.map((rate) => (
-                        <TableRow key={rate.id}>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                              onClick={() => router.push(`/admin/projects/${rate.project_id}`)}
-                              sx={{
-                                fontWeight: 600,
-                                color: "primary.main",
-                                cursor: "pointer",
-                                "&:hover": { textDecoration: "underline" }
-                              }}
-                            >
-                              {getProjectName(rate.project_id)}
-                            </Typography>
+                        <TableRow key={rate.id} hover>
+                          <TableCell sx={{ fontWeight: 600 }}>{getProjectName(rate.project_id)}</TableCell>
+                          <TableCell align="right">
+                            <Chip
+                              label={formatPrice(rate.cost)}
+                              size="small"
+                              color="success"
+                              sx={{ fontWeight: 700, borderRadius: 1.5 }}
+                            />
                           </TableCell>
-                          <TableCell sx={{ fontWeight: 700, color: "success.main" }}>
-                            {formatPrice(rate.cost)}
+                          <TableCell align="right">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => router.push(`/admin/projects/${rate.project_id}`)}
+                              title="Lihat Detail Proyek"
+                            >
+                              <ViewIcon fontSize="small" />
+                            </IconButton>
                           </TableCell>
                         </TableRow>
                       ))}

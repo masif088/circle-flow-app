@@ -137,7 +137,7 @@ export default function PresenceAdminPage() {
   const [costs, setCosts] = useState<CostRecord[]>([]);
 
   // Date range filter
-  const [startDate, setStartDate] = useState(getTodayStr());
+  const [startDate, setStartDate] = useState(() => { const t = getTodayStr(); return t.substring(0, 8) + "01"; });
   const [endDate, setEndDate] = useState(getTodayStr());
 
   const [loading, setLoading] = useState(true);

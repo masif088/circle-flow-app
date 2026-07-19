@@ -50,14 +50,23 @@ import {
   AttachMoney as MoneyIcon
 } from "@mui/icons-material";
 
+const POSITIONS = ["Technician", "Helper", "Safetyman", "Site Engineer", "Manager"] as const;
+
 interface UserRecord {
   uid: string;
   name: string;
   email: string;
-  role: "admin" | "editor" | "viewer";
+  role: "admin" | "client" | "staff";
   status: "active" | "suspended";
   createdAt: string;
   teamIds: string[];
+  position?: string;
+  company_id?: string;
+}
+
+interface CompanyRecord {
+  id: string;
+  name: string;
 }
 
 interface TeamRecord {
@@ -74,14 +83,16 @@ export default function UsersPage() {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [teams, setTeams] = useState<TeamRecord[]>([]);
-
+  const [companies, setCompanies] = useState<CompanyRecord[]>([]);
 
   // Form states
   const [formFirstName, setFormFirstName] = useState("");
   const [formLastName, setFormLastName] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formEmail, setFormEmail] = useState("");
-  const [formRole, setFormRole] = useState<"admin" | "editor" | "viewer">("viewer");
+  const [formRole, setFormRole] = useState<"admin" | "client" | "staff">("staff");
+  const [formPosition, setFormPosition] = useState("");
+  const [formCompanyId, setFormCompanyId] = useState("");
   const [formTeamIds, setFormTeamIds] = useState<string[]>([]);
 
   // Fetch users from Firestore on mount
@@ -100,6 +111,7 @@ export default function UsersPage() {
             status: data.status || "active",
             createdAt: data.createdAt ? data.createdAt.split("T")[0] : "",
             teamIds: data.teamIds || [],
+            position: data.position || "",
           });
         });
         setUsers(usersList);
@@ -124,6 +136,20 @@ export default function UsersPage() {
       }
     };
     fetchTeams();
+
+    const fetchCompanies = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "companies"));
+        const list: CompanyRecord[] = [];
+        querySnapshot.forEach((doc) => {
+          list.push({ id: doc.id, name: doc.data().name || doc.id });
+        });
+        setCompanies(list);
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      }
+    };
+    fetchCompanies();
   }, []);
 
   const handleOpenAdd = () => {
@@ -131,7 +157,9 @@ export default function UsersPage() {
     setFormLastName("");
     setFormPassword("");
     setFormEmail("");
-    setFormRole("viewer");
+    setFormRole("staff");
+    setFormPosition("");
+    setFormCompanyId("");
     setOpenAddDialog(true);
   };
 
@@ -157,6 +185,8 @@ export default function UsersPage() {
         name: `${formFirstName} ${formLastName}`.trim(),
         email: formEmail,
         role: formRole,
+        position: formPosition,
+        ...(formRole === "client" && formCompanyId ? { company_id: formCompanyId } : {}),
         status: "active" as const,
         createdAt: new Date().toISOString(),
       };
@@ -187,6 +217,8 @@ export default function UsersPage() {
     setFormLastName(nameParts.slice(1).join(" ") || "");
     setFormEmail(user.email);
     setFormRole(user.role);
+    setFormPosition(user.position || "");
+    setFormCompanyId(user.company_id || "");
     setFormTeamIds(user.teamIds || []);
     setOpenEditDialog(true);
   };
@@ -202,6 +234,8 @@ export default function UsersPage() {
         name: updatedName,
         email: formEmail,
         role: formRole,
+        position: formPosition,
+        company_id: formRole === "client" ? formCompanyId : null,
         teamIds: formTeamIds,
       });
 
@@ -221,7 +255,7 @@ export default function UsersPage() {
       setUsers(
         users.map((u) =>
           u.uid === selectedUser.uid
-            ? { ...u, name: updatedName, email: formEmail, role: formRole, teamIds: formTeamIds }
+            ? { ...u, name: updatedName, email: formEmail, role: formRole, position: formPosition, company_id: formRole === "client" ? formCompanyId : undefined, teamIds: formTeamIds }
             : u
         )
       );
@@ -346,14 +380,16 @@ export default function UsersPage() {
                     <TableCell color="text.secondary">{user.email}</TableCell>
                     <TableCell>
                       <Chip
-                        label={user.role.toUpperCase()}
+                        label={
+                          user.role === "admin" ? "Super Admin"
+                          : user.role === "client" ? "Client"
+                          : "Staff"
+                        }
                         size="small"
                         color={
-                          user.role === "admin"
-                            ? "primary"
-                            : user.role === "editor"
-                            ? "secondary"
-                            : "default"
+                          user.role === "admin" ? "primary"
+                          : user.role === "client" ? "info"
+                          : "warning"
                         }
                         sx={{ fontWeight: 600 }}
                       />
@@ -442,11 +478,42 @@ export default function UsersPage() {
               <Select
                 value={formRole}
                 label="Role"
-                onChange={(e) => setFormRole(e.target.value as "viewer" | "editor" | "admin")}
+                onChange={(e) => { setFormRole(e.target.value as "admin" | "client" | "staff"); setFormCompanyId(""); }}
               >
-                <MenuItem value="viewer">Viewer</MenuItem>
-                <MenuItem value="editor">Editor</MenuItem>
-                <MenuItem value="admin">Administrator</MenuItem>
+                <MenuItem value="admin">Super Admin</MenuItem>
+                <MenuItem value="client">Client</MenuItem>
+                <MenuItem value="staff">Staff</MenuItem>
+              </Select>
+            </FormControl>
+            {(formRole === "client" || formRole === "staff") && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+                {formRole === "client"
+                  ? "Client dapat melihat proyek & menambahkan jadwal. Tidak dapat menyetujui kehadiran. Tidak bisa login aplikasi mobile."
+                  : "Staff hanya bisa login di aplikasi mobile. Tidak bisa login website admin."}
+              </Typography>
+            )}
+            {formRole === "client" && (
+              <FormControl fullWidth>
+                <InputLabel>Perusahaan</InputLabel>
+                <Select
+                  value={formCompanyId}
+                  label="Perusahaan"
+                  onChange={(e) => setFormCompanyId(e.target.value)}
+                >
+                  <MenuItem value=""><em>Pilih Perusahaan</em></MenuItem>
+                  {companies.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                </Select>
+              </FormControl>
+            )}
+            <FormControl fullWidth>
+              <InputLabel>Posisi / Jabatan</InputLabel>
+              <Select
+                value={formPosition}
+                label="Posisi / Jabatan"
+                onChange={(e) => setFormPosition(e.target.value)}
+              >
+                <MenuItem value=""><em>Tidak Ditentukan</em></MenuItem>
+                {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
               </Select>
             </FormControl>
           </Box>
@@ -493,11 +560,42 @@ export default function UsersPage() {
               <Select
                 value={formRole}
                 label="Role"
-                onChange={(e) => setFormRole(e.target.value as "viewer" | "editor" | "admin")}
+                onChange={(e) => { setFormRole(e.target.value as "admin" | "client" | "staff"); setFormCompanyId(""); }}
               >
-                <MenuItem value="viewer">Viewer</MenuItem>
-                <MenuItem value="editor">Editor</MenuItem>
-                <MenuItem value="admin">Administrator</MenuItem>
+                <MenuItem value="admin">Super Admin</MenuItem>
+                <MenuItem value="client">Client</MenuItem>
+                <MenuItem value="staff">Staff</MenuItem>
+              </Select>
+            </FormControl>
+            {(formRole === "client" || formRole === "staff") && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+                {formRole === "client"
+                  ? "Client dapat melihat proyek & menambahkan jadwal. Tidak dapat menyetujui kehadiran. Tidak bisa login aplikasi mobile."
+                  : "Staff hanya bisa login di aplikasi mobile. Tidak bisa login website admin."}
+              </Typography>
+            )}
+            {formRole === "client" && (
+              <FormControl fullWidth>
+                <InputLabel>Perusahaan</InputLabel>
+                <Select
+                  value={formCompanyId}
+                  label="Perusahaan"
+                  onChange={(e) => setFormCompanyId(e.target.value)}
+                >
+                  <MenuItem value=""><em>Pilih Perusahaan</em></MenuItem>
+                  {companies.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                </Select>
+              </FormControl>
+            )}
+            <FormControl fullWidth>
+              <InputLabel>Posisi / Jabatan</InputLabel>
+              <Select
+                value={formPosition}
+                label="Posisi / Jabatan"
+                onChange={(e) => setFormPosition(e.target.value)}
+              >
+                <MenuItem value=""><em>Tidak Ditentukan</em></MenuItem>
+                {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
               </Select>
             </FormControl>
             <FormControl fullWidth>

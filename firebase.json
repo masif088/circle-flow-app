@@ -7,10 +7,12 @@
     {
       "source": "functions",
       "codebase": "default",
+      "runtime": "nodejs20",
       "ignore": [
         "venv",
         ".env",
-        "__pycache__"
+        "__pycache__",
+        "node_modules"
       ]
     }
   ],

@@ -96,7 +96,7 @@ export default function CompanyDetailPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
   const today = getTodayStr();
-  const [startDate, setStartDate] = useState(today);
+  const [startDate, setStartDate] = useState(today.substring(0, 8) + "01");
   const [endDate, setEndDate] = useState(today);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 

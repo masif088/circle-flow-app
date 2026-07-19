@@ -86,6 +86,7 @@ const getContainBox = (
 
 export default function ReportsPage() {
   const today = getTodayStr();
+  const firstOfMonth = today.substring(0, 8) + "01";
   const [companies, setCompanies] = useState<CompanyRecord[]>([]);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
@@ -95,13 +96,13 @@ export default function ReportsPage() {
 
   // Company report state
   const [companyId, setCompanyId] = useState("");
-  const [companyStart, setCompanyStart] = useState(today);
+  const [companyStart, setCompanyStart] = useState(firstOfMonth);
   const [companyEnd, setCompanyEnd] = useState(today);
   const [generatingCompany, setGeneratingCompany] = useState(false);
 
   // Individual report state
   const [userId, setUserId] = useState("");
-  const [userStart, setUserStart] = useState(today);
+  const [userStart, setUserStart] = useState(firstOfMonth);
   const [userEnd, setUserEnd] = useState(today);
   const [generatingUser, setGeneratingUser] = useState(false);
 

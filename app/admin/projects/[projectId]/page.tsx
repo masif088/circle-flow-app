@@ -85,6 +85,8 @@ interface ProjectRecord {
   company_id?: string;
   value?: number;
   status?: string;
+  check_in_time?: string;
+  check_out_time?: string;
 }
 
 interface CompanyRecord {
@@ -209,6 +211,8 @@ export default function ProjectDetailPage() {
   const [editProjCompId, setEditProjCompId] = useState("");
   const [editProjValue, setEditProjValue] = useState("");
   const [editProjStatus, setEditProjStatus] = useState("Active");
+  const [editProjCheckIn, setEditProjCheckIn] = useState("08:00");
+  const [editProjCheckOut, setEditProjCheckOut] = useState("17:00");
   const [editProjError, setEditProjError] = useState("");
   const [editProjSaving, setEditProjSaving] = useState(false);
 
@@ -274,7 +278,8 @@ export default function ProjectDetailPage() {
     return `${yyyy}-${mm}-${dd}`;
   };
   const todayStr = getTodayStr();
-  const [startDate, setStartDate] = useState(todayStr);
+  const firstOfMonthStr = todayStr.substring(0, 8) + "01";
+  const [startDate, setStartDate] = useState(firstOfMonthStr);
   const [endDate, setEndDate] = useState(todayStr);
 
   const getUserEmail = (uid: string) => {
@@ -301,6 +306,8 @@ export default function ProjectDetailPage() {
     setEditProjCompId(project.company_id || "");
     setEditProjValue(project.value?.toString() || "0");
     setEditProjStatus(project.status || "Active");
+    setEditProjCheckIn(project.check_in_time || "08:00");
+    setEditProjCheckOut(project.check_out_time || "17:00");
     setEditProjError("");
     setOpenEditProjectDialog(true);
   };
@@ -322,7 +329,9 @@ export default function ProjectDetailPage() {
         radius: parseFloat(editProjRadius) || 100,
         company_id: editProjCompId,
         value: parseFloat(editProjValue) || 0,
-        status: editProjStatus
+        status: editProjStatus,
+        check_in_time: editProjCheckIn,
+        check_out_time: editProjCheckOut,
       };
       await updateDoc(docRef, updateData);
       setProject(prev => prev ? { ...prev, ...updateData } : null);
@@ -1364,9 +1373,20 @@ export default function ProjectDetailPage() {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 800, mb: 1 }}>
             {project.title}
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Analisis biaya finansial dan detail metrik kehadiran.
-          </Typography>
+          <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap", gap: 1 }}>
+            <Chip
+              size="small"
+              label={`Masuk: ${project.check_in_time || "08:00"} WIB`}
+              color="primary"
+              variant="outlined"
+            />
+            <Chip
+              size="small"
+              label={`Pulang: ${project.check_out_time || "17:00"} WIB`}
+              color="secondary"
+              variant="outlined"
+            />
+          </Stack>
         </Box>
         <Button
           variant="contained"
@@ -2564,6 +2584,29 @@ export default function ProjectDetailPage() {
                     <MenuItem value="Planned">Direncanakan</MenuItem>
                   </Select>
                 </FormControl>
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Jam Masuk (WIB)"
+                  type="time"
+                  value={editProjCheckIn}
+                  onChange={(e) => setEditProjCheckIn(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Jam Pulang (WIB)"
+                  type="time"
+                  value={editProjCheckOut}
+                  onChange={(e) => setEditProjCheckOut(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
               </Grid>
             </Grid>
           </Box>
