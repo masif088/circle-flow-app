@@ -118,6 +118,16 @@ interface CostRecord {
   cost: number;
 }
 
+const getTodayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const getLocalDateStr = (isoStr: string) => {
+  const d = new Date(isoStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 export default function PresenceAdminPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -125,7 +135,11 @@ export default function PresenceAdminPage() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [costs, setCosts] = useState<CostRecord[]>([]);
-  
+
+  // Date range filter
+  const [startDate, setStartDate] = useState(getTodayStr());
+  const [endDate, setEndDate] = useState(getTodayStr());
+
   const [loading, setLoading] = useState(true);
   const [dummyLoading, setDummyLoading] = useState(false);
   const [msg, setMsg] = useState({ text: "", type: "success" as "success" | "error" | "info" });
@@ -647,6 +661,14 @@ export default function PresenceAdminPage() {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
   };
 
+  const filteredPresences = React.useMemo(() => {
+    return presences.filter(p => {
+      if (!p.created_at) return false;
+      const d = getLocalDateStr(p.created_at);
+      return d >= startDate && d <= endDate;
+    });
+  }, [presences, startDate, endDate]);
+
   return (
     <Box>
       {/* Header section */}
@@ -718,7 +740,32 @@ export default function PresenceAdminPage() {
         {/* Attendance Logs */}
         <Card>
           <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Attendance Logs</Typography>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Log Kehadiran</Typography>
+              <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+                <TextField
+                  label="Dari"
+                  type="date"
+                  size="small"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  sx={{ width: 150 }}
+                />
+                <TextField
+                  label="Sampai"
+                  type="date"
+                  size="small"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  sx={{ width: 150 }}
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                  {filteredPresences.length} record
+                </Typography>
+              </Stack>
+            </Box>
             <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
               <Table sx={{ minWidth: 800 }}>
                 <TableHead>
@@ -740,14 +787,14 @@ export default function PresenceAdminPage() {
                         Loading presences...
                       </TableCell>
                     </TableRow>
-                  ) : presences.length === 0 ? (
+                  ) : filteredPresences.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                        No presence logs. Use Gen Dummy Data to insert samples.
+                        Tidak ada data kehadiran pada rentang tanggal ini.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    presences.map((pres) => (
+                    filteredPresences.map((pres) => (
                       <TableRow key={pres.id} hover>
                         <TableCell>
                           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
