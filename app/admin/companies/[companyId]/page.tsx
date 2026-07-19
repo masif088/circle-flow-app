@@ -9,6 +9,7 @@ import {
   collection,
   query,
   where,
+  getDocs,
   onSnapshot
 } from "firebase/firestore";
 import {
@@ -48,7 +49,8 @@ import {
   AttachMoney as MoneyIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  PictureAsPdf as PdfIcon,
 } from "@mui/icons-material";
 
 interface CompanyRecord {
@@ -79,8 +81,24 @@ export default function CompanyDetailPage() {
 
   const [company, setCompany] = useState<CompanyRecord | null>(null);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
+  const [presences, setPresences] = useState<any[]>([]);
+  const [users, setUsers] = useState<{ uid: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
+
+  // Date range + PDF state
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const getLocalDateStr = (isoStr: string) => {
+    const d = new Date(isoStr);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const today = getTodayStr();
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Edit Company Dialog States
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -187,6 +205,14 @@ export default function CompanyDetailPage() {
       console.error("Error loading projects:", err);
       setLoading(false);
     });
+
+    // Fetch presences & users for PDF report
+    getDocs(collection(db, "presences")).then(snap => {
+      setPresences(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }).catch(console.error);
+    getDocs(collection(db, "users")).then(snap => {
+      setUsers(snap.docs.map(d => ({ uid: d.id, name: d.data().name || d.data().firstName || "User" })));
+    }).catch(console.error);
 
     return () => unsubscribe();
   }, [companyId]);
@@ -416,6 +442,184 @@ export default function CompanyDetailPage() {
     }
   };
 
+  const handleGenerateReport = async () => {
+    if (!company) return;
+    setGeneratingPdf(true);
+    try {
+      const { default: JsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const pdf = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+
+      const loadImg = async (url: string): Promise<string | null> => {
+        try {
+          const res = await fetch(`/api/proxy-image?url=${encodeURIComponent(url)}`);
+          if (!res.ok) return null;
+          const blob = await res.blob();
+          return new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+        } catch { return null; }
+      };
+      const getFormat = (d: string): "PNG" | "JPEG" => (d.includes("image/png") ? "PNG" : "JPEG");
+      const containBox = (imgData: string, maxW: number, maxH: number) => {
+        const props = pdf.getImageProperties(imgData);
+        const ratio = Math.min(maxW / props.width, maxH / props.height);
+        return { w: props.width * ratio, h: props.height * ratio, offsetX: (maxW - props.width * ratio) / 2, offsetY: (maxH - props.height * ratio) / 2 };
+      };
+      const getUserName = (uid: string) => users.find(u => u.uid === uid)?.name || uid;
+      const getProjectTitle = (pid: string) => projects.find(p => p.id === pid)?.title || pid;
+
+      const companyProjectIds = new Set(projects.map(p => p.id));
+      const filtered = presences.filter(p => {
+        if (!p.project_id || !companyProjectIds.has(p.project_id)) return false;
+        if (!p.created_at) return false;
+        const d = getLocalDateStr(p.created_at);
+        return d >= startDate && d <= endDate;
+      });
+
+      // Header
+      pdf.setFontSize(16); pdf.setFont("helvetica", "bold");
+      pdf.text(`Laporan Perusahaan - ${company.title}`, margin, 15);
+      pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
+      pdf.text(`Periode: ${startDate} s/d ${endDate}`, margin, 22);
+      pdf.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, margin, 27);
+      pdf.setFontSize(10);
+      pdf.text(`Total Kehadiran: ${filtered.length} record | ${projects.length} Proyek`, margin, 33);
+
+      // Pre-load photos
+      const photoMap = new Map<string, string | null>();
+      for (const p of filtered) {
+        if (p.photo && !photoMap.has(p.id)) photoMap.set(p.id, await loadImg(p.photo));
+      }
+
+      let curY = 40;
+      const photoCellSize = 20;
+
+      for (const proj of projects) {
+        const projPresences = filtered.filter(p => p.project_id === proj.id);
+        if (projPresences.length === 0) continue;
+
+        if (curY > pageHeight - 50) { pdf.addPage(); curY = 15; }
+        pdf.setFontSize(11); pdf.setFont("helvetica", "bold");
+        pdf.setFillColor(99, 102, 241);
+        pdf.rect(margin, curY - 5, pageWidth - margin * 2, 8, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.text(`Proyek: ${proj.title}`, margin + 2, curY + 1);
+        pdf.setTextColor(0, 0, 0);
+        curY += 8;
+
+        autoTable(pdf, {
+          startY: curY,
+          head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Tanggal"]],
+          body: projPresences.map(p => [
+            "",
+            getUserName(p.user_id),
+            p.type || "-",
+            p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
+            formatPrice(p.cost_on_presence),
+            p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID") : "-",
+          ]),
+          styles: { fontSize: 7, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
+          headStyles: { fillColor: [99, 102, 241] },
+          columnStyles: { 0: { cellWidth: photoCellSize + 4 } },
+          margin: { left: margin, right: margin },
+          didDrawCell: (data: any) => {
+            if (data.section === "body" && data.column.index === 0) {
+              const p = projPresences[data.row.index];
+              const imgData = p ? photoMap.get(p.id) : null;
+              if (imgData) {
+                try {
+                  const box = containBox(imgData, photoCellSize, photoCellSize);
+                  pdf.addImage(imgData, getFormat(imgData), data.cell.x + 2 + box.offsetX, data.cell.y + 2 + box.offsetY, box.w, box.h);
+                } catch { /* skip */ }
+              }
+            }
+          },
+        });
+
+        curY = (pdf as any).lastAutoTable.finalY + 4;
+        const projTotal = projPresences.reduce((s: number, p: any) => s + (p.cost_on_presence || 0), 0);
+        pdf.setFontSize(9); pdf.setFont("helvetica", "bold");
+        pdf.text(`Subtotal Proyek: ${formatPrice(projTotal)}`, margin, curY + 5);
+        curY += 12;
+      }
+
+      // Grand total
+      if (curY > pageHeight - 40) { pdf.addPage(); curY = 15; }
+      const grandTotal = filtered.reduce((s: number, p: any) => s + (p.cost_on_presence || 0), 0);
+      pdf.setFontSize(12); pdf.setFont("helvetica", "bold");
+      pdf.text(`Total Biaya Keseluruhan: ${formatPrice(grandTotal)}`, margin, curY + 8);
+      curY += 16;
+
+      const perPersonMap = new Map<string, number>();
+      filtered.forEach((p: any) => perPersonMap.set(p.user_id, (perPersonMap.get(p.user_id) || 0) + (p.cost_on_presence || 0)));
+      autoTable(pdf, {
+        startY: curY,
+        head: [["Karyawan", "Total Kehadiran", "Total Biaya"]],
+        body: Array.from(perPersonMap.entries()).map(([uid, total]) => [
+          getUserName(uid),
+          filtered.filter((p: any) => p.user_id === uid).length,
+          formatPrice(total),
+        ]),
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [16, 185, 129] },
+        margin: { left: margin, right: margin },
+      });
+
+      // Activity photos
+      const actPhotos: { url: string; title: string; author: string; project: string }[] = [];
+      filtered.forEach((p: any) => {
+        if (p.activity) {
+          Object.values(p.activity as Record<string, any>).forEach((act: any) => {
+            if (act.photo) actPhotos.push({ url: act.photo, title: act.title || "Foto Aktivitas", author: getUserName(p.user_id), project: getProjectTitle(p.project_id) });
+          });
+        }
+      });
+      if (actPhotos.length > 0) {
+        pdf.addPage();
+        pdf.setFontSize(13); pdf.setFont("helvetica", "bold");
+        pdf.text("Dokumentasi Foto Kegiatan", margin, 14);
+        const cols = 2, gap = 6;
+        const imgW = (pageWidth - margin * 2 - gap * (cols - 1)) / cols;
+        const imgH = imgW * 0.75;
+        let x = margin, y = 22, col = 0;
+        for (const item of actPhotos) {
+          if (y + imgH + 16 > pageHeight - margin) { pdf.addPage(); y = 16; x = margin; col = 0; }
+          const imgData = await loadImg(item.url);
+          pdf.setDrawColor(220); pdf.rect(x, y, imgW, imgH);
+          if (imgData) {
+            try { const box = containBox(imgData, imgW, imgH); pdf.addImage(imgData, getFormat(imgData), x + box.offsetX, y + box.offsetY, box.w, box.h); } catch { /* skip */ }
+          }
+          pdf.setFontSize(8); pdf.setFont("helvetica", "bold");
+          pdf.text(pdf.splitTextToSize(item.title, imgW), x, y + imgH + 4);
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(7);
+          pdf.text(`${item.author} - ${item.project}`, x, y + imgH + 9);
+          col++;
+          if (col < cols) { x += imgW + gap; } else { x = margin; col = 0; y += imgH + 16; }
+        }
+      }
+
+      // Page numbers
+      const totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i); pdf.setFontSize(8); pdf.setFont("helvetica", "normal");
+        pdf.text(`Halaman ${i} / ${totalPages}`, pageWidth / 2, pageHeight - 6, { align: "center" });
+      }
+
+      pdf.save(`Laporan-${company.title.replace(/\s+/g, "_")}-${startDate}_${endDate}.pdf`);
+    } catch (e) {
+      console.error("Gagal membuat laporan:", e);
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
@@ -488,19 +692,48 @@ export default function CompanyDetailPage() {
           </Box>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={handleOpenEditDialog}
-          sx={{
-            borderRadius: 2,
-            background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-            color: "#ffffff",
-            textTransform: "none"
-          }}
-        >
-          Edit Perusahaan
-        </Button>
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <TextField
+            label="Dari"
+            type="date"
+            size="small"
+            value={startDate}
+            onChange={e => setStartDate(e.target.value)}
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ width: 150 }}
+          />
+          <TextField
+            label="Sampai"
+            type="date"
+            size="small"
+            value={endDate}
+            onChange={e => setEndDate(e.target.value)}
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ width: 150 }}
+          />
+          <Button
+            variant="outlined"
+            startIcon={generatingPdf ? <CircularProgress size={16} /> : <PdfIcon />}
+            onClick={handleGenerateReport}
+            disabled={generatingPdf || projects.length === 0}
+            sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+          >
+            {generatingPdf ? "Membuat..." : "Unduh Laporan PDF"}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={handleOpenEditDialog}
+            sx={{
+              borderRadius: 2,
+              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+              color: "#ffffff",
+              textTransform: "none"
+            }}
+          >
+            Edit Perusahaan
+          </Button>
+        </Stack>
       </Box>
 
       <Grid container spacing={3}>
