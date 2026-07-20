@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onRequest } from "firebase-functions/v2/https";
 import * as nodemailer from "nodemailer";
 
 admin.initializeApp();
@@ -237,5 +238,89 @@ export const fcmShiftReminder = onSchedule(
 
       await admin.messaging().sendEachForMulticast(message);
     }
+  }
+);
+
+// ── 3. MANUAL PUSH NOTIFICATION (from admin website) ──────────────────────
+// POST body: { title, body, userIds?: string[], sendToAll?: boolean }
+// Caller must pass a valid Firebase ID token in Authorization: Bearer <token>
+export const sendManualNotification = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    // Verify Firebase Auth token
+    const authHeader = req.headers.authorization || "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!idToken) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const decoded = await admin.auth().verifyIdToken(idToken);
+      // Only admin role can send
+      const callerDoc = await db.collection("users").doc(decoded.uid).get();
+      if (!callerDoc.exists || callerDoc.data()?.role !== "admin") {
+        res.status(403).json({ error: "Forbidden — Super Admin only" });
+        return;
+      }
+    } catch {
+      res.status(401).json({ error: "Invalid token" });
+      return;
+    }
+
+    const { title, body, userIds, sendToAll } = req.body as {
+      title: string;
+      body: string;
+      userIds?: string[];
+      sendToAll?: boolean;
+    };
+
+    if (!title || !body) {
+      res.status(400).json({ error: "title and body are required" });
+      return;
+    }
+
+    // Collect FCM tokens
+    let tokens: string[] = [];
+
+    if (sendToAll) {
+      const snap = await db.collection("users").where("role", "==", "staff").get();
+      snap.forEach((d) => {
+        const t = d.data().fcm_token;
+        if (t) tokens.push(t);
+      });
+    } else if (Array.isArray(userIds) && userIds.length > 0) {
+      const docs = await Promise.all(userIds.map((uid) => db.collection("users").doc(uid).get()));
+      for (const d of docs) {
+        const t = d.data()?.fcm_token;
+        if (t) tokens.push(t);
+      }
+    }
+
+    if (tokens.length === 0) {
+      res.status(200).json({ success: true, sent: 0, message: "No FCM tokens found" });
+      return;
+    }
+
+    // Send in batches of 500 (FCM limit)
+    let totalSuccess = 0;
+    let totalFail = 0;
+    for (let i = 0; i < tokens.length; i += 500) {
+      const batch = tokens.slice(i, i + 500);
+      const result = await admin.messaging().sendEachForMulticast({
+        tokens: batch,
+        notification: { title, body },
+        android: { notification: { channelId: "manual_notification", priority: "high" }, priority: "high" },
+        apns: { payload: { aps: { sound: "default", badge: 1 } } },
+      });
+      totalSuccess += result.successCount;
+      totalFail += result.failureCount;
+    }
+
+    res.status(200).json({ success: true, sent: totalSuccess, failed: totalFail });
   }
 );

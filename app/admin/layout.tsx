@@ -167,6 +167,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { text: "Perusahaan", icon: <FinanceIcon />, path: "/admin/companies" },
     { text: "Proyek", icon: <DashboardIcon />, path: "/admin/projects" },
     { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
+    { text: "Notifikasi", icon: <NotificationsIcon />, path: "/admin/notifications" },
     { text: "Keuangan", icon: <FinanceIcon />, path: "/admin/finance" },
     { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },
   ];
