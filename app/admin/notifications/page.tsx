@@ -162,7 +162,7 @@ export default function NotificationsPage() {
                 placeholder="cth: Pengumuman Penting"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                inputProps={{ maxLength: 100 }}
+                slotProps={{ htmlInput: { maxLength: 100 } }}
                 helperText={`${title.length}/100`}
               />
               <TextField
@@ -173,7 +173,7 @@ export default function NotificationsPage() {
                 placeholder="Tulis pesan yang akan diterima staff di HP mereka..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                inputProps={{ maxLength: 300 }}
+                slotProps={{ htmlInput: { maxLength: 300 } }}
                 helperText={`${body.length}/300`}
               />
 
@@ -267,8 +267,7 @@ export default function NotificationsPage() {
                         <ListItemText
                           primary={u.name}
                           secondary={u.position || u.email}
-                          primaryTypographyProps={{ variant: "body2", fontWeight: 600 }}
-                          secondaryTypographyProps={{ variant: "caption" }}
+                          slotProps={{ primary: { variant: "body2" }, secondary: { variant: "caption" } }}
                         />
                         {!hasToken && (
                           <Chip label="No token" size="small" color="default" sx={{ fontSize: 10 }} />

@@ -193,7 +193,8 @@ interface LeafletType {
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
+  const isClient = userProfile?.role === "client";
   
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [presences, setPresences] = useState<PresenceRecord[]>([]);
@@ -1388,19 +1389,21 @@ export default function ProjectDetailPage() {
             />
           </Stack>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={handleOpenEditProject}
-          sx={{
-            borderRadius: 2,
-            background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-            color: "#ffffff",
-            textTransform: "none"
-          }}
-        >
-          Edit Proyek
-        </Button>
+        {!isClient && (
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={handleOpenEditProject}
+            sx={{
+              borderRadius: 2,
+              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+              color: "#ffffff",
+              textTransform: "none"
+            }}
+          >
+            Edit Proyek
+          </Button>
+        )}
       </Box>
 
       {msg.text && (
@@ -1409,8 +1412,8 @@ export default function ProjectDetailPage() {
         </Alert>
       )}
 
-      {/* Metric Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      {/* Metric Cards — hidden for client */}
+      {!isClient && <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
@@ -1490,10 +1493,10 @@ export default function ProjectDetailPage() {
             </CardContent>
           </Card>
         </Grid>
-      </Grid>
+      </Grid>}
 
-      {/* Daily Cost Timeseries (Run-Rate) */}
-      <Card sx={{ mb: 4 }}>
+      {/* Daily Cost Timeseries (Run-Rate) — hidden for client */}
+      {!isClient && <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
             Tren Biaya Harian (Run-Rate)
@@ -1556,9 +1559,10 @@ export default function ProjectDetailPage() {
             </Box>
           )}
         </CardContent>
-      </Card>
+      </Card>}
 
-      {/* Workers Cost Breakdown */}
+      {/* Workers Cost Breakdown — hidden for client */}
+      {!isClient && <>
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 6 }}>
           <Card>
@@ -1672,6 +1676,7 @@ export default function ProjectDetailPage() {
           </Card>
         </Grid>
       </Grid>
+      </>}
 
       {/* Project Gantt Chart Schedule */}
       <Card sx={{ mb: 4, borderRadius: 3, overflow: "hidden" }}>
@@ -2049,15 +2054,17 @@ export default function ProjectDetailPage() {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Log Kehadiran Detail & Verifikasi Geofencing (Difilter)
             </Typography>
-            <Button
-              variant="outlined"
-              startIcon={generatingReport ? <CircularProgress size={16} /> : <PdfIcon />}
-              onClick={handleGenerateReport}
-              disabled={generatingReport || filteredPresences.length === 0}
-              sx={{ borderRadius: 2, textTransform: "none" }}
-            >
-              {generatingReport ? "Membuat Laporan..." : "Unduh Laporan PDF"}
-            </Button>
+            {!isClient && (
+              <Button
+                variant="outlined"
+                startIcon={generatingReport ? <CircularProgress size={16} /> : <PdfIcon />}
+                onClick={handleGenerateReport}
+                disabled={generatingReport || filteredPresences.length === 0}
+                sx={{ borderRadius: 2, textTransform: "none" }}
+              >
+                {generatingReport ? "Membuat Laporan..." : "Unduh Laporan PDF"}
+              </Button>
+            )}
           </Box>
           <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
             <Table sx={{ minWidth: 800 }}>
@@ -2441,56 +2448,58 @@ export default function ProjectDetailPage() {
                   </Grid>
                 )}
 
-                <Grid size={{ xs: 12 }}>
-                  <Divider sx={{ my: 1.5 }} />
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1, fontWeight: 600 }}>
-                    KEPUTUSAN & TINJAUAN PRESENSI
-                  </Typography>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <TextField
-                      fullWidth
-                      label="Catatan Tinjauan"
-                      placeholder="Masukkan catatan persetujuan atau penolakan..."
-                      multiline
-                      rows={2}
-                      value={actionNote}
-                      onChange={(e) => setActionNote(e.target.value)}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Penyesuaian Biaya Harian (IDR)"
-                      type="number"
-                      placeholder="Masukkan nominal jika ada penyesuaian biaya..."
-                      value={editCostAmount}
-                      onChange={(e) => setEditCostAmount(e.target.value)}
-                    />
-                    <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", mt: 1 }}>
-                      {selectedPresence.status !== "Pending" && (
+                {!isClient && (
+                  <Grid size={{ xs: 12 }}>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1, fontWeight: 600 }}>
+                      KEPUTUSAN & TINJAUAN PRESENSI
+                    </Typography>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <TextField
+                        fullWidth
+                        label="Catatan Tinjauan"
+                        placeholder="Masukkan catatan persetujuan atau penolakan..."
+                        multiline
+                        rows={2}
+                        value={actionNote}
+                        onChange={(e) => setActionNote(e.target.value)}
+                      />
+                      <TextField
+                        fullWidth
+                        label="Penyesuaian Biaya Harian (IDR)"
+                        type="number"
+                        placeholder="Masukkan nominal jika ada penyesuaian biaya..."
+                        value={editCostAmount}
+                        onChange={(e) => setEditCostAmount(e.target.value)}
+                      />
+                      <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", mt: 1 }}>
+                        {selectedPresence.status !== "Pending" && (
+                          <Button
+                            variant="outlined"
+                            color="warning"
+                            onClick={() => handleReviewAction("Pending")}
+                          >
+                            Batalkan Keputusan (Reset ke Pending)
+                          </Button>
+                        )}
                         <Button
-                          variant="outlined"
-                          color="warning"
-                          onClick={() => handleReviewAction("Pending")}
+                          variant="contained"
+                          color="error"
+                          onClick={() => handleReviewAction("Rejected")}
                         >
-                          Batalkan Keputusan (Reset ke Pending)
+                          Tolak Kehadiran
                         </Button>
-                      )}
-                      <Button
-                        variant="contained"
-                        color="error"
-                        onClick={() => handleReviewAction("Rejected")}
-                      >
-                        Tolak Kehadiran
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="success"
-                        onClick={() => handleReviewAction("Approved")}
-                      >
-                        Setujui Kehadiran
-                      </Button>
-                    </Stack>
-                  </Box>
-                </Grid>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          onClick={() => handleReviewAction("Approved")}
+                        >
+                          Setujui Kehadiran
+                        </Button>
+                      </Stack>
+                    </Box>
+                  </Grid>
+                )}
               </Grid>
             </Box>
           )}

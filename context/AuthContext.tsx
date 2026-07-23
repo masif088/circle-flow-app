@@ -8,11 +8,18 @@ import {
   signOut,
   createUserWithEmailAndPassword,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+
+export interface UserProfile {
+  role: "admin" | "client" | "staff";
+  company_id?: string;
+  name?: string;
+}
 
 interface AuthContextType {
   user: User | null;
+  userProfile: UserProfile | null;
   loading: boolean;
   loginWithEmail: (email: string, password: string) => ReturnType<typeof signInWithEmailAndPassword>;
   signUpWithEmail: (email: string, password: string, firstName: string, lastName: string) => Promise<User>;
@@ -23,11 +30,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        try {
+          const snap = await getDoc(doc(db, "users", currentUser.uid));
+          if (snap.exists()) {
+            const d = snap.data();
+            setUserProfile({
+              role: d.role || "staff",
+              company_id: d.company_id || "",
+              name: d.name || "",
+            });
+          }
+        } catch {
+          setUserProfile(null);
+        }
+      } else {
+        setUserProfile(null);
+      }
       setLoading(false);
     });
 
@@ -61,6 +86,7 @@ export function AuthContextProvider({ children }: { children: React.ReactNode })
     <AuthContext.Provider
       value={{
         user,
+        userProfile,
         loading,
         loginWithEmail,
         signUpWithEmail,

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 import {
   collection,
   getDocs,
@@ -63,6 +64,9 @@ interface CompanyRecord {
 }
 
 export default function ProjectsPage() {
+  const { userProfile } = useAuth();
+  const isClient = userProfile?.role === "client";
+
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [companies, setCompanies] = useState<CompanyRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +119,11 @@ export default function ProjectsPage() {
           status: data.status || "Active"
         });
       });
-      setProjects(list);
+      // Client hanya lihat proyek perusahaannya sendiri
+      const filtered = userProfile?.role === "client" && userProfile.company_id
+        ? list.filter((p) => p.company_id === userProfile.company_id)
+        : list;
+      setProjects(filtered);
       setLoading(false);
     }, (err) => {
       console.error(err);
@@ -355,18 +363,20 @@ export default function ProjectsPage() {
             Tentukan koordinat lokasi proyek dan tetapkan ambang batas radius aman.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenProjectDialog(true)}
-          sx={{
-            borderRadius: 2,
-            background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-            color: "#ffffff"
-          }}
-        >
-          Tambah Proyek
-        </Button>
+        {!isClient && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenProjectDialog(true)}
+            sx={{
+              borderRadius: 2,
+              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+              color: "#ffffff"
+            }}
+          >
+            Tambah Proyek
+          </Button>
+        )}
       </Box>
 
       {msg.text && <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 2 }}>{msg.text}</Alert>}
