@@ -112,12 +112,15 @@ interface PresenceRecord {
   id: string;
   user_id: string;
   created_at: string;
+  checked_out_at?: string;
   cost_on_presence?: number;
   status: string;
   type: string;
   latitude?: number;
   longitude?: number;
   radius?: number;
+  checkout_latitude?: number;
+  checkout_longitude?: number;
   description?: string;
   note?: string;
   photo?: string;
@@ -710,9 +713,12 @@ export default function ProjectDetailPage() {
           cost_on_presence: data.cost_on_presence || 0,
           status: data.status || "",
           type: data.type || "",
+          checked_out_at: data.checked_out_at,
           latitude: data.latitude,
           longitude: data.longitude,
           radius: data.radius,
+          checkout_latitude: data.checkout_latitude,
+          checkout_longitude: data.checkout_longitude,
           description: data.description,
           note: data.note,
           photo: data.photo,
@@ -2083,14 +2089,15 @@ export default function ProjectDetailPage() {
                   <TableCell sx={{ fontWeight: 600 }}>GPS / Radius Verifikasi</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Kunci Biaya Harian</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Waktu Masuk</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Masuk</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Pulang</TableCell>
                   <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredPresences.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4, color: "text.secondary" }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4, color: "text.secondary" }}>
                       Tidak ada catatan kehadiran yang ditemukan untuk tanggal ini.
                     </TableCell>
                   </TableRow>
@@ -2185,6 +2192,23 @@ export default function ProjectDetailPage() {
                         <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                           {new Date(pres.created_at).toLocaleDateString("id-ID")}
                         </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {pres.checked_out_at ? (
+                          <>
+                            <Typography variant="body2">
+                              {new Date(pres.checked_out_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
+                            </Typography>
+                            {pres.checkout_latitude && pres.checkout_longitude && (
+                              <Typography variant="caption" sx={{ color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5 }}>
+                                <LocationIcon sx={{ fontSize: 12 }} />
+                                {pres.checkout_latitude.toFixed(4)}, {pres.checkout_longitude.toFixed(4)}
+                              </Typography>
+                            )}
+                          </>
+                        ) : (
+                          <Typography variant="caption" color="warning.main">Belum pulang</Typography>
+                        )}
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1} sx={{ justifyContent:"flex-end" }}>
@@ -2377,13 +2401,30 @@ export default function ProjectDetailPage() {
                   <Divider />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>KOORDINAT GPS</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>KOORDINAT GPS (MASUK)</Typography>
                   {selectedPresence.latitude && selectedPresence.longitude ? (
                     <Typography variant="body2" sx={{ fontFamily: "monospace", display: "flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
-                      <LocationIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+                      <LocationIcon sx={{ fontSize: 16, color: "success.main" }} />
                       {selectedPresence.latitude.toFixed(6)}, {selectedPresence.longitude.toFixed(6)}
                     </Typography>
-                  ) : "Tidak ada koordinat yang tercatat"}
+                  ) : <Typography variant="body2" color="text.secondary">Tidak ada koordinat</Typography>}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>WAKTU PULANG</Typography>
+                  <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
+                    {selectedPresence.checked_out_at
+                      ? new Date(selectedPresence.checked_out_at).toLocaleString("id-ID")
+                      : <span style={{ color: "#f59e0b" }}>Belum checkout</span>}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>KOORDINAT GPS (PULANG)</Typography>
+                  {selectedPresence.checkout_latitude && selectedPresence.checkout_longitude ? (
+                    <Typography variant="body2" sx={{ fontFamily: "monospace", display: "flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
+                      <LocationIcon sx={{ fontSize: 16, color: "error.main" }} />
+                      {selectedPresence.checkout_latitude.toFixed(6)}, {selectedPresence.checkout_longitude.toFixed(6)}
+                    </Typography>
+                  ) : <Typography variant="body2" color="text.secondary">Tidak ada koordinat</Typography>}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>JARAK RADIUS GEOFENCE</Typography>
