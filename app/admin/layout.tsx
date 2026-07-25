@@ -49,7 +49,7 @@ import { auth } from "@/lib/firebase";
 const drawerWidth = 260;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, logout } = useAuth();
+  const { user, userProfile, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const theme = useTheme();
@@ -75,7 +75,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!loading && !user) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+    if (!loading && user && userProfile?.role === "staff") {
+      router.push("/login");
+    }
+  }, [user, userProfile, loading, router]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -168,7 +171,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { text: "Proyek", icon: <DashboardIcon />, path: "/admin/projects" },
     { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
     { text: "Notifikasi", icon: <NotificationsIcon />, path: "/admin/notifications" },
-    { text: "Keuangan", icon: <FinanceIcon />, path: "/admin/finance" },
     { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },
   ];
 

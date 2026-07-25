@@ -299,49 +299,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* System Integration Status */}
-        <Card sx={{ height: "100%" }}>
-          <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-              Integrasi Sistem
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <CheckCircle sx={{ color: "success.main" }} />
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Firebase Admin SDK
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Terhubung dan melewati aturan akses klien
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <CheckCircle sx={{ color: "success.main" }} />
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    MUI Component Engine
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Sistem v9 berhasil dimuat
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <CheckCircle sx={{ color: "success.main" }} />
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Watermarking Service
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    GPS Geocoding aktif di mobile client
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
       </Box>
     </Box>
   );

@@ -128,11 +128,13 @@ export async function POST(request: Request) {
       const checkoutTime = getIndonesianTimeISOString();
       await adminDb.collection("presences").doc(presenceDoc.id).update({
         checked_out_at: checkoutTime,
+        checkout_latitude: latitude ?? null,
+        checkout_longitude: longitude ?? null,
       });
 
       return NextResponse.json({
         success: true,
-        data: { id: presenceDoc.id, ...presenceData, checked_out_at: checkoutTime },
+        data: { id: presenceDoc.id, ...presenceData, checked_out_at: checkoutTime, checkout_latitude: latitude ?? null, checkout_longitude: longitude ?? null },
       });
     } else {
       return NextResponse.json({ error: "Invalid action. Use checkin or checkout." }, { status: 400 });

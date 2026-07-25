@@ -195,6 +195,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const isClient = userProfile?.role === "client";
+  const isAdmin = userProfile?.role === "admin";
   
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [presences, setPresences] = useState<PresenceRecord[]>([]);
@@ -492,7 +493,14 @@ export default function ProjectDetailPage() {
   const handleOpenDetail = (presence: PresenceRecord) => {
     setSelectedPresence(presence);
     setActionNote(presence.approved_note || presence.rejected_note || "");
-    setEditCostAmount(presence.cost_on_presence?.toString() || "0");
+    // Prefill dari tarif upah jika cost_on_presence belum diset
+    const existingCost = presence.cost_on_presence;
+    if (existingCost && existingCost > 0) {
+      setEditCostAmount(existingCost.toString());
+    } else {
+      const wage = projectWages.find((w) => w.user_id === presence.user_id);
+      setEditCostAmount(wage ? wage.cost.toString() : "0");
+    }
     setOpenDetailDialog(true);
   };
 
@@ -1561,8 +1569,8 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>}
 
-      {/* Workers Cost Breakdown — hidden for client */}
-      {!isClient && <>
+      {/* Workers Cost Breakdown — admin only */}
+      {isAdmin && <>
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 6 }}>
           <Card>
