@@ -1136,21 +1136,12 @@ export default function ProjectDetailPage() {
       maxZoom: 20
     }).addTo(map);
 
-    // Plot main project site marker
+    // Plot main project site marker — star shape
     const projIcon = L.divIcon({
-      html: `
-        <div style="
-          background-color: #4f46e5; 
-          width: 16px; 
-          height: 16px; 
-          border-radius: 50%; 
-          border: 3px solid #ffffff; 
-          box-shadow: 0 0 10px rgba(79, 70, 229, 0.9);
-        "></div>
-      `,
+      html: `<div style="font-size:20px; line-height:1; filter: drop-shadow(0 0 4px rgba(79,70,229,0.9)); color:#4f46e5;">★</div>`,
       className: "main-project-pin",
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
     });
 
     const projMarker = L.marker([projLat, projLng], { icon: projIcon }).addTo(map);
@@ -1188,20 +1179,21 @@ export default function ProjectDetailPage() {
         ? new Date(pres.created_at).toLocaleString("id-ID", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " WIB"
         : "-";
 
+      // Approved = circle, Pending = triangle, Rejected = X
+      let workerHtml = "";
+      if (pres.status === "Approved") {
+        workerHtml = `<div style="background-color:${markerColor};width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 6px ${ringColor};"></div>`;
+      } else if (pres.status === "Rejected") {
+        workerHtml = `<div style="font-size:16px;line-height:1;color:${markerColor};filter:drop-shadow(0 0 3px ${ringColor});font-weight:700;">✕</div>`;
+      } else {
+        // Pending — upward triangle via clip-path
+        workerHtml = `<div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid ${markerColor};filter:drop-shadow(0 0 3px ${ringColor});"></div>`;
+      }
       const workerIcon = L.divIcon({
-        html: `
-          <div style="
-            background-color: ${markerColor}; 
-            width: 12px; 
-            height: 12px; 
-            border-radius: 50%; 
-            border: 2px solid #ffffff; 
-            box-shadow: 0 0 6px ${ringColor};
-          "></div>
-        `,
+        html: workerHtml,
         className: "checkin-worker-pin",
-        iconSize: [12, 12],
-        iconAnchor: [6, 6]
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
       });
 
       const workerMarker = L.marker([pres?.latitude??0, pres?.longitude??0], { icon: workerIcon }).addTo(map);
@@ -1231,21 +1223,12 @@ export default function ProjectDetailPage() {
         ? new Date(pres.checked_out_at).toLocaleString("id-ID", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " WIB"
         : "-";
 
+      // Checkout — diamond (rotated square)
       const checkoutIcon = L.divIcon({
-        html: `
-          <div style="
-            background-color: #f97316;
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-            border: 2px solid #ffffff;
-            box-shadow: 0 0 6px rgba(249, 115, 22, 0.7);
-            transform: rotate(45deg);
-          "></div>
-        `,
+        html: `<div style="background-color:#f97316;width:12px;height:12px;border:2px solid #fff;box-shadow:0 0 6px rgba(249,115,22,0.8);transform:rotate(45deg);"></div>`,
         className: "checkout-pin",
-        iconSize: [12, 12],
-        iconAnchor: [6, 6]
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
       });
 
       const checkoutMarker = L.marker([pres.checkout_latitude!, pres.checkout_longitude!], { icon: checkoutIcon }).addTo(map);
@@ -1274,17 +1257,9 @@ export default function ProjectDetailPage() {
               ? new Date(act.created_at).toLocaleString("id-ID", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " WIB"
               : "-";
 
+            // Activity — square
             const activityIcon = L.divIcon({
-              html: `
-                <div style="
-                  background-color: #9333ea; 
-                  width: 10px; 
-                  height: 10px; 
-                  border-radius: 50%; 
-                  border: 2px solid #ffffff; 
-                  box-shadow: 0 0 6px rgba(147, 51, 234, 0.6);
-                "></div>
-              `,
+              html: `<div style="background-color:#9333ea;width:10px;height:10px;border:2px solid #fff;box-shadow:0 0 5px rgba(147,51,234,0.7);border-radius:2px;"></div>`,
               className: "worker-activity-pin",
               iconSize: [10, 10],
               iconAnchor: [5, 5]
@@ -1964,21 +1939,20 @@ export default function ProjectDetailPage() {
           {/* Legenda */}
           <Stack direction="row" spacing={2} sx={{ mb: 1.5, flexWrap: "wrap", gap: 1 }}>
             {[
-              { color: "#4f46e5", shape: "circle", label: "Lokasi Proyek" },
-              { color: "#10b981", shape: "circle", label: "Masuk (Disetujui)" },
-              { color: "#f59e0b", shape: "circle", label: "Masuk (Pending)" },
-              { color: "#ef4444", shape: "circle", label: "Masuk (Ditolak)" },
-              { color: "#f97316", shape: "diamond", label: "Lokasi Pulang" },
-              { color: "#9333ea", shape: "circle", label: "Aktivitas" },
+              { shape: "star", color: "#4f46e5", label: "Lokasi Proyek" },
+              { shape: "circle", color: "#10b981", label: "Masuk (Disetujui)" },
+              { shape: "triangle", color: "#f59e0b", label: "Masuk (Pending)" },
+              { shape: "x", color: "#ef4444", label: "Masuk (Ditolak)" },
+              { shape: "diamond", color: "#f97316", label: "Lokasi Pulang" },
+              { shape: "square", color: "#9333ea", label: "Aktivitas" },
             ].map(item => (
               <Stack key={item.label} direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                <Box sx={{
-                  width: 10, height: 10,
-                  bgcolor: item.color,
-                  borderRadius: item.shape === "circle" ? "50%" : "2px",
-                  transform: item.shape === "diamond" ? "rotate(45deg)" : "none",
-                  flexShrink: 0
-                }} />
+                {item.shape === "star" && <Box component="span" sx={{ fontSize: 14, lineHeight: 1, color: item.color }}>★</Box>}
+                {item.shape === "circle" && <Box sx={{ width: 10, height: 10, bgcolor: item.color, borderRadius: "50%", flexShrink: 0 }} />}
+                {item.shape === "triangle" && <Box sx={{ width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderBottom: `11px solid ${item.color}`, flexShrink: 0 }} />}
+                {item.shape === "x" && <Box component="span" sx={{ fontSize: 13, lineHeight: 1, color: item.color, fontWeight: 700 }}>✕</Box>}
+                {item.shape === "diamond" && <Box sx={{ width: 9, height: 9, bgcolor: item.color, transform: "rotate(45deg)", flexShrink: 0 }} />}
+                {item.shape === "square" && <Box sx={{ width: 10, height: 10, bgcolor: item.color, borderRadius: "2px", flexShrink: 0 }} />}
                 <Typography variant="caption" color="text.secondary">{item.label}</Typography>
               </Stack>
             ))}
