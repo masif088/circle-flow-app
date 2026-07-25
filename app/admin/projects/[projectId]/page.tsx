@@ -1223,6 +1223,44 @@ export default function ProjectDetailPage() {
       `);
     });
 
+    // Plot checkout markers
+    const checkoutPresences = filteredPresences.filter(p => p.checkout_latitude != null && p.checkout_longitude != null);
+
+    checkoutPresences.forEach((pres) => {
+      const checkoutTimeStr = pres.checked_out_at
+        ? new Date(pres.checked_out_at).toLocaleString("id-ID", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " WIB"
+        : "-";
+
+      const checkoutIcon = L.divIcon({
+        html: `
+          <div style="
+            background-color: #f97316;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 6px rgba(249, 115, 22, 0.7);
+            transform: rotate(45deg);
+          "></div>
+        `,
+        className: "checkout-pin",
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+
+      const checkoutMarker = L.marker([pres.checkout_latitude!, pres.checkout_longitude!], { icon: checkoutIcon }).addTo(map);
+      checkoutMarker.bindPopup(`
+        <div style="font-family: 'Outfit', sans-serif; padding: 4px; min-width: 160px;">
+          <h4 style="margin: 0 0 2px 0; font-size: 13px; color: #f97316; font-weight: 700;">📍 Lokasi Pulang</h4>
+          <p style="margin: 0 0 4px 0; font-size: 12px; color: #1f2937; font-weight: 600;">${getUserName(pres.user_id)}</p>
+          <div style="font-size: 11px; color: #6b7280;">
+            <strong>Waktu Pulang:</strong> ${checkoutTimeStr}<br/>
+            <strong>Koordinat:</strong> ${pres.checkout_latitude?.toFixed(5)}, ${pres.checkout_longitude?.toFixed(5)}
+          </div>
+        </div>
+      `);
+    });
+
     // Plot activity markers
     const activityPoints: number[][] = [];
     filteredPresences.forEach((pres) => {
@@ -1276,10 +1314,11 @@ export default function ProjectDetailPage() {
       }
     });
 
-    if (checkinPresences.length > 0 || activityPoints.length > 0) {
+    if (checkinPresences.length > 0 || checkoutPresences.length > 0 || activityPoints.length > 0) {
       const allPoints = [
         [projLat, projLng],
         ...checkinPresences.map(p => [p.latitude!, p.longitude!]),
+        ...checkoutPresences.map(p => [p.checkout_latitude!, p.checkout_longitude!]),
         ...activityPoints
       ];
       const bounds = L.latLngBounds(allPoints);
@@ -1922,6 +1961,28 @@ export default function ProjectDetailPage() {
           <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
             Distribusi real-time koordinat kehadiran (check-in) dan aktivitas pekerja relatif terhadap batas proyek (Difilter berdasarkan Tanggal: {startDate} s/d {endDate})
           </Typography>
+          {/* Legenda */}
+          <Stack direction="row" spacing={2} sx={{ mb: 1.5, flexWrap: "wrap", gap: 1 }}>
+            {[
+              { color: "#4f46e5", shape: "circle", label: "Lokasi Proyek" },
+              { color: "#10b981", shape: "circle", label: "Masuk (Disetujui)" },
+              { color: "#f59e0b", shape: "circle", label: "Masuk (Pending)" },
+              { color: "#ef4444", shape: "circle", label: "Masuk (Ditolak)" },
+              { color: "#f97316", shape: "diamond", label: "Lokasi Pulang" },
+              { color: "#9333ea", shape: "circle", label: "Aktivitas" },
+            ].map(item => (
+              <Stack key={item.label} direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                <Box sx={{
+                  width: 10, height: 10,
+                  bgcolor: item.color,
+                  borderRadius: item.shape === "circle" ? "50%" : "2px",
+                  transform: item.shape === "diamond" ? "rotate(45deg)" : "none",
+                  flexShrink: 0
+                }} />
+                <Typography variant="caption" color="text.secondary">{item.label}</Typography>
+              </Stack>
+            ))}
+          </Stack>
           <Box
             id={mapContainerId}
             sx={{
