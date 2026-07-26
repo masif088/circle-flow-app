@@ -1708,7 +1708,7 @@ export default function ProjectDetailPage() {
       </Card>
 
       {/* Pengeluaran & Belanja Proyek Section */}
-      <Card sx={{ mb: 4, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+      {!isClient && <Card sx={{ mb: 4, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", overflow: "hidden" }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
             <Box>
@@ -1875,7 +1875,7 @@ export default function ProjectDetailPage() {
             </Grid>
           </Grid>
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Section Divider / Date Filter for Presence Details */}
       <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
