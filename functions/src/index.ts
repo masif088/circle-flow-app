@@ -110,7 +110,7 @@ export const dailyEmailReminder = onSchedule(
       for (const uid of recipientUids) {
         const u = userMap[uid];
         await transporter.sendMail({
-          from: `"Circle Flow" <${GMAIL_USER}>`,
+          from: `"Lumina One" <${GMAIL_USER}>`,
           to: u.email,
           subject: `[Reminder] Jadwal Hari Ini — ${proj.title}`,
           text: [
@@ -124,7 +124,7 @@ export const dailyEmailReminder = onSchedule(
             `Jam Pulang : ${checkOut} WIB`,
             "",
             "Salam,",
-            "Circle Flow",
+            "Lumina One",
           ].join("\n"),
           html: `
             <div style="font-family:sans-serif;max-width:520px">
@@ -142,7 +142,7 @@ export const dailyEmailReminder = onSchedule(
                   <td><strong>${checkOut} WIB</strong></td>
                 </tr>
               </table>
-              <p style="margin-top:20px;color:#6b7280;font-size:13px">Circle Flow</p>
+              <p style="margin-top:20px;color:#6b7280;font-size:13px">Lumina One</p>
             </div>`,
         });
       }

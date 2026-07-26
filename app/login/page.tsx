@@ -119,7 +119,7 @@ export default function LoginPage() {
               WebkitTextFillColor: "transparent",
             }}
           >
-            Circle Flow
+            Lumina One
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Enterprise Cloud Management Platform

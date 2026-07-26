@@ -194,7 +194,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             WebkitTextFillColor: "transparent",
           }}
         >
-          Circle Flow
+          Lumina One
         </Typography>
         {isMobile && (
           <IconButton onClick={handleDrawerToggle}>
