@@ -107,11 +107,12 @@ export default function UsersPage() {
             uid: doc.id,
             name: data.name || `${data.firstName || ""} ${data.lastName || ""}`.trim() || "No Name",
             email: data.email || "",
-            role: data.role || "viewer",
+            role: data.role || "staff",
             status: data.status || "active",
             createdAt: data.createdAt ? data.createdAt.split("T")[0] : "",
             teamIds: data.teamIds || [],
             position: data.position || "",
+            company_id: data.company_id || "",
           });
         });
         setUsers(usersList);
@@ -366,6 +367,7 @@ export default function UsersPage() {
                   <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Perusahaan</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
                   <TableCell sx={{ fontWeight: 600 }} align="right">
@@ -393,6 +395,11 @@ export default function UsersPage() {
                         }
                         sx={{ fontWeight: 600 }}
                       />
+                    </TableCell>
+                    <TableCell color="text.secondary">
+                      {user.role === "client" && user.company_id
+                        ? companies.find(c => c.id === user.company_id)?.name || user.company_id
+                        : "-"}
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -425,7 +432,7 @@ export default function UsersPage() {
                 ))}
                 {filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3, color: "text.secondary" }}>
                       No users found.
                     </TableCell>
                   </TableRow>
@@ -493,7 +500,7 @@ export default function UsersPage() {
               </Typography>
             )}
             {formRole === "client" && (
-              <FormControl fullWidth>
+              <FormControl fullWidth required>
                 <InputLabel>Perusahaan</InputLabel>
                 <Select
                   value={formCompanyId}
@@ -505,17 +512,19 @@ export default function UsersPage() {
                 </Select>
               </FormControl>
             )}
-            <FormControl fullWidth>
-              <InputLabel>Posisi / Jabatan</InputLabel>
-              <Select
-                value={formPosition}
-                label="Posisi / Jabatan"
-                onChange={(e) => setFormPosition(e.target.value)}
-              >
-                <MenuItem value=""><em>Tidak Ditentukan</em></MenuItem>
-                {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
-              </Select>
-            </FormControl>
+            {formRole !== "client" && (
+              <FormControl fullWidth>
+                <InputLabel>Posisi / Jabatan</InputLabel>
+                <Select
+                  value={formPosition}
+                  label="Posisi / Jabatan"
+                  onChange={(e) => setFormPosition(e.target.value)}
+                >
+                  <MenuItem value=""><em>Tidak Ditentukan</em></MenuItem>
+                  {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                </Select>
+              </FormControl>
+            )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
@@ -575,7 +584,7 @@ export default function UsersPage() {
               </Typography>
             )}
             {formRole === "client" && (
-              <FormControl fullWidth>
+              <FormControl fullWidth required>
                 <InputLabel>Perusahaan</InputLabel>
                 <Select
                   value={formCompanyId}
@@ -587,17 +596,19 @@ export default function UsersPage() {
                 </Select>
               </FormControl>
             )}
-            <FormControl fullWidth>
-              <InputLabel>Posisi / Jabatan</InputLabel>
-              <Select
-                value={formPosition}
-                label="Posisi / Jabatan"
-                onChange={(e) => setFormPosition(e.target.value)}
-              >
-                <MenuItem value=""><em>Tidak Ditentukan</em></MenuItem>
-                {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
-              </Select>
-            </FormControl>
+            {formRole !== "client" && (
+              <FormControl fullWidth>
+                <InputLabel>Posisi / Jabatan</InputLabel>
+                <Select
+                  value={formPosition}
+                  label="Posisi / Jabatan"
+                  onChange={(e) => setFormPosition(e.target.value)}
+                >
+                  <MenuItem value=""><em>Tidak Ditentukan</em></MenuItem>
+                  {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                </Select>
+              </FormControl>
+            )}
             <FormControl fullWidth>
               <InputLabel>Tim</InputLabel>
               <Select
