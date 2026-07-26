@@ -1188,7 +1188,7 @@ export default function ProjectDetailPage() {
       const workerMarker = L.marker([pres?.latitude??0, pres?.longitude??0], { icon: workerIcon }).addTo(map);
 
       const photoImg = pres.photo
-        ? `<img src="${pres.photo}" style="width: 100%; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 6px;"/>`
+        ? `<img src="${pres.photo}" style="width: 100%; max-height: 120px; object-fit: contain; border-radius: 4px; margin-top: 6px; background:#f3f4f6;"/>`
         : "";
 
       workerMarker.bindPopup(`
@@ -1257,7 +1257,7 @@ export default function ProjectDetailPage() {
             const activityMarker = L.marker([act.latitude, act.longitude], { icon: activityIcon }).addTo(map);
             
             const photoHtml = act.photo
-              ? `<img src="${act.photo}" style="width:100%; max-height:80px; object-fit:cover; border-radius:4px; margin-top:6px;" />`
+              ? `<img src="${act.photo}" style="width:100%; max-height:120px; object-fit:contain; border-radius:4px; margin-top:6px; background:#f3f4f6;" />`
               : "";
 
             activityMarker.bindPopup(`
