@@ -467,9 +467,11 @@ export default function ProjectsPage() {
                           >
                             <ViewIcon />
                           </IconButton>
-                          <IconButton color="error" onClick={() => handleDeleteProject(proj.id)} size="small" title="Hapus Proyek">
-                            <DeleteIcon />
-                          </IconButton>
+                          {!isClient && (
+                            <IconButton color="error" onClick={() => handleDeleteProject(proj.id)} size="small" title="Hapus Proyek">
+                              <DeleteIcon />
+                            </IconButton>
+                          )}
                         </Stack>
                       </TableCell>
                     </TableRow>
