@@ -1153,7 +1153,7 @@ export default function ProjectDetailPage() {
     // Filter presences with coordinates for the selected day
     const checkinPresences = filteredPresences.filter(p => p.latitude !== undefined && p.latitude !== null && p.longitude !== undefined && p.longitude !== null);
 
-    checkinPresences.forEach((pres) => {
+    if (!isClient) checkinPresences.forEach((pres) => {
       let markerColor = "#f59e0b"; // Pending
       let ringColor = "rgba(245, 158, 11, 0.6)";
       if (pres.status === "Approved") {
@@ -1207,7 +1207,7 @@ export default function ProjectDetailPage() {
     // Plot checkout markers
     const checkoutPresences = filteredPresences.filter(p => p.checkout_latitude != null && p.checkout_longitude != null);
 
-    checkoutPresences.forEach((pres) => {
+    if (!isClient) checkoutPresences.forEach((pres) => {
       const checkoutTimeStr = pres.checked_out_at
         ? new Date(pres.checked_out_at).toLocaleString("id-ID", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) + " WIB"
         : "-";
@@ -1931,10 +1931,12 @@ export default function ProjectDetailPage() {
           <Stack direction="row" spacing={2} sx={{ mb: 1.5, flexWrap: "wrap", gap: 1 }}>
             {[
               { shape: "star", color: "#4f46e5", label: "Lokasi Proyek" },
-              { shape: "circle", color: "#10b981", label: "Masuk (Disetujui)" },
-              { shape: "triangle", color: "#f59e0b", label: "Masuk (Pending)" },
-              { shape: "x", color: "#ef4444", label: "Masuk (Ditolak)" },
-              { shape: "diamond", color: "#f97316", label: "Lokasi Pulang" },
+              ...(!isClient ? [
+                { shape: "circle", color: "#10b981", label: "Masuk (Disetujui)" },
+                { shape: "triangle", color: "#f59e0b", label: "Masuk (Pending)" },
+                { shape: "x", color: "#ef4444", label: "Masuk (Ditolak)" },
+                { shape: "diamond", color: "#f97316", label: "Lokasi Pulang" },
+              ] : []),
               { shape: "square", color: "#9333ea", label: "Aktivitas" },
             ].map(item => (
               <Stack key={item.label} direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
