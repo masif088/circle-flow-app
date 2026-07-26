@@ -95,6 +95,10 @@ export default function UsersPage() {
   const [formCompanyId, setFormCompanyId] = useState("");
   const [formTeamIds, setFormTeamIds] = useState<string[]>([]);
 
+  // Filter states
+  const [filterRole, setFilterRole] = useState<string>("");
+  const [filterPosition, setFilterPosition] = useState<string>("");
+
   // Fetch users from Firestore on mount
   useEffect(() => {
     const fetchUsers = async () => {
@@ -301,11 +305,12 @@ export default function UsersPage() {
   };
 
 
-  const filteredUsers = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = users.filter((u) => {
+    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+    const matchRole = filterRole ? u.role === filterRole : true;
+    const matchPosition = filterPosition ? u.position === filterPosition : true;
+    return matchSearch && matchRole && matchPosition;
+  });
 
   return (
     <Box>
@@ -343,22 +348,47 @@ export default function UsersPage() {
 
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Search users by name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{ mb: 3 }}
-          />
+          <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+            <TextField
+              sx={{ flex: 2, minWidth: 200 }}
+              placeholder="Cari nama atau email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            <FormControl sx={{ minWidth: 150 }}>
+              <InputLabel>Role</InputLabel>
+              <Select
+                value={filterRole}
+                label="Role"
+                onChange={(e) => setFilterRole(e.target.value)}
+              >
+                <MenuItem value="">Semua Role</MenuItem>
+                <MenuItem value="admin">Super Admin</MenuItem>
+                <MenuItem value="client">Client</MenuItem>
+                <MenuItem value="staff">Staff</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 160 }}>
+              <InputLabel>Posisi</InputLabel>
+              <Select
+                value={filterPosition}
+                label="Posisi"
+                onChange={(e) => setFilterPosition(e.target.value)}
+              >
+                <MenuItem value="">Semua Posisi</MenuItem>
+                {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Box>
 
           <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
             <Table sx={{ minWidth: 600 }}>
