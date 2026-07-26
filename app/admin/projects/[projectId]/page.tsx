@@ -1391,7 +1391,7 @@ export default function ProjectDetailPage() {
     <Box>
       {/* Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 4, flexWrap: "wrap", gap: 2 }}>
-        <Box>
+        <Box sx={{ flex: 1 }}>
           <Button
             startIcon={<BackIcon />}
             onClick={() => router.push("/admin/projects")}
@@ -1399,39 +1399,41 @@ export default function ProjectDetailPage() {
           >
             Kembali ke Daftar Proyek
           </Button>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 800, mb: 1 }}>
-            {project.title}
-          </Typography>
-          <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap", gap: 1 }}>
-            <Chip
-              size="small"
-              label={`Masuk: ${project.check_in_time || "08:00"} WIB`}
-              color="primary"
-              variant="outlined"
-            />
-            <Chip
-              size="small"
-              label={`Pulang: ${project.check_out_time || "17:00"} WIB`}
-              color="secondary"
-              variant="outlined"
-            />
-          </Stack>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 800 }}>
+              {project.title}
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+              <Chip
+                size="small"
+                label={`Masuk: ${project.check_in_time || "08:00"} WIB`}
+                color="primary"
+                variant="outlined"
+              />
+              <Chip
+                size="small"
+                label={`Pulang: ${project.check_out_time || "17:00"} WIB`}
+                color="secondary"
+                variant="outlined"
+              />
+              {!isClient && (
+                <Button
+                  variant="contained"
+                  startIcon={<EditIcon />}
+                  onClick={handleOpenEditProject}
+                  sx={{
+                    borderRadius: 2,
+                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                    color: "#ffffff",
+                    textTransform: "none"
+                  }}
+                >
+                  Edit Proyek
+                </Button>
+              )}
+            </Stack>
+          </Box>
         </Box>
-        {!isClient && (
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={handleOpenEditProject}
-            sx={{
-              borderRadius: 2,
-              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-              color: "#ffffff",
-              textTransform: "none"
-            }}
-          >
-            Edit Proyek
-          </Button>
-        )}
       </Box>
 
       {msg.text && (
