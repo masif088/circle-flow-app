@@ -190,8 +190,8 @@ export default function UsersPage() {
         name: `${formFirstName} ${formLastName}`.trim(),
         email: formEmail,
         role: formRole,
-        position: formPosition,
-        ...(formRole === "client" && formCompanyId ? { company_id: formCompanyId } : {}),
+        position: formRole === "client" ? "" : formPosition,
+        company_id: formRole === "client" ? formCompanyId : null,
         status: "active" as const,
         createdAt: new Date().toISOString(),
       };
@@ -206,6 +206,8 @@ export default function UsersPage() {
         status: userData.status,
         createdAt: userData.createdAt.split("T")[0],
         teamIds: [],
+        company_id: userData.company_id || "",
+        position: userData.position,
       };
       setUsers([...users, newUser]);
       setOpenAddDialog(false);
