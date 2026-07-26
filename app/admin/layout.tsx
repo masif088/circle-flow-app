@@ -163,15 +163,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  const isClient = userProfile?.role === "client";
+
   const menuItems = [
     { text: "Dasbor", icon: <DashboardIcon />, path: "/admin" },
-    { text: "Pengguna", icon: <PeopleIcon />, path: "/admin/users" },
-    { text: "Tim", icon: <GroupsIcon />, path: "/admin/teams" },
-    { text: "Perusahaan", icon: <FinanceIcon />, path: "/admin/companies" },
+    ...(!isClient ? [
+      { text: "Pengguna", icon: <PeopleIcon />, path: "/admin/users" },
+      { text: "Tim", icon: <GroupsIcon />, path: "/admin/teams" },
+      { text: "Perusahaan", icon: <FinanceIcon />, path: "/admin/companies" },
+    ] : []),
     { text: "Proyek", icon: <DashboardIcon />, path: "/admin/projects" },
-    { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
-    { text: "Notifikasi", icon: <NotificationsIcon />, path: "/admin/notifications" },
-    { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },
+    ...(!isClient ? [
+      { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
+      { text: "Notifikasi", icon: <NotificationsIcon />, path: "/admin/notifications" },
+      { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },
+    ] : []),
   ];
 
   const drawerContent = (
