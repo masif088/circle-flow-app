@@ -853,21 +853,10 @@ export default function ProjectDetailPage() {
         });
       }
 
-      // 2. Presence check-in photos (included only if checkbox is checked)
-      if (showPresencePhotos && p.photo) {
-        items.push({
-          url: p.photo,
-          title: "Foto Check-in Kehadiran",
-          date: p.created_at,
-          type: "Kehadiran",
-          author: userName,
-          presence: p
-        });
-      }
     });
 
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [filteredPresences, showPresencePhotos, getUserName]);
+  }, [filteredPresences, getUserName]);
 
   const displayedGalleryItems = React.useMemo(() => {
     return galleryItems.slice(0, galleryLimit);
@@ -1981,30 +1970,13 @@ export default function ProjectDetailPage() {
       {/* Galeri Proyek */}
       <Card sx={{ mb: 4, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-                Galeri Foto Kegiatan & Kehadiran
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Kumpulan dokumentasi foto lapangan dan verifikasi kehadiran proyek
-              </Typography>
-            </Box>
-            
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={showPresencePhotos}
-                  onChange={(e) => setShowPresencePhotos(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label={
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Tampilkan Foto Kehadiran (Check-in)
-                </Typography>
-              }
-            />
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+              Galeri Foto Kegiatan
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Kumpulan dokumentasi foto lapangan proyek
+            </Typography>
           </Box>
           
           {displayedGalleryItems.length === 0 ? (
@@ -2099,7 +2071,7 @@ export default function ProjectDetailPage() {
       </Card>
 
       {/* Detailed Presence Logs Table (Filtered by selectedDate) */}
-      <Card sx={{ mb: 4 }}>
+      {!isClient && <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -2266,7 +2238,7 @@ export default function ProjectDetailPage() {
             </Table>
           </TableContainer>
         </CardContent>
-      </Card>
+      </Card>}
 
 
       {/* Gallery Photo Lightbox (Full Screen with Next/Prev navigation) */}
