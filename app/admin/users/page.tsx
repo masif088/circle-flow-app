@@ -143,7 +143,7 @@ export default function UsersPage() {
         const querySnapshot = await getDocs(collection(db, "companies"));
         const list: CompanyRecord[] = [];
         querySnapshot.forEach((doc) => {
-          list.push({ id: doc.id, name: doc.data().name || doc.id });
+          list.push({ id: doc.id, name: doc.data().title || doc.data().name || doc.id });
         });
         setCompanies(list);
       } catch (error) {
