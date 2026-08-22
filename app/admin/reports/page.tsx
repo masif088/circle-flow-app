@@ -37,6 +37,7 @@ interface PresenceRecord {
   status: string;
   cost_on_presence?: number;
   created_at: string;
+  checked_out_at?: string;
   photo?: string;
   activity?: { [uuid: string]: { title?: string; photo?: string; created_at?: string } };
 }
@@ -201,12 +202,13 @@ export default function ReportsPage() {
           p.type || "-",
           p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
           formatPrice(p.cost_on_presence),
-          p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID") : "-",
+          p.created_at ? new Date(p.created_at).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-",
+          p.checked_out_at ? new Date(p.checked_out_at).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-",
         ]);
 
         autoTable(pdf, {
           startY: curY,
-          head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Tanggal"]],
+          head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Waktu Masuk", "Waktu Keluar"]],
           body: tableBody,
           styles: { fontSize: 7, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
           headStyles: { fillColor: [99, 102, 241] },
@@ -250,7 +252,7 @@ export default function ReportsPage() {
 
       autoTable(pdf, {
         startY: curY,
-        head: [["Karyawan", "Total Kehadiran", "Total Biaya"]],
+        head: [["Karyawan", "Mandays", "Total Biaya"]],
         body: Array.from(perPersonMap.entries()).map(([uid, total]) => [
           getUserName(uid),
           filtered.filter(p => p.user_id === uid).length,
@@ -370,12 +372,13 @@ export default function ReportsPage() {
         p.type || "-",
         p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
         formatPrice(p.cost_on_presence),
-        p.created_at ? new Date(p.created_at).toLocaleString("id-ID") : "-",
+        p.created_at ? new Date(p.created_at).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-",
+        p.checked_out_at ? new Date(p.checked_out_at).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-",
       ]);
 
       autoTable(pdf, {
         startY: 42,
-        head: [["Foto", "Proyek", "Tipe", "Status", "Biaya", "Waktu"]],
+        head: [["Foto", "Proyek", "Tipe", "Status", "Biaya", "Waktu Masuk", "Waktu Keluar"]],
         body: tableBody,
         styles: { fontSize: 7.5, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
         headStyles: { fillColor: [99, 102, 241] },
@@ -413,7 +416,7 @@ export default function ReportsPage() {
 
       autoTable(pdf, {
         startY: curY,
-        head: [["Proyek", "Total Kehadiran", "Total Biaya"]],
+        head: [["Proyek", "Mandays", "Total Biaya"]],
         body: Array.from(perProject.entries()).map(([pid, total]) => [
           projects.find(pr => pr.id === pid)?.title || pid,
           filtered.filter(p => (p.project_id || "Tanpa Proyek") === pid).length,

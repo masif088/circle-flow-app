@@ -43,7 +43,9 @@ import {
   Stack,
   Alert,
   Divider,
-  Grid
+  Grid,
+  Checkbox,
+  CircularProgress
 } from "@mui/material";
 import {
   Check as ApproveIcon,
@@ -86,6 +88,7 @@ interface PresenceRecord {
   project_id?: string;
   project_name?: string;
   cost_on_presence?: number;
+  checked_out_at?: string;
   approved_at?: string;
   approved_by?: string;
   approved_note?: string;
@@ -232,13 +235,26 @@ export default function PresenceAdminPage() {
     setTimeout(() => setMsg({ text: "", type: "success" }), 5000);
   };
 
+  // Bulk select states
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   // Edit Cost States
   const [editCostAmount, setEditCostAmount] = useState("");
 
   const handleOpenDetail = (presence: PresenceRecord) => {
     setSelectedPresence(presence);
     setActionNote(presence.approved_note || presence.rejected_note || "");
-    setEditCostAmount(presence.cost_on_presence?.toString() || "0");
+
+    // Prefill biaya: pakai cost_on_presence jika > 0, fallback ke tarif upah
+    let defaultCost = presence.cost_on_presence || 0;
+    if (!defaultCost && presence.user_id && presence.project_id) {
+      const wage = costs.find(
+        c => c.user_id === presence.user_id && c.project_id === presence.project_id
+      );
+      if (wage) defaultCost = wage.cost;
+    }
+    setEditCostAmount(defaultCost > 0 ? defaultCost.toString() : "");
     setOpenDetailDialog(true);
   };
 
@@ -298,14 +314,55 @@ export default function PresenceAdminPage() {
       // Update selectedPresence state locally so Dialog UI updates immediately
       setSelectedPresence(prev => prev ? { ...prev, ...updateData } : null);
 
-      const statusText = status === "Approved" ? "Approved" : status === "Rejected" ? "Rejected" : "Pending";
-      showMsg(`Presence status successfully updated to: ${statusText}.`);
+      const statusText = status === "Approved" ? "Disetujui" : status === "Rejected" ? "Ditolak" : "Menunggu";
+      showMsg(`Status kehadiran berhasil diperbarui: ${statusText}.`);
     } catch (error: unknown) {
       if (error instanceof Error) {
         showMsg(error.message || "Failed to update presence status", "error");
       } else {
         showMsg("Failed to update presence status: An unknown error occurred", "error");
       }
+    }
+  };
+
+  const handleBulkAction = async (status: "Approved" | "Rejected") => {
+    if (selectedIds.size === 0) return;
+    setBulkLoading(true);
+    const reviewerId = user?.uid || "unknown";
+    const reviewerName = user?.displayName || user?.email || "Admin";
+    const now = new Date().toISOString();
+    try {
+      await Promise.all(Array.from(selectedIds).map(async (id) => {
+        const pres = presences.find(p => p.id === id);
+        if (!pres) return;
+        const updateData: any = status === "Approved" ? {
+          status: "Approved",
+          cost_on_presence: pres.cost_on_presence || (() => {
+            const wage = costs.find(c => c.user_id === pres.user_id && c.project_id === pres.project_id);
+            return wage?.cost || 0;
+          })(),
+          approved_at: now,
+          approved_by: reviewerId,
+          approved_note: `Bulk approved by ${reviewerName}`,
+          rejected_at: null, rejected_by: null, rejected_note: null,
+        } : {
+          status: "Rejected",
+          rejected_at: now,
+          rejected_by: reviewerId,
+          rejected_note: `Bulk rejected by ${reviewerName}`,
+          approved_at: null, approved_by: null, approved_note: null,
+        };
+        await updateDoc(doc(db, "presences", id), updateData);
+        if (status === "Approved" && pres.project_id) {
+          await syncPresenceToExpenditure(pres.user_id, pres.project_id, updateData.cost_on_presence);
+        }
+      }));
+      showMsg(`${selectedIds.size} kehadiran berhasil di-${status === "Approved" ? "setujui" : "tolak"}.`);
+      setSelectedIds(new Set());
+    } catch (e) {
+      showMsg("Gagal melakukan bulk action.", "error");
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -378,10 +435,10 @@ export default function PresenceAdminPage() {
   };
 
   const handleDeletePresence = async (id: string) => {
-    if (confirm("Are you sure you want to delete this presence log?")) {
+    if (confirm("Yakin ingin menghapus data kehadiran ini?")) {
       try {
         await deleteDoc(doc(db, "presences", id));
-        showMsg("Presence log deleted.");
+        showMsg("Data kehadiran berhasil dihapus.");
       } catch (error: unknown) {
         if (error instanceof Error) {
           showMsg("Delete failed: " + error.message, "error");
@@ -403,7 +460,7 @@ export default function PresenceAdminPage() {
         cost: parseFloat(costAmount) || 0,
         updatedAt: new Date().toISOString()
       });
-      showMsg("Default employee project rate configured.");
+      showMsg("Tarif harian karyawan berhasil dikonfigurasi.");
       setOpenCostDialog(false);
       setCostUserId("");
       setCostProjId("");
@@ -420,10 +477,10 @@ export default function PresenceAdminPage() {
 
   // Delete Cost Setting
   const handleDeleteCost = async (id: string) => {
-    if (confirm("Are you sure you want to delete this cost setting?")) {
+    if (confirm("Yakin ingin menghapus tarif ini?")) {
       try {
         await deleteDoc(doc(db, "cost_people_on_project", id));
-        showMsg("Cost setting deleted.");
+        showMsg("Tarif berhasil dihapus.");
         loadAllData();
       } catch (error: unknown) {
         if (error instanceof Error) {
@@ -684,10 +741,10 @@ export default function PresenceAdminPage() {
       >
         <Box>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-            Presence Logs & Costing
+            Log Kehadiran & Biaya
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Monitor attendance logs and manage employee project rates.
+            Pantau log kehadiran dan kelola tarif harian karyawan per proyek.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
@@ -700,7 +757,7 @@ export default function PresenceAdminPage() {
               disabled={dummyLoading}
               sx={{ borderRadius: 2, fontWeight: 600 }}
             >
-              {dummyLoading ? "Generating..." : "Gen Dummy Data"}
+              {dummyLoading ? "Memuat..." : "Gen Dummy Data"}
             </Button>
           )}
           {isAdmin && (
@@ -725,7 +782,7 @@ export default function PresenceAdminPage() {
               background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
             }}
           >
-            Set Cost Rate
+            Atur Tarif Harian
           </Button>
         </Stack>
       </Box>
@@ -766,36 +823,92 @@ export default function PresenceAdminPage() {
                 </Typography>
               </Stack>
             </Box>
+
+            {/* Bulk action toolbar */}
+            {selectedIds.size > 0 && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, p: 1.5, bgcolor: "primary.50", borderRadius: 2, border: "1px solid", borderColor: "primary.200" }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                  {selectedIds.size} dipilih
+                </Typography>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="success"
+                  startIcon={bulkLoading ? <CircularProgress size={14} color="inherit" /> : <ApproveIcon />}
+                  onClick={() => handleBulkAction("Approved")}
+                  disabled={bulkLoading}
+                  sx={{ textTransform: "none" }}
+                >
+                  Setujui Semua
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="error"
+                  startIcon={bulkLoading ? <CircularProgress size={14} color="inherit" /> : <RejectIcon />}
+                  onClick={() => handleBulkAction("Rejected")}
+                  disabled={bulkLoading}
+                  sx={{ textTransform: "none" }}
+                >
+                  Tolak Semua
+                </Button>
+                <Button size="small" onClick={() => setSelectedIds(new Set())} sx={{ textTransform: "none", ml: "auto" }}>
+                  Batal Pilih
+                </Button>
+              </Box>
+            )}
+
             <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
               <Table sx={{ minWidth: 800 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Employee</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Project</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>GPS / Radius Verification</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Daily Cost Lock</TableCell>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        indeterminate={selectedIds.size > 0 && selectedIds.size < filteredPresences.length}
+                        checked={filteredPresences.length > 0 && selectedIds.size === filteredPresences.length}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedIds(new Set(filteredPresences.map(p => p.id)));
+                          else setSelectedIds(new Set());
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Karyawan</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Proyek</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>GPS</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Biaya Harian</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Checked In At</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Waktu Masuk</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Waktu Keluar</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                        Loading presences...
+                      <TableCell colSpan={9} align="center" sx={{ py: 4, color: "text.secondary" }}>
+                        Memuat kehadiran...
                       </TableCell>
                     </TableRow>
                   ) : filteredPresences.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 4, color: "text.secondary" }}>
+                      <TableCell colSpan={9} align="center" sx={{ py: 4, color: "text.secondary" }}>
                         Tidak ada data kehadiran pada rentang tanggal ini.
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredPresences.map((pres) => (
-                      <TableRow key={pres.id} hover>
+                      <TableRow key={pres.id} hover selected={selectedIds.has(pres.id)}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedIds.has(pres.id)}
+                            onChange={(e) => {
+                              const next = new Set(selectedIds);
+                              if (e.target.checked) next.add(pres.id);
+                              else next.delete(pres.id);
+                              setSelectedIds(next);
+                            }}
+                          />
+                        </TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
                             {pres.photo && (
@@ -806,14 +919,9 @@ export default function PresenceAdminPage() {
                                 sx={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover" }}
                               />
                             )}
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {getUserName(pres.user_id)}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                UID: {pres.user_id.substring(0, 8)}...
-                              </Typography>
-                            </Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {getUserName(pres.user_id)}
+                            </Typography>
                           </Stack>
                         </TableCell>
                         <TableCell sx={{ fontWeight: 500 }}>
@@ -833,9 +941,6 @@ export default function PresenceAdminPage() {
                           ) : (
                             getProjectName(pres.project_id)
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={pres.type} size="small" variant="outlined" />
                         </TableCell>
                         <TableCell>
                           {pres.latitude !== undefined && pres.longitude !== undefined && pres.latitude !== null && pres.longitude !== null ? (
@@ -864,21 +969,24 @@ export default function PresenceAdminPage() {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={pres.status}
+                            label={pres.status === "Approved" ? "Disetujui" : pres.status === "Rejected" ? "Ditolak" : "Menunggu"}
                             size="small"
                             color={pres.status === "Approved" ? "success" : pres.status === "Rejected" ? "error" : "warning"}
                             sx={{ fontWeight: 600 }}
                           />
                         </TableCell>
-                        <TableCell color="text.secondary">
+                        <TableCell sx={{ color: "text.secondary" }}>
                           {pres.created_at ? new Date(pres.created_at).toLocaleString("id-ID") : "-"}
+                        </TableCell>
+                        <TableCell sx={{ color: "text.secondary" }}>
+                          {pres.checked_out_at ? new Date(pres.checked_out_at).toLocaleString("id-ID") : "-"}
                         </TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
                             <IconButton color="primary" onClick={() => handleOpenDetail(pres)} size="small" title="Lihat Detail Peta Verifikasi GPS">
                               <ViewIcon />
                             </IconButton>
-                            <IconButton color="error" onClick={() => handleDeletePresence(pres.id)} size="small" title="Delete Log">
+                            <IconButton color="error" onClick={() => handleDeletePresence(pres.id)} size="small" title="Hapus">
                               <DeleteIcon />
                             </IconButton>
                           </Stack>
@@ -896,23 +1004,23 @@ export default function PresenceAdminPage() {
         <Card>
           <CardContent sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-              Default Employee Rates per Project
+              Tarif Harian Karyawan per Proyek
             </Typography>
             <TableContainer component={Paper} elevation={0}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Employee Name</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Project Title</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Rate per Day</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Nama Karyawan</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Proyek</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Tarif per Hari</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {costs.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        No custom rates configured.
+                        Belum ada tarif yang dikonfigurasi.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -940,14 +1048,14 @@ export default function PresenceAdminPage() {
 
       {/* dialog Set Cost Rate */}
       <Dialog open={openCostDialog} onClose={() => setOpenCostDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Set Cost per Day</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Atur Biaya Harian</DialogTitle>
         <DialogContent>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <FormControl fullWidth required>
-              <InputLabel>Select Employee</InputLabel>
+              <InputLabel>Pilih Karyawan</InputLabel>
               <Select
                 value={costUserId}
-                label="Select Employee"
+                label="Pilih Karyawan"
                 onChange={(e) => setCostUserId(e.target.value)}
               >
                 {users.map((u) => (
@@ -956,10 +1064,10 @@ export default function PresenceAdminPage() {
               </Select>
             </FormControl>
             <FormControl fullWidth required>
-              <InputLabel>Select Project Site</InputLabel>
+              <InputLabel>Pilih Proyek</InputLabel>
               <Select
                 value={costProjId}
-                label="Select Project Site"
+                label="Pilih Proyek"
                 onChange={(e) => setCostProjId(e.target.value)}
               >
                 {projects.map((p) => (
@@ -969,7 +1077,7 @@ export default function PresenceAdminPage() {
             </FormControl>
             <TextField
               fullWidth
-              label="Daily Rate (IDR)"
+              label="Tarif Harian (IDR)"
               type="number"
               required
               value={costAmount}
@@ -978,9 +1086,9 @@ export default function PresenceAdminPage() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setOpenCostDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenCostDialog(false)}>Batal</Button>
           <Button variant="contained" onClick={handleSetCost} disabled={!costUserId || !costProjId || !costAmount}>
-            Configure Rate
+            Simpan Tarif
           </Button>
         </DialogActions>
       </Dialog>

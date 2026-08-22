@@ -952,19 +952,23 @@ export default function ProjectDetailPage() {
         }
       }
 
+      const fmtTime = (iso?: string) =>
+        iso ? new Date(iso).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
+
       const tableBody = filteredPresences.map((pres) => [
         "",
         getUserName(pres.user_id),
         pres.type || "-",
         pres.status === "Approved" ? "Disetujui" : pres.status === "Rejected" ? "Ditolak" : "Menunggu",
         formatPrice(pres.cost_on_presence),
-        pres.created_at ? new Date(pres.created_at).toLocaleString("id-ID") : "-"
+        fmtTime(pres.created_at),
+        fmtTime(pres.checked_out_at),
       ]);
 
       const photoCellSize = 26;
       autoTable(pdf, {
         startY: 31,
-        head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Waktu Masuk"]],
+        head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Waktu Masuk", "Waktu Keluar"]],
         body: tableBody,
         styles: { fontSize: 7.5, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
         headStyles: { fillColor: [99, 102, 241] },
@@ -1009,8 +1013,12 @@ export default function ProjectDetailPage() {
 
       autoTable(pdf, {
         startY: cursorY,
-        head: [["Karyawan", "Total Biaya"]],
-        body: Array.from(perPersonCost.entries()).map(([uid, total]) => [getUserName(uid), formatPrice(total)]),
+        head: [["Karyawan", "Mandays", "Total Biaya"]],
+        body: Array.from(perPersonCost.entries()).map(([uid, total]) => [
+          getUserName(uid),
+          filteredPresences.filter(p => p.user_id === uid).length,
+          formatPrice(total),
+        ]),
         styles: { fontSize: 8, cellPadding: 2 },
         headStyles: { fillColor: [16, 185, 129] },
         margin: { left: margin, right: margin },
