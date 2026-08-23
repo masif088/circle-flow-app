@@ -73,7 +73,8 @@ import {
   Close as CloseIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
-  PictureAsPdf as PdfIcon
+  PictureAsPdf as PdfIcon,
+  GridOn as GridOnIcon
 } from "@mui/icons-material";
 
 interface ProjectRecord {
@@ -239,6 +240,7 @@ export default function ProjectDetailPage() {
 
   // PDF Report State
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
 
   // Worker Wage Settings States
   const [projectWages, setProjectWages] = useState<any[]>([]);
@@ -968,10 +970,10 @@ export default function ProjectDetailPage() {
       const photoCellSize = 26;
       autoTable(pdf, {
         startY: 31,
-        head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Waktu Masuk", "Waktu Keluar"]],
+        head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Check In", "Check Out"]],
         body: tableBody,
         styles: { fontSize: 7.5, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
-        headStyles: { fillColor: [99, 102, 241] },
+        headStyles: { fillColor: [99, 102, 241], minCellHeight: 8, fontSize: 7.5, fontStyle: "bold" },
         columnStyles: { 0: { cellWidth: photoCellSize + 4 } },
         margin: { left: margin, right: margin },
         didDrawCell: (data) => {
@@ -2087,159 +2089,132 @@ export default function ProjectDetailPage() {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Log Kehadiran Detail & Verifikasi Geofencing (Difilter)
             </Typography>
-            {!isClient && (
+            <Stack direction="row" spacing={1}>
               <Button
                 variant="outlined"
-                startIcon={generatingReport ? <CircularProgress size={16} /> : <PdfIcon />}
-                onClick={handleGenerateReport}
-                disabled={generatingReport || filteredPresences.length === 0}
+                color="success"
+                startIcon={<GridOnIcon />}
+                disabled={filteredPresences.length === 0}
+                onClick={() => {
+                  const rows = [
+                    ["Karyawan", "Check In", "Check Out", "Status"],
+                    ...filteredPresences.map(p => [
+                      getUserName(p.user_id),
+                      p.created_at ? new Date(p.created_at).toLocaleString("id-ID") : "-",
+                      p.checked_out_at ? new Date(p.checked_out_at).toLocaleString("id-ID") : "-",
+                      p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
+                    ]),
+                  ];
+                  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+                  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `Kehadiran-${project?.title?.replace(/\s+/g, "_")}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
                 sx={{ borderRadius: 2, textTransform: "none" }}
               >
-                {generatingReport ? "Membuat Laporan..." : "Unduh Laporan PDF"}
+                Unduh CSV
               </Button>
-            )}
+              {!isClient && (
+                <Button
+                  variant="outlined"
+                  startIcon={generatingReport ? <CircularProgress size={16} /> : <PdfIcon />}
+                  onClick={handleGenerateReport}
+                  disabled={generatingReport || filteredPresences.length === 0}
+                  sx={{ borderRadius: 2, textTransform: "none" }}
+                >
+                  {generatingReport ? "Membuat Laporan..." : "Unduh Laporan PDF"}
+                </Button>
+              )}
+            </Stack>
           </Box>
           <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
-            <Table sx={{ minWidth: 800 }}>
+            <Table sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Check In</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Check Out</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Karyawan</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Tipe</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>GPS / Radius Verifikasi</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Kunci Biaya Harian</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Masuk</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Pulang</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Foto</TableCell>
                   <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredPresences.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4, color: "text.secondary" }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4, color: "text.secondary" }}>
                       Tidak ada catatan kehadiran yang ditemukan untuk tanggal ini.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredPresences.map((pres) => (
                     <TableRow key={pres.id} hover>
-                      <TableCell>
-                        <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                          {pres.photo && (
-                            <Box
-                              component="img"
-                              src={pres.photo}
-                              alt="verification"
-                              sx={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: "8px",
-                                objectFit: "cover",
-                                border: "1px solid #e0e0e0"
-                              }}
-                            />
-                          )}
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {getUserName(pres.user_id)}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                              UID: {pres.user_id.substring(0, 8)}...
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={pres.type} size="small" variant="outlined" />
-                      </TableCell>
-                      <TableCell>
-                        {pres.latitude !== undefined && pres.longitude !== undefined && pres.latitude !== null && pres.longitude !== null ? (
-                          <Box>
-                            <Stack direction="row" spacing={0.5} sx={{ color: "text.secondary", alignItems:"center" }}>
-                              <LocationIcon sx={{ fontSize: 16 }} />
-                              <Typography variant="caption">
-                                {pres.latitude.toFixed(5)}, {pres.longitude.toFixed(5)}
-                              </Typography>
-                            </Stack>
-                            {pres.radius !== undefined && (
-                              <Typography variant="caption" sx={{ color: pres.status === "Approved" ? "success.main" : "warning.main", display: "block" }}>
-                                Jarak: {Math.round(pres.radius)}m
-                              </Typography>
-                            )}
-                          </Box>
-                        ) : (
-                          <Typography variant="caption" sx={{ color: "text.secondary" }}>Tidak Ada Koordinat</Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={0.5} sx={{ alignItems:"center" }}>
-                          {/* <MoneyIcon sx={{ fontSize: 16, color: "success.main" }} /> */}
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {formatPrice(pres.cost_on_presence)}
-                          </Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={
-                            pres.status === "Approved"
-                              ? "Disetujui"
-                              : pres.status === "Rejected"
-                              ? "Ditolak"
-                              : "Menunggu"
-                          }
-                          size="small"
-                          color={
-                            pres.status === "Approved"
-                              ? "success"
-                              : pres.status === "Rejected"
-                              ? "error"
-                              : "warning"
-                          }
-                          sx={{ fontWeight: 600 }}
-                        />
-                        {pres.approved_note && (
-                          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5, fontSize: "0.75rem", maxWidth: 180 }}>
-                            Catatan: {pres.approved_note}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
                         <Typography variant="body2">
                           {new Date(pres.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
                         </Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                        <Typography variant="caption" color="text.disabled">
                           {new Date(pres.created_at).toLocaleDateString("id-ID")}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
                         {pres.checked_out_at ? (
                           <>
                             <Typography variant="body2">
                               {new Date(pres.checked_out_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
                             </Typography>
-                            {pres.checkout_latitude && pres.checkout_longitude && (
-                              <Typography variant="caption" sx={{ color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5 }}>
-                                <LocationIcon sx={{ fontSize: 12 }} />
-                                {pres.checkout_latitude.toFixed(4)}, {pres.checkout_longitude.toFixed(4)}
-                              </Typography>
-                            )}
+                            <Typography variant="caption" color="text.disabled">
+                              {new Date(pres.checked_out_at).toLocaleDateString("id-ID")}
+                            </Typography>
                           </>
                         ) : (
-                          <Typography variant="caption" color="warning.main">Belum pulang</Typography>
+                          <Typography variant="caption" color={
+                            pres.created_at && new Date(pres.created_at).toDateString() !== new Date().toDateString()
+                              ? "error"
+                              : "warning.main"
+                          }>
+                            {pres.created_at && new Date(pres.created_at).toDateString() !== new Date().toDateString()
+                              ? "Tidak melakukan Check Out"
+                              : "Belum Check Out"}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {getUserName(pres.user_id)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={pres.status === "Approved" ? "Disetujui" : pres.status === "Rejected" ? "Ditolak" : "Menunggu"}
+                          size="small"
+                          color={pres.status === "Approved" ? "success" : pres.status === "Rejected" ? "error" : "warning"}
+                          sx={{ fontWeight: 600 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {pres.photo ? (
+                          <Box
+                            component="img"
+                            src={pres.photo}
+                            alt="foto"
+                            onClick={() => setLightboxPhoto(pres.photo)}
+                            sx={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover", cursor: "pointer", "&:hover": { opacity: 0.85 } }}
+                          />
+                        ) : (
+                          <Box sx={{ width: 40, height: 40, borderRadius: "8px", bgcolor: "action.hover", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Typography variant="caption" color="text.disabled">–</Typography>
+                          </Box>
                         )}
                       </TableCell>
                       <TableCell align="right">
-                        <Stack direction="row" spacing={1} sx={{ justifyContent:"flex-end" }}>
-                          <IconButton
-                            color="primary"
-                            onClick={() => handleOpenDetail(pres)}
-                            size="small"
-                            title="Lihat Detail Peta Verifikasi GPS"
-                          >
-                            <ViewIcon />
-                          </IconButton>
-                        </Stack>
+                        <IconButton color="primary" onClick={() => handleOpenDetail(pres)} size="small" title="Lihat Detail">
+                          <ViewIcon />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))
@@ -2872,6 +2847,22 @@ export default function ProjectDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Lightbox foto */}
+      {lightboxPhoto && (
+        <Box
+          onClick={() => setLightboxPhoto(null)}
+          sx={{ position: "fixed", inset: 0, zIndex: 9999, bgcolor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}
+        >
+          <Box
+            component="img"
+            src={lightboxPhoto}
+            alt="foto besar"
+            onClick={(e) => e.stopPropagation()}
+            sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 2, boxShadow: 24 }}
+          />
+        </Box>
+      )}
     </Box>
   );
 }

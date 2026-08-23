@@ -51,6 +51,7 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   PictureAsPdf as PdfIcon,
+  GridOn as GridOnIcon,
 } from "@mui/icons-material";
 
 interface CompanyRecord {
@@ -99,6 +100,7 @@ export default function CompanyDetailPage() {
   const [startDate, setStartDate] = useState(today.substring(0, 8) + "01");
   const [endDate, setEndDate] = useState(today);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
 
   // Edit Company Dialog States
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -490,7 +492,7 @@ export default function CompanyDetailPage() {
       pdf.text(`Periode: ${startDate} s/d ${endDate}`, margin, 22);
       pdf.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, margin, 27);
       pdf.setFontSize(10);
-      pdf.text(`Total Kehadiran: ${filtered.length} record | ${projects.length} Proyek`, margin, 33);
+      pdf.text(`Mandays: ${filtered.length} record | ${projects.length} Proyek`, margin, 33);
 
       // Pre-load photos
       const photoMap = new Map<string, string | null>();
@@ -516,17 +518,17 @@ export default function CompanyDetailPage() {
 
         autoTable(pdf, {
           startY: curY,
-          head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Tanggal"]],
+          head: [["Foto", "Karyawan", "Check In", "Check Out", "Status", "Biaya"]],
           body: projPresences.map(p => [
             "",
             getUserName(p.user_id),
-            p.type || "-",
+            p.created_at ? new Date(p.created_at).toLocaleString("id-ID") : "-",
+            p.checked_out_at ? new Date(p.checked_out_at).toLocaleString("id-ID") : "-",
             p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
             formatPrice(p.cost_on_presence),
-            p.created_at ? new Date(p.created_at).toLocaleDateString("id-ID") : "-",
           ]),
           styles: { fontSize: 7, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
-          headStyles: { fillColor: [99, 102, 241] },
+          headStyles: { fillColor: [99, 102, 241], minCellHeight: 8, fontSize: 7, fontStyle: "bold" },
           columnStyles: { 0: { cellWidth: photoCellSize + 4 } },
           margin: { left: margin, right: margin },
           didDrawCell: (data: any) => {
@@ -561,14 +563,14 @@ export default function CompanyDetailPage() {
       filtered.forEach((p: any) => perPersonMap.set(p.user_id, (perPersonMap.get(p.user_id) || 0) + (p.cost_on_presence || 0)));
       autoTable(pdf, {
         startY: curY,
-        head: [["Karyawan", "Total Kehadiran", "Total Biaya"]],
+        head: [["Karyawan", "Mandays", "Total Biaya"]],
         body: Array.from(perPersonMap.entries()).map(([uid, total]) => [
           getUserName(uid),
           filtered.filter((p: any) => p.user_id === uid).length,
           formatPrice(total),
         ]),
         styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [16, 185, 129] },
+        headStyles: { fillColor: [16, 185, 129], minCellHeight: 8, fontSize: 7, fontStyle: "bold" },
         margin: { left: margin, right: margin },
       });
 
@@ -618,6 +620,35 @@ export default function CompanyDetailPage() {
     } finally {
       setGeneratingPdf(false);
     }
+  };
+
+  const handleExportCsv = () => {
+    if (!company) return;
+    const companyProjectIds = new Set(projects.map(p => p.id));
+    const filtered = presences.filter(p => {
+      if (!p.project_id || !companyProjectIds.has(p.project_id)) return false;
+      if (!p.created_at) return false;
+      const d = getLocalDateStr(p.created_at);
+      return d >= startDate && d <= endDate;
+    });
+    const getUserName = (uid: string) => users.find(u => u.uid === uid)?.name || uid;
+    const getProjectTitle = (pid: string) => projects.find(p => p.id === pid)?.title || pid;
+    const header = ["Proyek", "Karyawan", "Check In", "Check Out", "Status"];
+    const rows = filtered.map(p => [
+      getProjectTitle(p.project_id),
+      getUserName(p.user_id),
+      p.created_at ? new Date(p.created_at).toLocaleString("id-ID") : "-",
+      p.checked_out_at ? new Date(p.checked_out_at).toLocaleString("id-ID") : "-",
+      p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
+    ]);
+    const csvContent = "﻿" + [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Laporan-${company.title.replace(/\s+/g, "_")}-${startDate}_${endDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -711,6 +742,16 @@ export default function CompanyDetailPage() {
             slotProps={{ inputLabel: { shrink: true } }}
             sx={{ width: 150 }}
           />
+          <Button
+            variant="outlined"
+            color="success"
+            startIcon={<GridOnIcon />}
+            onClick={handleExportCsv}
+            disabled={projects.length === 0}
+            sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+          >
+            Unduh CSV
+          </Button>
           <Button
             variant="outlined"
             startIcon={generatingPdf ? <CircularProgress size={16} /> : <PdfIcon />}
@@ -987,6 +1028,12 @@ export default function CompanyDetailPage() {
           </Card>
         </Grid>
       </Grid>
+
+      {lightboxPhoto && (
+        <Box onClick={() => setLightboxPhoto(null)} sx={{ position: "fixed", inset: 0, zIndex: 9999, bgcolor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
+          <Box component="img" src={lightboxPhoto} onClick={(e) => e.stopPropagation()} sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 2, boxShadow: 24 }} />
+        </Box>
+      )}
 
       {/* Edit Company Dialog */}
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>

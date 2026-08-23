@@ -167,7 +167,7 @@ export default function ReportsPage() {
       pdf.text(`Periode: ${companyStart} s/d ${companyEnd}`, margin, 22);
       pdf.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, margin, 27);
       pdf.setFontSize(10);
-      pdf.text(`Total Kehadiran: ${filtered.length} record`, margin, 33);
+      pdf.text(`Mandays: ${filtered.length} record`, margin, 33);
 
       let curY = 40;
 
@@ -186,14 +186,14 @@ export default function ReportsPage() {
 
         // Project header
         if (curY > pageHeight - 50) { pdf.addPage(); curY = 15; }
-        pdf.setFontSize(11);
+        pdf.setFontSize(9);
         pdf.setFont("helvetica", "bold");
         pdf.setFillColor(99, 102, 241);
-        pdf.rect(margin, curY - 5, pageWidth - margin * 2, 8, "F");
+        pdf.rect(margin, curY - 3, pageWidth - margin * 2, 6, "F");
         pdf.setTextColor(255, 255, 255);
         pdf.text(`Proyek: ${proj.title}`, margin + 2, curY + 1);
         pdf.setTextColor(0, 0, 0);
-        curY += 8;
+        curY += 6;
 
         const photoCellSize = 20;
         const tableBody = projPresences.map(p => [
@@ -208,10 +208,10 @@ export default function ReportsPage() {
 
         autoTable(pdf, {
           startY: curY,
-          head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Waktu Masuk", "Waktu Keluar"]],
+          head: [["Foto", "Karyawan", "Tipe", "Status", "Biaya", "Check In", "Check Out"]],
           body: tableBody,
           styles: { fontSize: 7, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
-          headStyles: { fillColor: [99, 102, 241] },
+          headStyles: { fillColor: [99, 102, 241], minCellHeight: 8, fontSize: 7, fontStyle: "bold" },
           columnStyles: { 0: { cellWidth: photoCellSize + 4 } },
           margin: { left: margin, right: margin },
           didDrawCell: (data) => {
@@ -355,7 +355,7 @@ export default function ReportsPage() {
       pdf.text(`Periode: ${userStart} s/d ${userEnd}`, margin, 26);
       pdf.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, margin, 31);
       pdf.setFontSize(10);
-      pdf.text(`Total Kehadiran: ${filtered.length} record`, margin, 37);
+      pdf.text(`Mandays: ${filtered.length} record`, margin, 37);
 
       // Pre-load photos
       const photoMap = new Map<string, string | null>();
@@ -378,10 +378,10 @@ export default function ReportsPage() {
 
       autoTable(pdf, {
         startY: 42,
-        head: [["Foto", "Proyek", "Tipe", "Status", "Biaya", "Waktu Masuk", "Waktu Keluar"]],
+        head: [["Foto", "Proyek", "Tipe", "Status", "Biaya", "Check In", "Check Out"]],
         body: tableBody,
         styles: { fontSize: 7.5, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
-        headStyles: { fillColor: [99, 102, 241] },
+        headStyles: { fillColor: [99, 102, 241], minCellHeight: 8, fontSize: 7.5, fontStyle: "bold" },
         columnStyles: { 0: { cellWidth: photoCellSize + 4 } },
         margin: { left: margin, right: margin },
         didDrawCell: (data) => {

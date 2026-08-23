@@ -32,12 +32,17 @@ import {
   Alert,
   TextField,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
   LocationOn as LocationIcon,
   PictureAsPdf as PdfIcon,
   Visibility as ViewIcon,
+  GridOn as CsvIcon,
 } from "@mui/icons-material";
 
 interface UserRecord {
@@ -76,6 +81,8 @@ export default function UserDetailPage() {
   const [startDate, setStartDate] = useState(today.substring(0, 8) + "01");
   const [endDate, setEndDate] = useState(today);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [detailPres, setDetailPres] = useState<any | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -200,15 +207,15 @@ export default function UserDetailPage() {
         return { w: props.width * ratio, h: props.height * ratio, offsetX: (maxW - props.width * ratio) / 2, offsetY: (maxH - props.height * ratio) / 2 };
       };
 
-      // Header
+      // Header — semua baris pakai font 9pt normal kecuali judul
       pdf.setFontSize(16); pdf.setFont("helvetica", "bold");
       pdf.text(`Laporan Karyawan - ${userRecord.name}`, margin, 15);
       pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-      pdf.text(`Email: ${userRecord.email} | Role: ${userRecord.role}`, margin, 21);
-      pdf.text(`Periode: ${startDate} s/d ${endDate}`, margin, 26);
-      pdf.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, margin, 31);
-      pdf.setFontSize(10);
-      pdf.text(`Total Kehadiran dalam periode: ${filteredPresences.length} record`, margin, 37);
+      pdf.text(`Email: ${userRecord.email} | Role: ${userRecord.role}`, margin, 22);
+      pdf.text(`Periode: ${startDate} s/d ${endDate}`, margin, 28);
+      pdf.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, margin, 34);
+      pdf.text(`Mandays dalam periode: ${filteredPresences.length} record`, margin, 40);
+      // placeholder — Total Halaman ditulis setelah PDF selesai (baris 46)
 
       // Pre-load check-in photos
       const photoMap = new Map<string, string | null>();
@@ -216,24 +223,25 @@ export default function UserDetailPage() {
         if (p.photo && !photoMap.has(p.id)) photoMap.set(p.id, await loadImg(p.photo));
       }
 
+      // Kolom: Check In | Check Out | Proyek | Status | Foto (tanpa Tipe)
       const photoCellSize = 26;
+      // foto ada di kolom index 4 (terakhir)
       autoTable(pdf, {
-        startY: 42,
-        head: [["Foto", "Proyek", "Tipe", "Status", "Biaya", "Waktu"]],
+        startY: 52,
+        head: [["Check In", "Check Out", "Proyek", "Status", "Foto"]],
         body: filteredPresences.map(p => [
-          "",
-          getProjectName(p.project_id),
-          p.type || "-",
-          p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
-          formatPrice(p.cost_on_presence),
           p.created_at ? new Date(p.created_at).toLocaleString("id-ID") : "-",
+          p.checked_out_at ? new Date(p.checked_out_at).toLocaleString("id-ID") : "-",
+          getProjectName(p.project_id),
+          p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
+          "",
         ]),
         styles: { fontSize: 7.5, cellPadding: 1.5, minCellHeight: photoCellSize + 4, valign: "middle" },
-        headStyles: { fillColor: [99, 102, 241] },
-        columnStyles: { 0: { cellWidth: photoCellSize + 4 } },
+        headStyles: { fillColor: [99, 102, 241], minCellHeight: 8, fontSize: 7.5, fontStyle: "bold" },
+        columnStyles: { 4: { cellWidth: photoCellSize + 4 } },
         margin: { left: margin, right: margin },
         didDrawCell: (data: any) => {
-          if (data.section === "body" && data.column.index === 0) {
+          if (data.section === "body" && data.column.index === 4) {
             const p = filteredPresences[data.row.index];
             const imgData = p ? photoMap.get(p.id) : null;
             if (imgData) {
@@ -262,7 +270,7 @@ export default function UserDetailPage() {
       });
       autoTable(pdf, {
         startY: curY,
-        head: [["Proyek", "Total Kehadiran", "Total Biaya"]],
+        head: [["Proyek", "Mandays", "Total Biaya"]],
         body: Array.from(perProject.entries()).map(([pid, total]) => [
           getProjectName(pid),
           filteredPresences.filter(p => (p.project_id || "Tanpa Proyek") === pid).length,
@@ -306,8 +314,12 @@ export default function UserDetailPage() {
         }
       }
 
-      // Page numbers
+      // Tulis total halaman di header halaman pertama
       const total = pdf.getNumberOfPages();
+      pdf.setPage(1);
+      pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
+      pdf.text(`Total Halaman: ${total}`, margin, 46);
+
       for (let i = 1; i <= total; i++) {
         pdf.setPage(i); pdf.setFontSize(8); pdf.setFont("helvetica", "normal");
         pdf.text(`Halaman ${i} / ${total}`, pageWidth / 2, pageHeight - 6, { align: "center" });
@@ -535,6 +547,36 @@ export default function UserDetailPage() {
               >
                 {generatingPdf ? "Membuat..." : "Unduh PDF"}
               </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={filteredPresences.length === 0}
+                onClick={() => {
+                  const rows = [
+                    ["Nama", "Check In", "Check Out", "Proyek", "Status"],
+                    ...filteredPresences.map(p => [
+                      userRecord?.name || "-",
+                      p.created_at ? new Date(p.created_at).toLocaleString("id-ID") : "-",
+                      p.checked_out_at ? new Date(p.checked_out_at).toLocaleString("id-ID") : "-",
+                      getProjectName(p.project_id),
+                      p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
+                    ]),
+                  ];
+                  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+                  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `Kehadiran-${userRecord?.name.replace(/\s+/g, "_")}-${startDate}_${endDate}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                startIcon={<CsvIcon />}
+                color="success"
+                sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+              >
+                Unduh CSV
+              </Button>
             </Stack>
           </Box>
 
@@ -543,49 +585,49 @@ export default function UserDetailPage() {
               Tidak ada catatan kehadiran dalam rentang tanggal ini.
             </Typography>
           ) : (
-            <TableContainer component={Paper} variant="outlined" sx={{ border: "1px solid", borderColor: "divider" }}>
-              <Table size="small">
+            <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
+              <Table sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Waktu</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Foto</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Check In</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Check Out</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Proyek</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Tipe</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Lokasi (GPS)</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Biaya</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredPresences.map((pres) => (
-                    <TableRow key={pres.id}>
-                      <TableCell>{new Date(pres.created_at).toLocaleString("id-ID")}</TableCell>
+                    <TableRow key={pres.id} hover sx={{ cursor: "pointer" }} onClick={() => setDetailPres(pres)}>
+                      <TableCell>
+                        {pres.photo ? (
+                          <Box
+                            component="img"
+                            src={pres.photo}
+                            alt="foto"
+                            onClick={() => setLightboxSrc(pres.photo)}
+                            sx={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover", cursor: "pointer", "&:hover": { opacity: 0.85 } }}
+                          />
+                        ) : (
+                          <Box sx={{ width: 40, height: 40, borderRadius: "8px", bgcolor: "action.hover", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Typography variant="caption" color="text.disabled">–</Typography>
+                          </Box>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
+                        {pres.created_at ? new Date(pres.created_at).toLocaleString("id-ID") : "-"}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>
+                        {pres.checked_out_at ? new Date(pres.checked_out_at).toLocaleString("id-ID") : "-"}
+                      </TableCell>
                       <TableCell>
                         <Typography
                           variant="body2"
                           onClick={() => router.push(`/admin/projects/${pres.project_id}`)}
-                          sx={{
-                            fontWeight: 600,
-                            color: "primary.main",
-                            cursor: "pointer",
-                            "&:hover": { textDecoration: "underline" }
-                          }}
+                          sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
                         >
                           {getProjectName(pres.project_id)}
                         </Typography>
-                      </TableCell>
-                      <TableCell><Chip label={pres.type} size="small" variant="outlined" /></TableCell>
-                      <TableCell>
-                        {pres.latitude && pres.longitude ? (
-                          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                            <LocationIcon sx={{ fontSize: 14 }} color="action" />
-                            <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                              {pres.latitude.toFixed(4)}, {pres.longitude.toFixed(4)}
-                            </Typography>
-                          </Stack>
-                        ) : "-"}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>
-                        {formatPrice(pres.cost_on_presence || 0)}
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -603,6 +645,150 @@ export default function UserDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Detail Presensi Dialog */}
+      <Dialog open={!!detailPres} onClose={() => setDetailPres(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Detail Presensi</DialogTitle>
+        <DialogContent>
+          {detailPres && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
+              {detailPres.photo ? (
+                <Box
+                  component="img"
+                  src={detailPres.photo}
+                  alt="Foto Verifikasi"
+                  onClick={() => { setDetailPres(null); setLightboxSrc(detailPres.photo); }}
+                  sx={{ width: "100%", maxHeight: 300, objectFit: "contain", bgcolor: "#f3f4f6", borderRadius: 2, border: "1px solid #ddd", cursor: "zoom-in" }}
+                />
+              ) : (
+                <Alert severity="info">Tidak ada foto verifikasi.</Alert>
+              )}
+
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">CHECK IN</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {detailPres.created_at ? new Date(detailPres.created_at).toLocaleString("id-ID") : "-"}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">CHECK OUT</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {detailPres.checked_out_at ? new Date(detailPres.checked_out_at).toLocaleString("id-ID") : "-"}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">PROYEK</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer" }}
+                    onClick={() => { setDetailPres(null); router.push(`/admin/projects/${detailPres.project_id}`); }}>
+                    {getProjectName(detailPres.project_id)}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">STATUS</Typography>
+                  <Box sx={{ mt: 0.5 }}>
+                    <Chip
+                      label={detailPres.status === "Approved" ? "Disetujui" : detailPres.status === "Rejected" ? "Ditolak" : "Menunggu"}
+                      size="small"
+                      color={detailPres.status === "Approved" ? "success" : detailPres.status === "Rejected" ? "error" : "warning"}
+                      sx={{ fontWeight: 600 }}
+                    />
+                  </Box>
+                </Grid>
+                {(detailPres.latitude && detailPres.longitude) && (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="caption" color="text.secondary">KOORDINAT GPS</Typography>
+                    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mt: 0.5 }}>
+                      <LocationIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                      <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
+                        {detailPres.latitude.toFixed(6)}, {detailPres.longitude.toFixed(6)}
+                      </Typography>
+                    </Stack>
+                  </Grid>
+                )}
+                {detailPres.description && (
+                  <Grid size={{ xs: 12 }}>
+                    <Divider />
+                  </Grid>
+                )}
+                {detailPres.description && (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography variant="caption" color="text.secondary">CATATAN</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5, p: 1.5, bgcolor: "action.hover", borderRadius: 1 }}>
+                      {detailPres.description}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {/* Aktivitas */}
+                {detailPres.activity && Object.keys(detailPres.activity).length > 0 && (
+                  <Grid size={{ xs: 12 }}>
+                    <Divider />
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5, mb: 1, fontWeight: 600 }}>
+                      AKTIVITAS ({Object.keys(detailPres.activity).length})
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      {Object.entries(detailPres.activity).map(([uuid, act]: [string, any]) => (
+                        <Box key={uuid} sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+                          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                            {act.photo && (
+                              <Box
+                                component="img"
+                                src={act.photo}
+                                alt={act.title}
+                                onClick={() => { setDetailPres(null); setLightboxSrc(act.photo); }}
+                                sx={{ width: 72, height: 72, borderRadius: 1, objectFit: "cover", flexShrink: 0, cursor: "zoom-in" }}
+                              />
+                            )}
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{act.title}</Typography>
+                              {act.description && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{act.description}</Typography>}
+                              {act.created_at && (
+                                <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block" }}>
+                                  {new Date(act.created_at).toLocaleString("id-ID")}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Stack>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDetailPres(null)} variant="contained" color="inherit">Tutup</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Lightbox */}
+      {lightboxSrc && (
+        <Box
+          onClick={() => setLightboxSrc(null)}
+          sx={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            bgcolor: "rgba(0,0,0,0.85)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "zoom-out",
+          }}
+        >
+          <Box
+            component="img"
+            src={lightboxSrc}
+            alt="foto besar"
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              maxWidth: "90vw", maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: 2,
+              boxShadow: 24,
+            }}
+          />
+        </Box>
+      )}
     </Box>
   );
 }
