@@ -191,17 +191,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           py: 2.5,
         }}
       >
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 800,
-            background: "linear-gradient(to right, #818cf8, #34d399)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          LuminOne
-        </Typography>
+        <Box
+          component="img"
+          src="/logo_lumina.png"
+          alt="LuminOne"
+          sx={{ height: 36, objectFit: "contain" }}
+        />
         {isMobile && (
           <IconButton onClick={handleDrawerToggle}>
             <ChevronLeftIcon />

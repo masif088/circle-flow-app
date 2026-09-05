@@ -108,19 +108,12 @@ export default function LoginPage() {
     >
       <Container maxWidth="sm">
         <Box sx={{ mb: 4, textAlign: "center" }}>
-          <Typography
-            variant="h4"
-            component="h1"
-            gutterBottom
-            sx={{
-              fontWeight: 800,
-              background: "linear-gradient(to right, #818cf8, #34d399)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            LuminOne
-          </Typography>
+          <Box
+            component="img"
+            src="/logo_lumina.png"
+            alt="LuminOne"
+            sx={{ height: 56, objectFit: "contain", mb: 1 }}
+          />
           <Typography variant="body2" color="text.secondary">
             Enterprise Cloud Management Platform
           </Typography>
