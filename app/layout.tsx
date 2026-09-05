@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lumina One Admin",
+  title: "LuminOne",
   description: "Next-generation administration panel",
 };
 

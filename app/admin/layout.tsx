@@ -200,7 +200,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             WebkitTextFillColor: "transparent",
           }}
         >
-          Lumina One
+          LuminOne
         </Typography>
         {isMobile && (
           <IconButton onClick={handleDrawerToggle}>
