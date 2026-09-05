@@ -435,8 +435,8 @@ function AdminDashboard() {
       if (adminMapRef.current) { adminMapRef.current.remove(); adminMapRef.current = null; }
       const map = L.map("admin-dashboard-map", { zoomControl: true });
       adminMapRef.current = map;
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        attribution: "© OpenStreetMap contributors © CARTO", maxZoom: 20,
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors", maxZoom: 20,
       }).addTo(map);
       const bounds: number[][] = [];
       validProjects.forEach((proj) => {
