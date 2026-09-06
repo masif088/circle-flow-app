@@ -42,6 +42,7 @@ import {
   AccountBalanceWallet as FinanceIcon,
   Groups as GroupsIcon,
   Assessment as ReportIcon,
+  Receipt as ClaimsIcon,
 } from "@mui/icons-material";
 import { updateProfile, updatePassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -175,6 +176,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { text: "Proyek", icon: <DashboardIcon />, path: "/admin/projects" },
     ...(!isClient ? [
       { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
+      { text: "Klaim & Nota", icon: <ClaimsIcon />, path: "/admin/claims" },
       { text: "Notifikasi", icon: <NotificationsIcon />, path: "/admin/notifications" },
       { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },
     ] : []),
