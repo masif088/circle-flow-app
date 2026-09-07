@@ -730,7 +730,7 @@ export default function UserDetailPage() {
                     <Stack spacing={1.5}>
                       {Object.entries(detailPres.activity).map(([uuid, act]: [string, any]) => (
                         <Box key={uuid} sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                          <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                          <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
                             {act.photo && (
                               <Box
                                 component="img"

@@ -188,7 +188,7 @@ function ClientDashboard({ companyId }: { companyId: string }) {
 
       <Card>
         <CardContent sx={{ p: 3 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Lokasi Proyek
             </Typography>
@@ -574,7 +574,7 @@ function AdminDashboard() {
           <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 600 }}>Peta Lokasi Proyek</Typography>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexShrink: 0 }}>
                 <Button size="small" endIcon={<OpenInNew />} onClick={() => router.push("/admin/projects")}>
                   Lihat Semua
                 </Button>
@@ -649,7 +649,7 @@ function AdminDashboard() {
                 />
               ))}
               <Tooltip
-                formatter={(value: number, name: string) => [`${value} kehadiran`, name]}
+                formatter={(value, name) => [`${value} kehadiran`, name as string]}
                 contentStyle={{ borderRadius: 8, fontSize: 12 }}
               />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />

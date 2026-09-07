@@ -2201,7 +2201,7 @@ export default function ProjectDetailPage() {
                             component="img"
                             src={pres.photo}
                             alt="foto"
-                            onClick={() => setLightboxPhoto(pres.photo)}
+                            onClick={() => setLightboxPhoto(pres.photo ?? null)}
                             sx={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover", cursor: "pointer", "&:hover": { opacity: 0.85 } }}
                           />
                         ) : (
