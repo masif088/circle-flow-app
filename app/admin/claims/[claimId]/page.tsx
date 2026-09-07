@@ -324,7 +324,7 @@ export default function ClaimDetailPage() {
             <Typography variant="body2" color="text.secondary">• {claim.project_title} • {claim.submitter_name}</Typography>
           </Stack>
         </Box>
-        <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+        <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap" }}>
           {canSubmit && (
             <Button variant="outlined" color="warning" onClick={() => handleStatusChange("pending_approval")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
               Ajukan untuk Disetujui
