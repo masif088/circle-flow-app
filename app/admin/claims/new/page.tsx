@@ -254,7 +254,7 @@ export default function NewClaimPage() {
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>Nota #{ri + 1}</Typography>
-                <Stack direction="row" spacing={1} alignItems="center">
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#6366f1" }}>{formatRp(receiptSubtotal(r))}</Typography>
                   {receipts.length > 1 && (
                     <IconButton size="small" color="error" onClick={() => { setReceipts(prev => prev.filter((_, i) => i !== ri)); setPhotoFiles(prev => prev.filter((_, i) => i !== ri)); }}>
@@ -267,7 +267,7 @@ export default function NewClaimPage() {
               {/* Foto Nota */}
               <Box sx={{ mb: 2.5 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 1 }}>FOTO NOTA</Typography>
-                <Stack direction="row" spacing={2} alignItems="center">
+                <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
                   {r.photo_url ? (
                     <Box component="img" src={r.photo_url} alt="Nota" sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }} />
                   ) : (
@@ -309,7 +309,7 @@ export default function NewClaimPage() {
 
               <Stack spacing={1.5}>
                 {r.items.map((item, ii) => (
-                  <Stack key={ii} direction="row" spacing={1.5} alignItems="center">
+                  <Stack key={ii} direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
                     <TextField size="small" label="Nama Item" value={item.name} onChange={e => updateItem(ri, ii, "name", e.target.value)} sx={{ flex: 2 }} />
                     <FormControl size="small" sx={{ flex: 1.5 }}>
                       <InputLabel>Kategori</InputLabel>

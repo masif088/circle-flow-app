@@ -479,7 +479,7 @@ export default function ClaimDetailPage() {
             {/* Photo upload */}
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 1 }}>FOTO NOTA</Typography>
-              <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
                 {rPhotoUrl ? (
                   <Box component="img" src={rPhotoUrl} alt="Nota" sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1.5, border: "1px solid", borderColor: "divider", cursor: "zoom-in" }} onClick={() => setLightbox(rPhotoUrl)} />
                 ) : (
@@ -521,7 +521,7 @@ export default function ClaimDetailPage() {
             </Box>
 
             {rItems.map((item, idx) => (
-              <Stack key={idx} direction="row" spacing={1.5} alignItems="flex-start">
+              <Stack key={idx} direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
                 <TextField size="small" label="Nama Item" value={item.name} onChange={e => updateItem(idx, "name", e.target.value)} sx={{ flex: 2 }} />
                 <FormControl size="small" sx={{ flex: 1.5 }}>
                   <InputLabel>Kategori</InputLabel>

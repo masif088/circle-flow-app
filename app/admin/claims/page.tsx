@@ -196,7 +196,7 @@ export default function ClaimsPage() {
       {/* Filters */}
       <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", mb: 3 }}>
         <CardContent sx={{ p: 2.5 }}>
-          <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
             <TextField size="small" label="Cari judul / nama..." value={search} onChange={e => setSearch(e.target.value)} sx={{ minWidth: 200 }} />
             <FormControl size="small" sx={{ minWidth: 180 }}>
               <InputLabel>Status</InputLabel>
