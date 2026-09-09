@@ -80,6 +80,7 @@ interface Claim {
   total_amount: number;
   reimbursement_amount?: number;
   reimbursement_notes?: string;
+  requested_reimburse_amount?: number;
   approved_by?: string;
   approved_by_name?: string;
   approved_at?: string;
@@ -231,12 +232,40 @@ export default function ClaimDetailPage() {
     if (!amount) return;
     setActionLoading(true); setError("");
     try {
+      const now = new Date().toISOString();
       await updateDoc(doc(db, "expense_claims", claimId), {
         status: "completed",
         reimbursement_amount: amount,
         reimbursement_notes: reimburseNotes,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       });
+
+      // Buat entri project_expenditures per nota
+      if (claim?.project_id && receipts.length > 0) {
+        for (const receipt of receipts) {
+          for (const item of receipt.items) {
+            await addDoc(collection(db, "project_expenditures"), {
+              project_id: claim.project_id,
+              item_name: item.name,
+              category: item.category || "Material",
+              price: item.unit_price,
+              quantity: item.qty,
+              paid_qty: item.qty,
+              unit: "Pcs",
+              total_spent: item.total,
+              status: "Terbayar",
+              source: "expense_claim",
+              claim_id: claimId,
+              claim_title: claim.title,
+              vendor: receipt.vendor || "",
+              receipt_date: receipt.receipt_date || "",
+              created_at: now,
+              updated_at: now,
+            });
+          }
+        }
+      }
+
       setClaim(prev => prev ? { ...prev, status: "completed", reimbursement_amount: amount, reimbursement_notes: reimburseNotes } : prev);
       setReimburseDialog(false);
     } catch (e: any) { setError(e.message); }
@@ -399,7 +428,7 @@ export default function ClaimDetailPage() {
             </Button>
           )}
           {canReimburse && (
-            <Button variant="contained" color="primary" startIcon={<ReimburseIcon />} onClick={() => { setReimburseAmount(String(claim.total_amount || "")); setReimburseDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+            <Button variant="contained" color="primary" startIcon={<ReimburseIcon />} onClick={() => { setReimburseAmount(String(claim.requested_reimburse_amount || claim.total_amount || "")); setReimburseDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
               Catat Reimbursement
             </Button>
           )}
@@ -427,6 +456,7 @@ export default function ClaimDetailPage() {
                 { label: "Diajukan Oleh", value: claim.submitter_name },
                 { label: "Tanggal", value: claim.created_at ? new Date(claim.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-" },
                 { label: "Total Nilai", value: formatRp(claim.total_amount), bold: true, color: "#6366f1" },
+                ...(claim.requested_reimburse_amount != null && claim.requested_reimburse_amount > 0 ? [{ label: "Diminta Reimburse", value: formatRp(claim.requested_reimburse_amount), bold: true, color: "#f59e0b" }] : []),
               ].map(row => (
                 <Box key={row.label}>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", fontSize: 10, fontWeight: 600 }}>{row.label}</Typography>

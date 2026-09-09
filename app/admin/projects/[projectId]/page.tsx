@@ -1799,6 +1799,7 @@ export default function ProjectDetailPage() {
                         <TableCell sx={{ fontWeight: 600 }}>Total Rencana</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>Total Terbayar</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Sumber</TableCell>
                         <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                       </TableRow>
                     </TableHead>
@@ -1837,11 +1838,27 @@ export default function ProjectDetailPage() {
                                 sx={{ fontWeight: 600 }}
                               />
                             </TableCell>
+                            <TableCell>
+                              {exp.source === "expense_claim" && exp.claim_id ? (
+                                <Chip
+                                  label={exp.claim_title || "Klaim"}
+                                  size="small"
+                                  color="info"
+                                  variant="outlined"
+                                  onClick={() => router.push(`/admin/claims/${exp.claim_id}`)}
+                                  sx={{ cursor: "pointer", fontSize: 11 }}
+                                />
+                              ) : (
+                                <Typography variant="caption" color="text.secondary">Manual</Typography>
+                              )}
+                            </TableCell>
                             <TableCell align="right">
                               <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                                <IconButton size="small" color="primary" onClick={() => handleOpenEditExpenditure(exp)}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
+                                {exp.source !== "expense_claim" && (
+                                  <IconButton size="small" color="primary" onClick={() => handleOpenEditExpenditure(exp)}>
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                )}
                                 <IconButton size="small" color="error" onClick={() => handleDeleteExpenditure(exp.id)}>
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
