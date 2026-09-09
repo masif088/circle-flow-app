@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-
-export const maxDuration = 90; // seconds
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
+export const maxDuration = 90;
 
 const SYSTEM_PROMPT = `Kamu adalah asisten analisis struk/nota belanja.
 Gambar bisa berisi SATU atau LEBIH struk. Deteksi semua struk yang ada dan kembalikan JSON dengan format berikut:
@@ -42,16 +42,32 @@ export async function POST(req: NextRequest) {
       baseURL: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
     });
     const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
-    const formData = await req.formData();
-    const imageFile = formData.get("image") as File | null;
 
-    if (!imageFile) {
-      return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    let base64: string;
+    let mimeType = "image/jpeg";
+
+    const contentType = req.headers.get("content-type") ?? "";
+
+    if (contentType.includes("multipart/form-data")) {
+      // Web: form-data upload
+      const formData = await req.formData();
+      const imageFile = formData.get("image") as File | null;
+      if (!imageFile) {
+        return NextResponse.json({ error: "No image provided" }, { status: 400 });
+      }
+      const bytes = await imageFile.arrayBuffer();
+      base64 = Buffer.from(bytes).toString("base64");
+      mimeType = imageFile.type || "image/jpeg";
+    } else {
+      // Flutter/external: JSON body { image: "<base64>", mimeType?: "image/jpeg" }
+      const body = await req.json();
+      if (!body.image) {
+        return NextResponse.json({ error: "No image provided" }, { status: 400 });
+      }
+      // Strip data URI prefix if present
+      base64 = (body.image as string).replace(/^data:[^;]+;base64,/, "");
+      mimeType = body.mimeType ?? "image/jpeg";
     }
-
-    const bytes = await imageFile.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
-    const mimeType = imageFile.type || "image/jpeg";
 
     const response = await client.chat.completions.create({
       model: MODEL,
@@ -80,7 +96,6 @@ export async function POST(req: NextRequest) {
 
     const content = response.choices[0]?.message?.content ?? "";
 
-    // Strip markdown code fences if present
     const jsonStr = content
       .replace(/^```(?:json)?\s*/i, "")
       .replace(/\s*```$/i, "")
@@ -95,7 +110,6 @@ export async function POST(req: NextRequest) {
       total_tokens: response.usage?.total_tokens ?? 0,
     };
 
-    // Log token usage to Firestore
     try {
       await addDoc(collection(db, "ai_usage"), {
         feature: "analyze-receipt",
@@ -107,16 +121,9 @@ export async function POST(req: NextRequest) {
       console.warn("Failed to log AI usage:", logErr);
     }
 
-    return NextResponse.json({
-      success: true,
-      receipts,
-      usage,
-    });
+    return NextResponse.json({ success: true, receipts, usage });
   } catch (error) {
     console.error("analyze-receipt error:", error);
-    return NextResponse.json(
-      { error: "Gagal menganalisis struk" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Gagal menganalisis struk" }, { status: 500 });
   }
 }
