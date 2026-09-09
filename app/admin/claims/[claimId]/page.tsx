@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import {
   doc, getDoc, collection, getDocs, query, where,
@@ -36,6 +37,7 @@ const STATUS_LABEL: Record<string, string> = {
   pending_approval: "Menunggu Persetujuan",
   pending_reimbursement: "Menunggu Reimbursement",
   completed: "Selesai",
+  rejected: "Ditolak",
   cancelled: "Batal",
 };
 const STATUS_COLOR: Record<string, any> = {
@@ -43,6 +45,7 @@ const STATUS_COLOR: Record<string, any> = {
   pending_approval: "warning",
   pending_reimbursement: "info",
   completed: "success",
+  rejected: "error",
   cancelled: "error",
 };
 
@@ -77,6 +80,13 @@ interface Claim {
   total_amount: number;
   reimbursement_amount?: number;
   reimbursement_notes?: string;
+  approved_by?: string;
+  approved_by_name?: string;
+  approved_at?: string;
+  rejected_by?: string;
+  rejected_by_name?: string;
+  rejected_at?: string;
+  rejection_notes?: string;
   created_at: string;
   notes?: string;
 }
@@ -84,6 +94,7 @@ interface Claim {
 export default function ClaimDetailPage() {
   const { claimId } = useParams() as { claimId: string };
   const router = useRouter();
+  const { user } = useAuth();
 
   const [claim, setClaim] = useState<Claim | null>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -110,6 +121,11 @@ export default function ClaimDetailPage() {
   const [reimburseDialog, setReimburseDialog] = useState(false);
   const [reimburseAmount, setReimburseAmount] = useState("");
   const [reimburseNotes, setReimburseNotes] = useState("");
+
+  // Approve / Reject dialog
+  const [approveDialog, setApproveDialog] = useState(false);
+  const [rejectDialog, setRejectDialog] = useState(false);
+  const [rejectionNotes, setRejectionNotes] = useState("");
 
   const formatRp = (val?: number) =>
     val == null ? "Rp 0" : new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
@@ -160,6 +176,52 @@ export default function ClaimDetailPage() {
     try {
       await updateDoc(doc(db, "expense_claims", claimId), { status: newStatus, updated_at: new Date().toISOString() });
       setClaim(prev => prev ? { ...prev, status: newStatus } : prev);
+    } catch (e: any) { setError(e.message); }
+    setActionLoading(false);
+  };
+
+  const handleApprove = async () => {
+    setActionLoading(true); setError("");
+    const now = new Date().toISOString();
+    const approverName = user?.displayName || user?.email || user?.uid || "Admin";
+    try {
+      await updateDoc(doc(db, "expense_claims", claimId), {
+        status: "pending_reimbursement",
+        approved_by: user?.uid,
+        approved_by_name: approverName,
+        approved_at: now,
+        updated_at: now,
+      });
+      setClaim(prev => prev ? {
+        ...prev, status: "pending_reimbursement",
+        approved_by: user?.uid, approved_by_name: approverName, approved_at: now,
+      } : prev);
+      setApproveDialog(false);
+    } catch (e: any) { setError(e.message); }
+    setActionLoading(false);
+  };
+
+  const handleReject = async () => {
+    if (!rejectionNotes.trim()) return;
+    setActionLoading(true); setError("");
+    const now = new Date().toISOString();
+    const rejectorName = user?.displayName || user?.email || user?.uid || "Admin";
+    try {
+      await updateDoc(doc(db, "expense_claims", claimId), {
+        status: "rejected",
+        rejected_by: user?.uid,
+        rejected_by_name: rejectorName,
+        rejected_at: now,
+        rejection_notes: rejectionNotes.trim(),
+        updated_at: now,
+      });
+      setClaim(prev => prev ? {
+        ...prev, status: "rejected",
+        rejected_by: user?.uid, rejected_by_name: rejectorName,
+        rejected_at: now, rejection_notes: rejectionNotes.trim(),
+      } : prev);
+      setRejectDialog(false);
+      setRejectionNotes("");
     } catch (e: any) { setError(e.message); }
     setActionLoading(false);
   };
@@ -300,6 +362,7 @@ export default function ClaimDetailPage() {
   const canSubmit = claim.status === "draft";
   const canReimburse = claim.status === "pending_reimbursement";
   const isEditable = ["draft", "pending_approval"].includes(claim.status);
+  const isFinished = ["completed", "rejected", "cancelled"].includes(claim.status);
 
   return (
     <Box>
@@ -331,7 +394,7 @@ export default function ClaimDetailPage() {
             </Button>
           )}
           {canApprove && (
-            <Button variant="contained" color="success" startIcon={<ApproveIcon />} onClick={() => handleStatusChange("pending_reimbursement")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+            <Button variant="contained" color="success" startIcon={<ApproveIcon />} onClick={() => setApproveDialog(true)} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
               Setujui
             </Button>
           )}
@@ -341,8 +404,13 @@ export default function ClaimDetailPage() {
             </Button>
           )}
           {canReject && (
+            <Button variant="outlined" color="error" startIcon={<RejectIcon />} onClick={() => { setRejectionNotes(""); setRejectDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+              Tolak
+            </Button>
+          )}
+          {canSubmit && (
             <Button variant="outlined" color="error" startIcon={<RejectIcon />} onClick={() => handleStatusChange("cancelled")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
-              Tolak / Batalkan
+              Batalkan
             </Button>
           )}
         </Stack>
@@ -372,6 +440,27 @@ export default function ClaimDetailPage() {
                     <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", fontSize: 10, fontWeight: 600 }}>Reimbursement</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: "#10b981", fontSize: 18 }}>{formatRp(claim.reimbursement_amount)}</Typography>
                     {claim.reimbursement_notes && <Typography variant="caption" color="text.secondary">{claim.reimbursement_notes}</Typography>}
+                  </Box>
+                </>
+              )}
+              {claim.approved_by && (
+                <>
+                  <Divider />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", fontSize: 10, fontWeight: 600 }}>Disetujui Oleh</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#10b981" }}>{claim.approved_by_name || claim.approved_by}</Typography>
+                    {claim.approved_at && <Typography variant="caption" color="text.secondary">{new Date(claim.approved_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</Typography>}
+                  </Box>
+                </>
+              )}
+              {claim.status === "rejected" && (
+                <>
+                  <Divider />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", fontSize: 10, fontWeight: 600 }}>Ditolak Oleh</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "#ef4444" }}>{claim.rejected_by_name || claim.rejected_by}</Typography>
+                    {claim.rejected_at && <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{new Date(claim.rejected_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</Typography>}
+                    {claim.rejection_notes && <Typography variant="body2" color="error" sx={{ mt: 0.5, fontStyle: "italic" }}>"{claim.rejection_notes}"</Typography>}
                   </Box>
                 </>
               )}
@@ -568,6 +657,51 @@ export default function ClaimDetailPage() {
           <Button onClick={() => setReimburseDialog(false)}>Batal</Button>
           <Button variant="contained" color="success" onClick={handleReimburse} disabled={actionLoading} sx={{ textTransform: "none" }}>
             Konfirmasi Reimbursement
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Approve Confirmation Dialog */}
+      <Dialog open={approveDialog} onClose={() => setApproveDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Konfirmasi Persetujuan</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Setujui pengajuan <strong>{claim.title}</strong> senilai <strong>{formatRp(claim.total_amount)}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Status akan berubah ke <strong>Menunggu Reimbursement</strong>. Tindakan ini tidak dapat dibatalkan.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setApproveDialog(false)}>Batal</Button>
+          <Button variant="contained" color="success" startIcon={<ApproveIcon />} onClick={handleApprove} disabled={actionLoading} sx={{ textTransform: "none" }}>
+            {actionLoading ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Ya, Setujui"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialog} onClose={() => setRejectDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: "error.main" }}>Tolak Pengajuan</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1.5 }}>
+            <Typography variant="body2" color="text.secondary">
+              Tolak pengajuan <strong>{claim.title}</strong>? Masukkan alasan penolakan.
+            </Typography>
+            <TextField
+              fullWidth autoFocus
+              label="Alasan Penolakan *"
+              value={rejectionNotes}
+              onChange={e => setRejectionNotes(e.target.value)}
+              multiline rows={3}
+              placeholder="Contoh: Nota tidak valid, kurang dokumen pendukung..."
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setRejectDialog(false)}>Batal</Button>
+          <Button variant="contained" color="error" startIcon={<RejectIcon />} onClick={handleReject} disabled={actionLoading || !rejectionNotes.trim()} sx={{ textTransform: "none" }}>
+            {actionLoading ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Tolak Pengajuan"}
           </Button>
         </DialogActions>
       </Dialog>
