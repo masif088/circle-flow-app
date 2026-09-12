@@ -74,7 +74,9 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   PictureAsPdf as PdfIcon,
-  GridOn as GridOnIcon
+  GridOn as GridOnIcon,
+  OpenInNew as OpenInNewIcon,
+  Download as DownloadIcon
 } from "@mui/icons-material";
 
 interface ProjectRecord {
@@ -480,6 +482,69 @@ export default function ProjectDetailPage() {
       setOpenExpenditureDialog(false);
     } catch (e: any) {
       showMsg("Gagal menyimpan data pengeluaran: " + e.message, "error");
+    }
+  };
+
+  const handleExportExpendituresExcel = async () => {
+    if (!project) return;
+    try {
+      const { utils, writeFile } = await import("xlsx");
+
+      // Fetch claim receipts for entries sourced from expense_claim
+      const claimRows: any[] = [];
+      const claimIds = [...new Set(expenditures.filter(e => e.source === "expense_claim" && e.claim_id).map(e => e.claim_id as string))];
+
+      const claimReceiptsMap: Record<string, any[]> = {};
+      for (const cid of claimIds) {
+        const snap = await getDocs(query(collection(db, "receipts"), where("claim_id", "==", cid)));
+        claimReceiptsMap[cid] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+
+      // Sheet 1: Pengeluaran
+      const expRows = expenditures.map((exp) => ({
+        "Barang / Jasa": exp.item_name,
+        "Kategori": exp.category,
+        "Harga Satuan": exp.price,
+        "Kuantitas": exp.quantity,
+        "Unit": exp.unit,
+        "Kuantitas Terbayar": exp.paid_qty,
+        "Total Rencana": (exp.price || 0) * (exp.quantity || 0),
+        "Total Terbayar": exp.total_spent,
+        "Status": exp.status,
+        "Sumber": exp.source === "expense_claim" ? `Klaim: ${exp.claim_title || exp.claim_id}` : "Manual",
+        "Tanggal Nota": exp.receipt_date || "",
+        "Vendor": exp.vendor || "",
+      }));
+
+      // Sheet 2: Detail Nota dari Klaim
+      for (const exp of expenditures.filter(e => e.source === "expense_claim" && e.claim_id)) {
+        const receipts = claimReceiptsMap[exp.claim_id] || [];
+        for (const r of receipts) {
+          for (const item of (r.items || [])) {
+            claimRows.push({
+              "Klaim": exp.claim_title || exp.claim_id,
+              "Vendor": r.vendor || "",
+              "Tanggal Nota": r.receipt_date || "",
+              "Item": item.name,
+              "Kategori": item.category || "",
+              "Qty": item.qty,
+              "Harga Satuan": item.unit_price,
+              "Total": item.total,
+              "URL Foto Nota": r.photo_url || "",
+            });
+          }
+        }
+      }
+
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, utils.json_to_sheet(expRows), "Pengeluaran");
+      if (claimRows.length > 0) {
+        utils.book_append_sheet(wb, utils.json_to_sheet(claimRows), "Detail Nota Klaim");
+      }
+
+      writeFile(wb, `Pengeluaran-${project.title.replace(/\s+/g, "_")}.xlsx`);
+    } catch (e: any) {
+      showMsg("Gagal export Excel: " + e.message, "error");
     }
   };
 
@@ -1728,19 +1793,29 @@ export default function ProjectDetailPage() {
                 Kelola dan catat semua anggaran pengeluaran barang, material, jasa, dan logistik untuk proyek ini.
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              onClick={handleOpenAddExpenditure}
-              sx={{
-                borderRadius: 2,
-                background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                color: "#ffffff",
-                textTransform: "none",
-                fontWeight: 600
-              }}
-            >
-              + Tambah Pengeluaran
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={handleExportExpendituresExcel}
+                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+              >
+                Export Excel
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleOpenAddExpenditure}
+                sx={{
+                  borderRadius: 2,
+                  background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                  color: "#ffffff",
+                  textTransform: "none",
+                  fontWeight: 600
+                }}
+              >
+                + Tambah Pengeluaran
+              </Button>
+            </Stack>
           </Box>
 
           {/* Expenditure Metrics */}
@@ -1845,7 +1920,8 @@ export default function ProjectDetailPage() {
                                   size="small"
                                   color="info"
                                   variant="outlined"
-                                  onClick={() => router.push(`/admin/claims/${exp.claim_id}`)}
+                                  icon={<OpenInNewIcon style={{ fontSize: 12 }} />}
+                                  onClick={() => window.open(`/admin/claims/${exp.claim_id}`, "_blank")}
                                   sx={{ cursor: "pointer", fontSize: 11 }}
                                 />
                               ) : (
