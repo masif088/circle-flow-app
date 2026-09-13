@@ -1,5 +1,6 @@
 "use client";
 
+import { buildFilename } from "@/lib/filename";
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -56,7 +57,8 @@ import {
   Select,
   MenuItem,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  TablePagination
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -263,6 +265,8 @@ export default function ProjectDetailPage() {
   const [expUnit, setExpUnit] = useState("Pcs");
   const [expTotalSpent, setExpTotalSpent] = useState("");
   const [expStatus, setExpStatus] = useState("Belum Terbayar");
+  const [expPage, setExpPage] = useState(0);
+  const [expRowsPerPage, setExpRowsPerPage] = useState(10);
 
   const getUserName = React.useCallback((uid: string) => {
     const u = users.find((x) => x.uid === uid);
@@ -276,6 +280,7 @@ export default function ProjectDetailPage() {
   // Leaflet Map States
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const mapRef = useRef<{ remove: () => void } | null>(null);
+  const openDetailRef = useRef<(p: PresenceRecord) => void>(() => {});
   const mapContainerId = "project-checkin-map";
 
   // Date Range Filter State
@@ -542,9 +547,21 @@ export default function ProjectDetailPage() {
         utils.book_append_sheet(wb, utils.json_to_sheet(claimRows), "Detail Nota Klaim");
       }
 
-      writeFile(wb, `Pengeluaran-${project.title.replace(/\s+/g, "_")}.xlsx`);
+      const { buildFilename } = await import("@/lib/filename");
+      writeFile(wb, buildFilename(project.title, "PENGELUARAN", undefined, "xlsx"));
     } catch (e: any) {
       showMsg("Gagal export Excel: " + e.message, "error");
+    }
+  };
+
+  const handleDeletePresence = async (presId: string) => {
+    if (!confirm("Hapus data presensi yang ditolak ini? Tindakan tidak dapat dibatalkan.")) return;
+    try {
+      const { deleteDoc, doc } = await import("firebase/firestore");
+      await deleteDoc(doc(db, "presences", presId));
+      showMsg("Data presensi berhasil dihapus.");
+    } catch (e: any) {
+      showMsg("Gagal menghapus presensi: " + e.message, "error");
     }
   };
 
@@ -1168,7 +1185,8 @@ export default function ProjectDetailPage() {
         }
       }
 
-      pdf.save(`Laporan-Kehadiran-${project.title.replace(/\s+/g, "_")}-${startDate}_${endDate}.pdf`);
+      const { buildFilename } = await import("@/lib/filename");
+      pdf.save(buildFilename(project.title, "REPORT-KEHADIRAN", `${startDate}_sd_${endDate}`));
     } catch (e: unknown) {
       console.error("Gagal membuat laporan PDF:", e);
       showMsg("Gagal membuat laporan PDF: " + (e instanceof Error ? e.message : String(e)), "error");
@@ -1177,11 +1195,20 @@ export default function ProjectDetailPage() {
     }
   };
 
+  // Selalu update ref ke handler terbaru supaya window global selalu fresh
+  openDetailRef.current = handleOpenDetail;
+
   // Setup/Update Map for Check-in sebaran (Filtered by selectedDate)
   useEffect(() => {
     if (!leafletLoaded || !project || !document.getElementById(mapContainerId)) return;
     const L = ((window as unknown) as { L?: LeafletType }).L;
     if (!L) return;
+
+    // Pasang global agar tombol popup bisa memicu dialog React
+    (window as any).__openPresenceDetail = (presId: string) => {
+      const pres = filteredPresences.find(p => p.id === presId);
+      if (pres) openDetailRef.current(pres);
+    };
 
     if (mapRef.current) {
       mapRef.current.remove();
@@ -1274,6 +1301,9 @@ export default function ProjectDetailPage() {
             <strong>Koordinat:</strong> ${pres.latitude?.toFixed(5)??''}, ${pres.longitude?.toFixed(5)??''}
           </div>
           ${photoImg}
+          <button onclick="window.__openPresenceDetail('${pres.id}')" style="margin-top:8px;width:100%;padding:5px 0;background:#6366f1;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;">
+            Lihat &amp; Setujui / Tolak
+          </button>
         </div>
       `);
     });
@@ -1879,7 +1909,7 @@ export default function ProjectDetailPage() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {expenditures.map((exp) => {
+                      {expenditures.slice(expPage * expRowsPerPage, expPage * expRowsPerPage + expRowsPerPage).map((exp) => {
                         const totalPlanned = (exp.price || 0) * (exp.quantity || 0);
                         const totalPaid = exp.total_spent || 0;
                         return (
@@ -1945,6 +1975,17 @@ export default function ProjectDetailPage() {
                       })}
                     </TableBody>
                   </Table>
+                  <TablePagination
+                    component="div"
+                    count={expenditures.length}
+                    page={expPage}
+                    onPageChange={(_e, newPage) => setExpPage(newPage)}
+                    rowsPerPage={expRowsPerPage}
+                    onRowsPerPageChange={(e) => { setExpRowsPerPage(parseInt(e.target.value, 10)); setExpPage(0); }}
+                    rowsPerPageOptions={[5, 10, 25, 50]}
+                    labelRowsPerPage="Baris per halaman:"
+                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+                  />
                 </TableContainer>
               )}
             </Grid>
@@ -2202,7 +2243,7 @@ export default function ProjectDetailPage() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = `Kehadiran-${project?.title?.replace(/\s+/g, "_")}.csv`;
+                  a.download = buildFilename(project?.title || "PROYEK", "KEHADIRAN", `${startDate}_sd_${endDate}`, "csv");
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
@@ -2304,9 +2345,16 @@ export default function ProjectDetailPage() {
                         )}
                       </TableCell>
                       <TableCell align="right">
-                        <IconButton color="primary" onClick={() => handleOpenDetail(pres)} size="small" title="Lihat Detail">
-                          <ViewIcon />
-                        </IconButton>
+                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                          <IconButton color="primary" onClick={() => handleOpenDetail(pres)} size="small" title="Lihat Detail">
+                            <ViewIcon />
+                          </IconButton>
+                          {pres.status === "Rejected" && (
+                            <IconButton color="error" onClick={() => handleDeletePresence(pres.id)} size="small" title="Hapus presensi ditolak">
+                              <DeleteIcon />
+                            </IconButton>
+                          )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))

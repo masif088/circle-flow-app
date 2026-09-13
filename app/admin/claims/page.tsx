@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
+import { buildFilename } from "@/lib/filename";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, where } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, where, deleteDoc, doc } from "firebase/firestore";
 import {
   Box,
   Typography,
@@ -33,6 +34,7 @@ import {
   Visibility as ViewIcon,
   Receipt as ReceiptIcon,
   GridOn as GridOnIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 
 interface Claim {
@@ -42,7 +44,7 @@ interface Claim {
   project_title?: string;
   submitted_by: string;
   submitter_name?: string;
-  status: "draft" | "pending_approval" | "pending_reimbursement" | "completed" | "cancelled";
+  status: "draft" | "pending_approval" | "pending_reimbursement" | "completed" | "cancelled" | "rejected";
   total_amount: number;
   reimbursement_amount?: number;
   created_at: string;
@@ -55,6 +57,7 @@ const STATUS_LABEL: Record<string, string> = {
   pending_approval: "Menunggu Persetujuan",
   pending_reimbursement: "Menunggu Reimbursement",
   completed: "Selesai",
+  rejected: "Ditolak",
   cancelled: "Batal",
 };
 
@@ -63,6 +66,7 @@ const STATUS_COLOR: Record<string, "default" | "warning" | "info" | "success" | 
   pending_approval: "warning",
   pending_reimbursement: "info",
   completed: "success",
+  rejected: "error",
   cancelled: "error",
 };
 
@@ -143,14 +147,20 @@ export default function ClaimsPage() {
       c.reimbursement_amount || 0,
       c.created_at ? new Date(c.created_at).toLocaleString("id-ID") : "-",
     ]);
-    const csv = "﻿" + [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = "ï»¿" + [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `klaim-nota-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = buildFilename("SEMUA", "KLAIM-LIST", undefined, "csv");
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteClaim = async (id: string) => {
+    if (!confirm("Hapus klaim yang ditolak ini? Tindakan tidak bisa dibatalkan.")) return;
+    await deleteDoc(doc(db, "expense_claims", id));
+    setClaims(prev => prev.filter(c => c.id !== id));
   };
 
   const totalAmount = filtered.reduce((s, c) => s + (c.total_amount || 0), 0);
@@ -267,11 +277,20 @@ export default function ClaimsPage() {
                         <TableCell>{c.reimbursement_amount ? formatRp(c.reimbursement_amount) : "-"}</TableCell>
                         <TableCell>{c.created_at ? new Date(c.created_at).toLocaleDateString("id-ID") : "-"}</TableCell>
                         <TableCell align="right" onClick={e => e.stopPropagation()}>
-                          <Tooltip title="Lihat Detail">
-                            <IconButton size="small" color="primary" onClick={() => router.push(`/admin/claims/${c.id}`)}>
-                              <ViewIcon />
-                            </IconButton>
-                          </Tooltip>
+                          <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                            <Tooltip title="Lihat Detail">
+                              <IconButton size="small" color="primary" onClick={() => router.push(`/admin/claims/${c.id}`)}>
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                            {(c.status === "cancelled" || c.status === "rejected") && (
+                              <Tooltip title="Hapus Klaim">
+                                <IconButton size="small" color="error" onClick={() => handleDeleteClaim(c.id)}>
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))
@@ -285,3 +304,4 @@ export default function ClaimsPage() {
     </Box>
   );
 }
+

@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+import { buildFilename } from "@/lib/filename";
 
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -865,7 +866,7 @@ export default function FinancePage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `finance_export_${selectedWalletId}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", buildFilename("KEUANGAN", "TRANSAKSI", new Date().toISOString().split("T")[0], "csv"));
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1622,3 +1623,4 @@ export default function FinancePage() {
     </Box>
   );
 }
+

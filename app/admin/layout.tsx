@@ -43,6 +43,7 @@ import {
   Groups as GroupsIcon,
   Assessment as ReportIcon,
   Receipt as ClaimsIcon,
+  FolderOpen as ArchiveIcon,
 } from "@mui/icons-material";
 import { updateProfile, updatePassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -177,6 +178,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ...(!isClient ? [
       { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
       { text: "Klaim & Nota", icon: <ClaimsIcon />, path: "/admin/claims" },
+      { text: "Arsip Laporan", icon: <ArchiveIcon />, path: "/admin/archives" },
       { text: "Notifikasi", icon: <NotificationsIcon />, path: "/admin/notifications" },
       { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },
     ] : []),

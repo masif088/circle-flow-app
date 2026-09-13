@@ -28,6 +28,7 @@ import {
   PhotoCamera as PhotoIcon,
   ExpandMore as ExpandIcon,
   AutoAwesome as AIIcon,
+  PictureAsPdf as PdfIcon,
 } from "@mui/icons-material";
 
 const CATEGORIES = ["Safety Tools", "Consumable Tools", "Hand Tools", "Konsumsi", "Akomodasi"];
@@ -122,6 +123,8 @@ export default function ClaimDetailPage() {
   const [reimburseDialog, setReimburseDialog] = useState(false);
   const [reimburseAmount, setReimburseAmount] = useState("");
   const [reimburseNotes, setReimburseNotes] = useState("");
+
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Approve / Reject dialog
   const [approveDialog, setApproveDialog] = useState(false);
@@ -307,7 +310,7 @@ export default function ClaimDetailPage() {
     try {
       const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
       const { storage } = await import("@/lib/firebase");
-      const storageRef = ref(storage, `claims/${claimId}/receipts/${Date.now()}_${file.name}`);
+      const storageRef = ref(storage, `projects/${claim?.project_id || "unknown"}/claims/${claimId}/receipts/${Date.now()}_${file.name}`);
       await uploadBytes(storageRef, file);
       setRPhotoUrl(await getDownloadURL(storageRef));
     } catch (e: any) { setError("Gagal upload foto: " + e.message); }
@@ -378,6 +381,193 @@ export default function ClaimDetailPage() {
     await recalcTotal(newReceipts);
   };
 
+  const handleGeneratePDF = async () => {
+    if (!claim) return;
+    setGeneratingPdf(true);
+    try {
+      const { default: JsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const pdf = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 14;
+      const contentW = pageW - margin * 2;
+
+      const loadImg = async (url: string): Promise<string | null> => {
+        try {
+          const res = await fetch(`/api/proxy-image?url=${encodeURIComponent(url)}`);
+          if (!res.ok) return null;
+          const blob = await res.blob();
+          return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch { return null; }
+      };
+      const imgFmt = (d: string): "PNG" | "JPEG" => d.includes("image/png") ? "PNG" : "JPEG";
+      const contain = (pdf: InstanceType<typeof JsPDF>, d: string, maxW: number, maxH: number) => {
+        const p = pdf.getImageProperties(d);
+        const r = Math.min(maxW / p.width, maxH / p.height);
+        const w = p.width * r, h = p.height * r;
+        return { w, h, ox: (maxW - w) / 2, oy: (maxH - h) / 2 };
+      };
+
+      // ── Header ─────────────────────────────────────────────────────────
+      const headerH = 14;
+      pdf.setFillColor(99, 102, 241);
+      pdf.rect(0, 0, pageW, headerH, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("LAPORAN PENGAJUAN BIAYA", margin, 9.5);
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Dicetak: ${new Date().toLocaleString("id-ID")}`, pageW - margin, 9.5, { align: "right" });
+
+      // ── Info box ───────────────────────────────────────────────────────
+      pdf.setTextColor(30, 30, 30);
+      let y = headerH + 6;
+
+      const infoRows = [
+        ["Proyek", claim.project_title || "-"],
+        ["Diajukan Oleh", claim.submitter_name || "-"],
+        ["Tanggal Pengajuan", claim.created_at ? new Date(claim.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-"],
+        ["Status", STATUS_LABEL[claim.status] || claim.status],
+        ["Total Nilai", formatRp(claim.total_amount)],
+        ...(claim.requested_reimburse_amount ? [["Diminta Reimburse", formatRp(claim.requested_reimburse_amount)]] : []),
+        ...(claim.reimbursement_amount ? [["Direimburse", formatRp(claim.reimbursement_amount)]] : []),
+        ...(claim.approved_by_name ? [["Disetujui Oleh", `${claim.approved_by_name}${claim.approved_at ? " — " + new Date(claim.approved_at).toLocaleDateString("id-ID") : ""}`]] : []),
+        ...(claim.rejected_by_name ? [["Ditolak Oleh", `${claim.rejected_by_name}${claim.rejected_at ? " — " + new Date(claim.rejected_at).toLocaleDateString("id-ID") : ""}`]] : []),
+        ...(claim.rejection_notes ? [["Alasan Penolakan", claim.rejection_notes]] : []),
+        ...(claim.notes ? [["Catatan", claim.notes]] : []),
+      ];
+
+      autoTable(pdf, {
+        startY: y,
+        body: infoRows,
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: 52, fillColor: [248, 248, 255] }, 1: { cellWidth: contentW - 52 } },
+        styles: { fontSize: 9, cellPadding: 2.5 },
+        margin: { left: margin, right: margin },
+        tableWidth: contentW,
+      });
+
+      y = (pdf as any).lastAutoTable.finalY + 8;
+
+      // ── Receipts ───────────────────────────────────────────────────────
+      for (let ri = 0; ri < receipts.length; ri++) {
+        const r = receipts[ri];
+        if (y > pageH - 60) { pdf.addPage(); y = 14; }
+
+        pdf.setFillColor(240, 240, 255);
+        pdf.roundedRect(margin, y, contentW, 8, 1, 1, "F");
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(79, 70, 229);
+        pdf.text(`Nota ${ri + 1}: ${r.vendor || "Tanpa Vendor"}`, margin + 2, y + 5.5);
+        if (r.receipt_date) {
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(8);
+          pdf.setTextColor(100, 100, 100);
+          pdf.text(new Date(r.receipt_date).toLocaleDateString("id-ID"), pageW - margin - 2, y + 5.5, { align: "right" });
+        }
+        y += 11;
+        pdf.setTextColor(30, 30, 30);
+
+        // Photo + items side by side
+        const photoW = 44;
+        const photoH = 44;
+        let photoDataUrl: string | null = null;
+        if (r.photo_url) photoDataUrl = await loadImg(r.photo_url);
+
+        const tableX = r.photo_url ? margin + photoW + 4 : margin;
+        const tableW = r.photo_url ? contentW - photoW - 4 : contentW;
+
+        autoTable(pdf, {
+          startY: y,
+          head: [["Item", "Kategori", "Qty", "Harga Satuan", "Total"]],
+          body: (r.items || []).map(it => [it.name, it.category, it.qty, formatRp(it.unit_price), formatRp(it.total)]),
+          foot: [["", "", "", "Subtotal", formatRp(r.subtotal)]],
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [99, 102, 241], fontSize: 8, fontStyle: "bold" },
+          footStyles: { fontStyle: "bold", fillColor: [235, 235, 255] },
+          margin: { left: tableX, right: margin },
+          tableWidth: tableW,
+        });
+
+        const tableEndY = (pdf as any).lastAutoTable.finalY;
+
+        if (photoDataUrl) {
+          try {
+            const b = contain(pdf, photoDataUrl, photoW, photoH);
+            pdf.addImage(photoDataUrl, imgFmt(photoDataUrl), margin + b.ox, y + b.oy, b.w, b.h);
+          } catch { /* skip */ }
+        }
+
+        if (r.notes) {
+          const noteY = Math.max(tableEndY, y + (photoDataUrl ? photoH : 0)) + 3;
+          pdf.setFontSize(8);
+          pdf.setFont("helvetica", "italic");
+          pdf.setTextColor(120, 120, 120);
+          pdf.text(`Catatan: ${r.notes}`, margin, noteY);
+          y = noteY + 6;
+        } else {
+          y = Math.max(tableEndY, y + (photoDataUrl ? photoH : 0)) + 6;
+        }
+
+        pdf.setDrawColor(220, 220, 220);
+        pdf.line(margin, y - 2, pageW - margin, y - 2);
+      }
+
+      // ── Grand Total ────────────────────────────────────────────────────
+      if (y > pageH - 30) { pdf.addPage(); y = 14; }
+      pdf.setFillColor(99, 102, 241);
+      pdf.roundedRect(margin, y, contentW, 12, 1, 1, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("GRAND TOTAL", margin + 4, y + 8);
+      pdf.text(formatRp(claim.total_amount), pageW - margin - 4, y + 8, { align: "right" });
+
+      const { buildFilename } = await import("@/lib/filename");
+      const filename = buildFilename(claim.project_title || "PROYEK", "KLAIM", claim.title);
+      const pdfBlob = pdf.output("blob");
+
+      // Upload ke Firebase Storage
+      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+      const { storage } = await import("@/lib/firebase");
+      const storageRef = ref(storage, `projects/${claim?.project_id || "unknown"}/claims/${claimId}/archives/${Date.now()}.pdf`);
+      await uploadBytes(storageRef, pdfBlob, { contentType: "application/pdf" });
+      const fileUrl = await getDownloadURL(storageRef);
+
+      // Simpan metadata ke Firestore
+      await addDoc(collection(db, "pdf_archives"), {
+        type: "claim",
+        ref_id: claimId,
+        ref_title: claim.title,
+        project_title: claim.project_title || "",
+        filename,
+        file_url: fileUrl,
+        generated_by: user?.uid || "",
+        generated_by_name: user?.displayName || user?.email || "Admin",
+        generated_at: new Date().toISOString(),
+        filters: {},
+      });
+
+      // Trigger download lokal
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      console.error(e);
+      setError("Gagal generate PDF: " + e.message);
+    }
+    setGeneratingPdf(false);
+  };
+
   if (loading) return <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}><CircularProgress /></Box>;
   if (!claim) return (
     <Box sx={{ py: 4 }}>
@@ -417,6 +607,15 @@ export default function ClaimDetailPage() {
           </Stack>
         </Box>
         <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap" }}>
+          <Button
+            variant="outlined"
+            startIcon={generatingPdf ? <CircularProgress size={16} /> : <PdfIcon />}
+            onClick={handleGeneratePDF}
+            disabled={generatingPdf || loading}
+            sx={{ textTransform: "none", borderRadius: 2 }}
+          >
+            {generatingPdf ? "Membuat PDF..." : "Export PDF"}
+          </Button>
           {canSubmit && (
             <Button variant="outlined" color="warning" onClick={() => handleStatusChange("pending_approval")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
               Ajukan untuk Disetujui

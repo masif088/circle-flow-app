@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+import { buildFilename } from "@/lib/filename";
 
 import React, { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
@@ -131,7 +132,7 @@ export default function ReportsPage() {
 
   const getUserName = (uid: string) => users.find(u => u.uid === uid)?.name || uid;
 
-  // ─── Company PDF ───────────────────────────────────────────────
+  // â”€â”€â”€ Company PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleCompanyReport = async () => {
     if (!companyId) return;
     const company = companies.find(c => c.id === companyId);
@@ -179,7 +180,7 @@ export default function ReportsPage() {
         }
       }
 
-      // ── Per-project breakdown ──
+      // â”€â”€ Per-project breakdown â”€â”€
       for (const proj of companyProjects) {
         const projPresences = filtered.filter(p => p.project_id === proj.id);
         if (projPresences.length === 0) continue;
@@ -238,7 +239,7 @@ export default function ReportsPage() {
         curY += 12;
       }
 
-      // ── Grand total ──
+      // â”€â”€ Grand total â”€â”€
       if (curY > pageHeight - 40) { pdf.addPage(); curY = 15; }
       const grandTotal = filtered.reduce((s, p) => s + (p.cost_on_presence || 0), 0);
       pdf.setFontSize(12);
@@ -246,7 +247,7 @@ export default function ReportsPage() {
       pdf.text(`Total Biaya Keseluruhan: ${formatPrice(grandTotal)}`, margin, curY + 8);
       curY += 16;
 
-      // ── Per-person summary ──
+      // â”€â”€ Per-person summary â”€â”€
       const perPersonMap = new Map<string, number>();
       filtered.forEach(p => perPersonMap.set(p.user_id, (perPersonMap.get(p.user_id) || 0) + (p.cost_on_presence || 0)));
 
@@ -263,7 +264,7 @@ export default function ReportsPage() {
         margin: { left: margin, right: margin },
       });
 
-      // ── Activity photos (new page) ──
+      // â”€â”€ Activity photos (new page) â”€â”€
       const activityPhotos: { url: string; title: string; author: string; project: string }[] = [];
       filtered.forEach(p => {
         if (p.activity) {
@@ -312,8 +313,7 @@ export default function ReportsPage() {
         pdf.setFontSize(8); pdf.setFont("helvetica", "normal");
         pdf.text(`Halaman ${i} / ${totalPages}`, pageWidth / 2, pageHeight - 6, { align: "center" });
       }
-
-      pdf.save(`Laporan-${company.title.replace(/\s+/g, "_")}-${companyStart}_${companyEnd}.pdf`);
+      pdf.save(buildFilename(company.title, "REPORT", `${companyStart}_sd_${companyEnd}`));
     } catch (e) {
       console.error(e);
       setMsg("Gagal membuat laporan perusahaan.");
@@ -322,7 +322,7 @@ export default function ReportsPage() {
     }
   };
 
-  // ─── Individual PDF ────────────────────────────────────────────
+  // â”€â”€â”€ Individual PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleUserReport = async () => {
     if (!userId) return;
     const emp = users.find(u => u.uid === userId);
@@ -474,8 +474,7 @@ export default function ReportsPage() {
         pdf.setFontSize(8); pdf.setFont("helvetica", "normal");
         pdf.text(`Halaman ${i} / ${totalPages}`, pageWidth / 2, pageHeight - 6, { align: "center" });
       }
-
-      pdf.save(`Laporan-${emp.name.replace(/\s+/g, "_")}-${userStart}_${userEnd}.pdf`);
+      pdf.save(buildFilename(emp.name, "REPORT-KARYAWAN", `${userStart}_sd_${userEnd}`));
     } catch (e) {
       console.error(e);
       setMsg("Gagal membuat laporan karyawan.");
@@ -665,3 +664,4 @@ export default function ReportsPage() {
     </Box>
   );
 }
+

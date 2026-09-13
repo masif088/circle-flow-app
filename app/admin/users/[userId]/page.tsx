@@ -1,5 +1,6 @@
 "use client";
 
+import { buildFilename } from "@/lib/filename";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
@@ -325,7 +326,8 @@ export default function UserDetailPage() {
         pdf.text(`Halaman ${i} / ${total}`, pageWidth / 2, pageHeight - 6, { align: "center" });
       }
 
-      pdf.save(`Laporan-${userRecord.name.replace(/\s+/g, "_")}-${startDate}_${endDate}.pdf`);
+      const { buildFilename } = await import("@/lib/filename");
+      pdf.save(buildFilename(userRecord.name, "REPORT-KARYAWAN", `${startDate}_sd_${endDate}`));
     } catch (e) {
       console.error("Gagal membuat laporan:", e);
     } finally {
@@ -567,7 +569,7 @@ export default function UserDetailPage() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = `Kehadiran-${userRecord?.name.replace(/\s+/g, "_")}-${startDate}_${endDate}.csv`;
+                  a.download = buildFilename(userRecord?.name || "KARYAWAN", "KEHADIRAN", `${startDate}_sd_${endDate}`, "csv");
                   a.click();
                   URL.revokeObjectURL(url);
                 }}

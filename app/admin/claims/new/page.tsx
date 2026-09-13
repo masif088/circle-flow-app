@@ -154,7 +154,7 @@ export default function NewClaimPage() {
     try {
       const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
       const { storage } = await import("@/lib/firebase");
-      const storageRef = ref(storage, `claims/new/${Date.now()}_${file.name}`);
+      const storageRef = ref(storage, `projects/${projectId}/claims/new/receipts/${Date.now()}_${file.name}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       updateReceipt(ri, "photo_url", url);

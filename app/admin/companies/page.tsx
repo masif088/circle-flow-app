@@ -95,7 +95,7 @@ export default function CompaniesPage() {
       const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
       const { storage } = await import("@/lib/firebase");
       
-      const storageRef = ref(storage, `companies/temp/logo_${Date.now()}`);
+      const storageRef = ref(storage, `companies/_new/logo_${Date.now()}`);
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
       setCompLogo(downloadURL);
