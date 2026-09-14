@@ -23,6 +23,7 @@ const CATEGORIES = ["Safety Tools", "Consumable Tools", "Hand Tools", "Konsumsi"
 interface Item {
   name: string;
   qty: number;
+  unit: string;
   unit_price: number;
   total: number;
   category: string;
@@ -36,7 +37,7 @@ interface ReceiptDraft {
   items: Item[];
 }
 
-const emptyItem = (): Item => ({ name: "", qty: 1, unit_price: 0, total: 0, category: CATEGORIES[0] });
+const emptyItem = (): Item => ({ name: "", qty: 1, unit: "pcs", unit_price: 0, total: 0, category: CATEGORIES[0] });
 const emptyReceipt = (): ReceiptDraft => ({ vendor: "", receipt_date: "", notes: "", photo_url: "", items: [emptyItem()] });
 
 export default function NewClaimPage() {
@@ -118,6 +119,7 @@ export default function NewClaimPage() {
               name: it.name ?? "",
               category: CATEGORIES.includes(it.category) ? it.category : CATEGORIES[0],
               qty: Number(it.qty) || 1,
+              unit: it.unit && String(it.unit).trim() ? String(it.unit).trim() : "pcs",
               unit_price: Number(it.unit_price) || 0,
               total: Number(it.total) || 0,
             }))
@@ -318,6 +320,7 @@ export default function NewClaimPage() {
                       </Select>
                     </FormControl>
                     <TextField size="small" label="Qty" type="number" value={item.qty} onChange={e => updateItem(ri, ii, "qty", Number(e.target.value))} sx={{ width: 70 }} />
+                    <TextField size="small" label="Satuan" value={item.unit || "pcs"} onChange={e => updateItem(ri, ii, "unit", e.target.value)} sx={{ width: 80 }} placeholder="pcs" />
                     <TextField size="small" label="Harga Satuan" type="number" value={item.unit_price} onChange={e => updateItem(ri, ii, "unit_price", Number(e.target.value))} sx={{ width: 130 }} />
                     <TextField size="small" label="Total" value={formatRp(item.total)} slotProps={{ input: { readOnly: true } }} sx={{ width: 130 }} />
                     <IconButton size="small" color="error" onClick={() => removeItem(ri, ii)} disabled={r.items.length === 1}>

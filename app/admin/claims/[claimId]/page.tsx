@@ -54,6 +54,7 @@ interface ReceiptItem {
   id?: string;
   name: string;
   qty: number;
+  unit: string;
   unit_price: number;
   total: number;
   category: string;
@@ -112,7 +113,7 @@ export default function ClaimDetailPage() {
   const [rDate, setRDate] = useState("");
   const [rNotes, setRNotes] = useState("");
   const [rPhotoUrl, setRPhotoUrl] = useState("");
-  const [rItems, setRItems] = useState<ReceiptItem[]>([{ name: "", qty: 1, unit_price: 0, total: 0, category: CATEGORIES[0] }]);
+  const [rItems, setRItems] = useState<ReceiptItem[]>([{ name: "", qty: 1, unit: "pcs", unit_price: 0, total: 0, category: CATEGORIES[0] }]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [scanningReceipt, setScanningReceipt] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
@@ -254,7 +255,7 @@ export default function ClaimDetailPage() {
               price: item.unit_price,
               quantity: item.qty,
               paid_qty: item.qty,
-              unit: "Pcs",
+              unit: (item as any).unit || "pcs",
               total_spent: item.total,
               status: "Terbayar",
               source: "expense_claim",
@@ -286,7 +287,7 @@ export default function ClaimDetailPage() {
   const openEditReceipt = (r: Receipt) => {
     setEditingReceipt(r);
     setRVendor(r.vendor || ""); setRDate(r.receipt_date || ""); setRNotes(r.notes || ""); setRPhotoUrl(r.photo_url || "");
-    setRItems(r.items?.length ? r.items : [{ name: "", qty: 1, unit_price: 0, total: 0, category: CATEGORIES[0] }]);
+    setRItems(r.items?.length ? r.items : [{ name: "", qty: 1, unit: "pcs", unit_price: 0, total: 0, category: CATEGORIES[0] }]);
     setDialogPhotoFile(null); setScanSuccess(false); setScanUsage(null);
     setReceiptDialog(true);
   };
@@ -335,6 +336,7 @@ export default function ClaimDetailPage() {
           name: it.name ?? "",
           category: CATEGORIES.includes(it.category) ? it.category : CATEGORIES[0],
           qty: Number(it.qty) || 1,
+          unit: it.unit && String(it.unit).trim() ? String(it.unit).trim() : "pcs",
           unit_price: Number(it.unit_price) || 0,
           total: Number(it.total) || 0,
         })));
@@ -487,9 +489,9 @@ export default function ClaimDetailPage() {
 
         autoTable(pdf, {
           startY: y,
-          head: [["Item", "Kategori", "Qty", "Harga Satuan", "Total"]],
-          body: (r.items || []).map(it => [it.name, it.category, it.qty, formatRp(it.unit_price), formatRp(it.total)]),
-          foot: [["", "", "", "Subtotal", formatRp(r.subtotal)]],
+          head: [["Item", "Kategori", "Qty", "Satuan", "Harga Satuan", "Total"]],
+          body: (r.items || []).map(it => [it.name, it.category, it.qty, (it as any).unit || "pcs", formatRp(it.unit_price), formatRp(it.total)]),
+          foot: [["", "", "", "", "Subtotal", formatRp(r.subtotal)]],
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: { fillColor: [99, 102, 241], fontSize: 8, fontStyle: "bold" },
           footStyles: { fontStyle: "bold", fillColor: [235, 235, 255] },
@@ -772,7 +774,7 @@ export default function ClaimDetailPage() {
                               <TableRow key={i}>
                                 <TableCell sx={{ fontSize: 12 }}>{it.name}</TableCell>
                                 <TableCell><Chip label={it.category} size="small" sx={{ fontSize: 10 }} /></TableCell>
-                                <TableCell align="right" sx={{ fontSize: 12 }}>{it.qty}</TableCell>
+                                <TableCell align="right" sx={{ fontSize: 12 }}>{it.qty} {(it as any).unit || "pcs"}</TableCell>
                                 <TableCell align="right" sx={{ fontSize: 12 }}>{formatRp(it.unit_price)}</TableCell>
                                 <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>{formatRp(it.total)}</TableCell>
                               </TableRow>
@@ -848,6 +850,7 @@ export default function ClaimDetailPage() {
                   </Select>
                 </FormControl>
                 <TextField size="small" label="Qty" type="number" value={item.qty} onChange={e => updateItem(idx, "qty", Number(e.target.value))} sx={{ width: 70 }} />
+                <TextField size="small" label="Satuan" value={(item as any).unit || "pcs"} onChange={e => updateItem(idx, "unit", e.target.value)} sx={{ width: 80 }} placeholder="pcs" />
                 <TextField size="small" label="Harga Satuan" type="number" value={item.unit_price} onChange={e => updateItem(idx, "unit_price", Number(e.target.value))} sx={{ width: 130 }} />
                 <TextField size="small" label="Total" value={formatRp(item.total)} slotProps={{ input: { readOnly: true } }} sx={{ width: 130 }} />
                 <IconButton size="small" color="error" onClick={() => setRItems(prev => prev.filter((_, i) => i !== idx))} disabled={rItems.length === 1}>

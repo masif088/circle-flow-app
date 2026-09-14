@@ -17,6 +17,7 @@ Gambar bisa berisi SATU atau LEBIH struk. Deteksi semua struk yang ada dan kemba
           "name": "nama item",
           "category": "Safety Tools|Consumable Tools|Hand Tools|Konsumsi|Akomodasi",
           "qty": 1,
+          "unit": "pcs",
           "unit_price": 10000,
           "total": 10000
         }
@@ -30,6 +31,7 @@ Aturan WAJIB:
 - Format angka di struk Indonesia: titik (.) adalah pemisah ribuan, koma (,) adalah desimal. Contoh: 1.500 = 1500, 10.000 = 10000, 1.500.000 = 1500000
 - unit_price adalah harga SATUAN per 1 item
 - total = qty × unit_price — HARUS selalu konsisten. Jika total di struk tidak cocok dengan qty × unit_price, percayai unit_price dan hitung ulang total
+- unit adalah satuan item (pcs, kg, liter, meter, dus, lusin, dll) — jika tidak ada di struk, default "pcs"
 - subtotal = jumlah semua total item
 - Jika ada 2 struk berbeda dalam gambar, buat 2 objek di array "receipts"
 - Jika hanya 1 struk, array berisi 1 objek saja
@@ -131,7 +133,8 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        return { ...item, qty, unit_price: unitPrice, total: correctedTotal };
+        const unit = item.unit && String(item.unit).trim() ? String(item.unit).trim() : "pcs";
+        return { ...item, qty, unit, unit_price: unitPrice, total: correctedTotal };
       });
 
       const subtotal = items.reduce((s: number, i: any) => s + i.total, 0);
