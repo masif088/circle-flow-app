@@ -863,7 +863,7 @@ export default function ClaimDetailPage() {
             <Divider />
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Item Nota</Typography>
-              <Button size="small" startIcon={<AddIcon />} onClick={() => setRItems(prev => [...prev, { name: "", qty: 1, unit_price: 0, total: 0, category: CATEGORIES[0] }])} sx={{ textTransform: "none" }}>
+              <Button size="small" startIcon={<AddIcon />} onClick={() => setRItems(prev => [...prev, { name: "", qty: 1, unit: "pcs", unit_price: 0, total: 0, category: CATEGORIES[0] }])} sx={{ textTransform: "none" }}>
                 Tambah Item
               </Button>
             </Box>
