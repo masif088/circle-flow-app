@@ -26,11 +26,15 @@ Gambar bisa berisi SATU atau LEBIH struk. Deteksi semua struk yang ada dan kemba
   ]
 }
 
-Aturan:
+Aturan WAJIB:
+- Format angka di struk Indonesia: titik (.) adalah pemisah ribuan, koma (,) adalah desimal. Contoh: 1.500 = 1500, 10.000 = 10000, 1.500.000 = 1500000
+- unit_price adalah harga SATUAN per 1 item
+- total = qty × unit_price — HARUS selalu konsisten. Jika total di struk tidak cocok dengan qty × unit_price, percayai unit_price dan hitung ulang total
+- subtotal = jumlah semua total item
 - Jika ada 2 struk berbeda dalam gambar, buat 2 objek di array "receipts"
 - Jika hanya 1 struk, array berisi 1 objek saja
 - Pilih kategori yang paling sesuai dari: Safety Tools, Consumable Tools, Hand Tools, Konsumsi, Akomodasi
-- Semua angka harus berupa number (bukan string)
+- Semua angka harus berupa number tanpa titik/koma (bukan string). Contoh: tulis 10000, bukan "10.000"
 - Jika tanggal tidak jelas, isi dengan string kosong
 - Jika vendor tidak jelas, isi dengan string kosong
 - Kembalikan HANYA JSON valid, tanpa teks lain`;
@@ -102,7 +106,37 @@ export async function POST(req: NextRequest) {
       .trim();
 
     const parsed = JSON.parse(jsonStr);
-    const receipts = Array.isArray(parsed.receipts) ? parsed.receipts : [parsed];
+    const rawReceipts = Array.isArray(parsed.receipts) ? parsed.receipts : [parsed];
+
+    // Post-processing: koreksi inkonsistensi unit_price × qty vs total
+    const receipts = rawReceipts.map((receipt: any) => {
+      const items = (receipt.items ?? []).map((item: any) => {
+        const qty = Number(item.qty) || 1;
+        const unitPrice = Number(item.unit_price) || 0;
+        const aiTotal = Number(item.total) || 0;
+        const calcTotal = qty * unitPrice;
+
+        // Jika total AI berbeda >1% dari qty × unit_price, koreksi
+        let correctedTotal = aiTotal;
+        if (calcTotal > 0 && Math.abs(aiTotal - calcTotal) / calcTotal > 0.01) {
+          // Cek apakah unit_price mungkin sudah include qty (AI salah baca sebagai total)
+          // misal: qty=1, unit_price=100000, total=1000000 → unit_price salah 10x
+          const ratio = aiTotal / unitPrice;
+          if (Math.abs(ratio - qty) < 0.01) {
+            // total = unit_price (AI salah, total seharusnya = calcTotal)
+            correctedTotal = calcTotal;
+          } else {
+            // Percayai unit_price, hitung ulang total
+            correctedTotal = calcTotal;
+          }
+        }
+
+        return { ...item, qty, unit_price: unitPrice, total: correctedTotal };
+      });
+
+      const subtotal = items.reduce((s: number, i: any) => s + i.total, 0);
+      return { ...receipt, items, subtotal };
+    });
 
     const usage = {
       prompt_tokens: response.usage?.prompt_tokens ?? 0,
