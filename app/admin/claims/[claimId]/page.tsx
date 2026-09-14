@@ -292,7 +292,7 @@ export default function ClaimDetailPage() {
   const openNewReceipt = () => {
     setEditingReceipt(null);
     setRVendor(""); setRDate(""); setRNotes(""); setRPhotoUrl("");
-    setRItems([{ name: "", qty: 1, unit_price: 0, total: 0, category: CATEGORIES[0] }]);
+    setRItems([{ name: "", qty: 1, unit: "pcs", unit_price: 0, total: 0, category: CATEGORIES[0] }]);
     setDialogPhotoFile(null); setScanSuccess(false); setScanUsage(null);
     setReceiptDialog(true);
   };
