@@ -48,7 +48,7 @@ import {
   Assessment as ReportIcon,
   Receipt as ClaimsIcon,
   FolderOpen as ArchiveIcon,
-  CheckCircleOutline as ReadIcon,
+  CheckCircleOutlined as ReadIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
 import { updateProfile, updatePassword } from "firebase/auth";
