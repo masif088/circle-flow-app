@@ -17,6 +17,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Paper,
   Button,
   TextField,
@@ -96,8 +97,12 @@ export default function UsersPage() {
   const [formTeamIds, setFormTeamIds] = useState<string[]>([]);
 
   // Filter states
-  const [filterRole, setFilterRole] = useState<string>("");
+  const [filterRole, setFilterRole] = useState<string>("non_client");
   const [filterPosition, setFilterPosition] = useState<string>("");
+
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Fetch users from Firestore on mount
   useEffect(() => {
@@ -309,10 +314,11 @@ export default function UsersPage() {
 
   const filteredUsers = users.filter((u) => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
-    const matchRole = filterRole ? u.role === filterRole : true;
+    const matchRole = filterRole === "non_client" ? u.role !== "client" : filterRole ? u.role === filterRole : true;
     const matchPosition = filterPosition ? u.position === filterPosition : true;
     return matchSearch && matchRole && matchPosition;
   });
+  const pagedUsers = filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
     <Box>
@@ -355,7 +361,7 @@ export default function UsersPage() {
               sx={{ flex: 2, minWidth: 200 }}
               placeholder="Cari nama atau email..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -371,12 +377,13 @@ export default function UsersPage() {
               <Select
                 value={filterRole}
                 label="Role"
-                onChange={(e) => setFilterRole(e.target.value)}
+                onChange={(e) => { setFilterRole(e.target.value); setPage(0); }}
               >
                 <MenuItem value="">Semua Role</MenuItem>
+                <MenuItem value="non_client">Non Client</MenuItem>
                 <MenuItem value="admin">Super Admin</MenuItem>
-                <MenuItem value="client">Client</MenuItem>
                 <MenuItem value="staff">Staff</MenuItem>
+                <MenuItem value="client">Client</MenuItem>
               </Select>
             </FormControl>
             <FormControl sx={{ minWidth: 160 }}>
@@ -384,7 +391,7 @@ export default function UsersPage() {
               <Select
                 value={filterPosition}
                 label="Posisi"
-                onChange={(e) => setFilterPosition(e.target.value)}
+                onChange={(e) => { setFilterPosition(e.target.value); setPage(0); }}
               >
                 <MenuItem value="">Semua Posisi</MenuItem>
                 {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
@@ -392,23 +399,21 @@ export default function UsersPage() {
             </FormControl>
           </Box>
 
-          <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
+          <TableContainer component={Paper}>
             <Table sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Perusahaan</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">
-                    Actions
-                  </TableCell>
+                  <TableCell>Nama</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Perusahaan</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Dibuat</TableCell>
+                  <TableCell align="right">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {pagedUsers.map((user) => (
                   <TableRow key={user.uid} hover>
                     <TableCell sx={{ fontWeight: 500 }}>{user.name}</TableCell>
                     <TableCell color="text.secondary">{user.email}</TableCell>
@@ -462,16 +467,27 @@ export default function UsersPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredUsers.length === 0 && (
+                {pagedUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                      No users found.
+                      Tidak ada pengguna ditemukan.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={filteredUsers.length}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+            rowsPerPageOptions={[10, 25, 50]}
+            labelRowsPerPage="Baris per halaman:"
+            labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+          />
         </CardContent>
       </Card>
 

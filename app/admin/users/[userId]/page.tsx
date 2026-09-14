@@ -10,7 +10,8 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import {
   Box,
@@ -25,6 +26,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Button,
   Stack,
   Divider,
@@ -37,6 +39,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  ListItemText,
+  OutlinedInput,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -44,6 +53,7 @@ import {
   PictureAsPdf as PdfIcon,
   Visibility as ViewIcon,
   GridOn as CsvIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 
 interface UserRecord {
@@ -66,8 +76,26 @@ export default function UserDetailPage() {
   const [presences, setPresences] = useState<any[]>([]);
   const [costs, setCosts] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [allTeams, setAllTeams] = useState<{id: string; title: string}[]>([]);
+  const [allCompanies, setAllCompanies] = useState<{id: string; name: string}[]>([]);
+  const [userTeamIds, setUserTeamIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [costsPage, setCostsPage] = useState(0);
+  const costsRowsPerPage = 5;
+  const [costsSearch, setCostsSearch] = useState("");
+  const [costsCompany, setCostsCompany] = useState("");
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState<"admin"|"client"|"staff">("staff");
+  const [editPosition, setEditPosition] = useState("");
+  const [editCompanyId, setEditCompanyId] = useState("");
+  const [editTeamIds, setEditTeamIds] = useState<string[]>([]);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const POSITIONS = ["Technician", "Helper", "Safetyman", "Site Engineer", "Manager"];
 
   // Date range filter & PDF state
   const getTodayStr = () => {
@@ -144,10 +172,21 @@ export default function UserDetailPage() {
         // 4. Fetch Projects
         const projSnap = await getDocs(collection(db, "projects"));
         const projList: any[] = [];
-        projSnap.forEach((d) => {
-          projList.push({ id: d.id, ...d.data() });
-        });
+        projSnap.forEach((d) => { projList.push({ id: d.id, ...d.data() }); });
         setProjects(projList);
+
+        // 5. Fetch Teams
+        const teamsSnap = await getDocs(collection(db, "teams"));
+        const teamsList: {id: string; title: string}[] = [];
+        teamsSnap.forEach((d) => teamsList.push({ id: d.id, title: d.data().title || d.id }));
+        setAllTeams(teamsList);
+        setUserTeamIds(data.teamIds || []);
+
+        // 6. Fetch Companies
+        const companiesSnap = await getDocs(collection(db, "companies"));
+        const companiesList: {id: string; name: string}[] = [];
+        companiesSnap.forEach((d) => companiesList.push({ id: d.id, name: d.data().title || d.data().name || d.id }));
+        setAllCompanies(companiesList);
       } catch (err: any) {
         console.error("Failed to load user details:", err);
         setErrorMsg("Gagal memuat detail pengguna: " + err.message);
@@ -158,6 +197,41 @@ export default function UserDetailPage() {
 
     fetchAllUserData();
   }, [userId]);
+
+  const openEditDialog = () => {
+    if (!userRecord) return;
+    setEditName(userRecord.name);
+    setEditRole(userRecord.role);
+    setEditPosition(userRecord.position || "");
+    setEditCompanyId(userRecord.company_id || "");
+    setEditTeamIds(userTeamIds);
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!userRecord || !editName.trim()) return;
+    setEditSaving(true);
+    try {
+      await updateDoc(doc(db, "users", userRecord.uid), {
+        name: editName.trim(),
+        role: editRole,
+        position: editRole === "client" ? "" : editPosition,
+        company_id: editRole === "client" ? editCompanyId : null,
+        teamIds: editTeamIds,
+      });
+      setUserRecord(prev => prev ? { ...prev, name: editName.trim(), role: editRole, position: editRole === "client" ? "" : editPosition, company_id: editRole === "client" ? editCompanyId : undefined } : prev);
+      setUserTeamIds(editTeamIds);
+      if (editRole === "client" && editCompanyId) {
+        const c = allCompanies.find(c => c.id === editCompanyId);
+        if (c) setCompanyName(c.name);
+      }
+      setEditOpen(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const filteredPresences = React.useMemo(() => {
     return presences.filter((p) => {
@@ -365,12 +439,19 @@ export default function UserDetailPage() {
         >
           Kembali ke Manajemen Pengguna
         </Button>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 800, mb: 1 }}>
-          Detail Pengguna: {userRecord.name}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Informasi profil lengkap, statistik kehadiran, dan konfigurasi upah pekerja.
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2 }}>
+          <Box>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 800, mb: 1 }}>
+              Detail Pengguna: {userRecord.name}
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Informasi profil lengkap, statistik kehadiran, dan konfigurasi upah pekerja.
+            </Typography>
+          </Box>
+          <Button variant="outlined" startIcon={<EditIcon />} onClick={openEditDialog} sx={{ flexShrink: 0 }}>
+            Edit Pengguna
+          </Button>
+        </Box>
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -430,6 +511,19 @@ export default function UserDetailPage() {
                   }
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>TIM</Typography>
+                  {userTeamIds.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  ) : (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {userTeamIds.map(tid => {
+                        const team = allTeams.find(t => t.id === tid);
+                        return <Chip key={tid} label={team?.title || tid} size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 1.5 }} />;
+                      })}
+                    </Box>
+                  )}
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>TANGGAL TERDAFTAR</Typography>
                   <Typography variant="body2">{userRecord.createdAt}</Typography>
                 </Grid>
@@ -463,50 +557,90 @@ export default function UserDetailPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                Tarif Upah Pekerja per Proyek
-              </Typography>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 2, flexWrap: "wrap" }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Tarif Upah Pekerja per Proyek
+                </Typography>
+                {costs.length > 0 && (
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <FormControl size="small" sx={{ minWidth: 150 }}>
+                      <InputLabel>Perusahaan</InputLabel>
+                      <Select value={costsCompany} label="Perusahaan" onChange={e => { setCostsCompany(e.target.value); setCostsPage(0); }}>
+                        <MenuItem value="">Semua</MenuItem>
+                        {allCompanies.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      size="small"
+                      placeholder="Cari proyek..."
+                      value={costsSearch}
+                      onChange={e => { setCostsSearch(e.target.value); setCostsPage(0); }}
+                      sx={{ width: 160 }}
+                    />
+                  </Box>
+                )}
+              </Box>
               {costs.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
                   Tidak ada tarif kustom yang dikonfigurasi untuk pengguna ini.
                 </Typography>
               ) : (
-                <TableContainer component={Paper} elevation={0}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Nama Proyek</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="right">Tarif per Hari</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {costs.map((rate) => (
-                        <TableRow key={rate.id} hover>
-                          <TableCell sx={{ fontWeight: 600 }}>{getProjectName(rate.project_id)}</TableCell>
-                          <TableCell align="right">
-                            <Chip
-                              label={formatPrice(rate.cost)}
-                              size="small"
-                              color="success"
-                              sx={{ fontWeight: 700, borderRadius: 1.5 }}
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => router.push(`/admin/projects/${rate.project_id}`)}
-                              title="Lihat Detail Proyek"
-                            >
-                              <ViewIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
+                <>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Nama Proyek</TableCell>
+                          <TableCell align="right">Tarif per Hari</TableCell>
+                          <TableCell align="right">Aksi</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        {costs.filter(r => {
+                        const proj = projects.find(p => p.id === r.project_id);
+                        const matchCompany = costsCompany ? proj?.company_id === costsCompany : true;
+                        const matchSearch = getProjectName(r.project_id).toLowerCase().includes(costsSearch.toLowerCase());
+                        return matchCompany && matchSearch;
+                      }).slice(costsPage * costsRowsPerPage, costsPage * costsRowsPerPage + costsRowsPerPage).map((rate) => (
+                          <TableRow key={rate.id} hover>
+                            <TableCell sx={{ fontWeight: 600 }}>{getProjectName(rate.project_id)}</TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                label={formatPrice(rate.cost)}
+                                size="small"
+                                color="success"
+                                sx={{ fontWeight: 700, borderRadius: 1.5 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => router.push(`/admin/projects/${rate.project_id}`)}
+                                title="Lihat Detail Proyek"
+                              >
+                                <ViewIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <TablePagination
+                    component="div"
+                    count={costs.filter(r => {
+                      const proj = projects.find(p => p.id === r.project_id);
+                      const matchCompany = costsCompany ? proj?.company_id === costsCompany : true;
+                      return matchCompany && getProjectName(r.project_id).toLowerCase().includes(costsSearch.toLowerCase());
+                    }).length}
+                    page={costsPage}
+                    onPageChange={(_, p) => setCostsPage(p)}
+                    rowsPerPage={costsRowsPerPage}
+                    rowsPerPageOptions={[]}
+                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+                  />
+                </>
               )}
             </CardContent>
           </Card>
@@ -767,6 +901,65 @@ export default function UserDetailPage() {
       </Dialog>
 
       {/* Lightbox */}
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit Pengguna</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
+            <TextField fullWidth label="Nama Lengkap" value={editName} onChange={e => setEditName(e.target.value)} required />
+            <FormControl fullWidth>
+              <InputLabel>Role</InputLabel>
+              <Select value={editRole} label="Role" onChange={e => { setEditRole(e.target.value as any); setEditCompanyId(""); }}>
+                <MenuItem value="admin">Super Admin</MenuItem>
+                <MenuItem value="client">Client</MenuItem>
+                <MenuItem value="staff">Staff</MenuItem>
+              </Select>
+            </FormControl>
+            {editRole === "client" && (
+              <FormControl fullWidth>
+                <InputLabel>Perusahaan</InputLabel>
+                <Select value={editCompanyId} label="Perusahaan" onChange={e => setEditCompanyId(e.target.value)}>
+                  <MenuItem value=""><em>Pilih Perusahaan</em></MenuItem>
+                  {allCompanies.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                </Select>
+              </FormControl>
+            )}
+            {editRole !== "client" && (
+              <FormControl fullWidth>
+                <InputLabel>Posisi / Jabatan</InputLabel>
+                <Select value={editPosition} label="Posisi / Jabatan" onChange={e => setEditPosition(e.target.value)}>
+                  <MenuItem value=""><em>Tidak Ditentukan</em></MenuItem>
+                  {POSITIONS.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                </Select>
+              </FormControl>
+            )}
+            <FormControl fullWidth>
+              <InputLabel>Tim</InputLabel>
+              <Select
+                multiple
+                value={editTeamIds}
+                onChange={e => setEditTeamIds(typeof e.target.value === "string" ? e.target.value.split(",") : e.target.value)}
+                input={<OutlinedInput label="Tim" />}
+                renderValue={selected => (selected as string[]).map(id => allTeams.find(t => t.id === id)?.title || id).join(", ")}
+              >
+                {allTeams.map(team => (
+                  <MenuItem key={team.id} value={team.id}>
+                    <Checkbox checked={editTeamIds.includes(team.id)} />
+                    <ListItemText primary={team.title} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setEditOpen(false)}>Batal</Button>
+          <Button variant="contained" onClick={handleSaveEdit} disabled={editSaving || !editName.trim()}>
+            {editSaving ? "Menyimpan..." : "Simpan"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {lightboxSrc && (
         <Box
           onClick={() => setLightboxSrc(null)}

@@ -17,18 +17,16 @@ import {
   Checkbox,
   FormControlLabel,
   Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  ListItemButton,
   Divider,
   Paper,
+  InputAdornment,
 } from "@mui/material";
 import {
   Send as SendIcon,
   People as PeopleIcon,
   Notifications as NotifIcon,
+  Search as SearchIcon,
+  SelectAll as SelectAllIcon,
 } from "@mui/icons-material";
 
 const FUNCTION_URL =
@@ -53,6 +51,7 @@ export default function NotificationsPage() {
 
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [staffSearch, setStaffSearch] = useState("");
 
   useEffect(() => {
     const fetch = async () => {
@@ -131,7 +130,7 @@ export default function NotificationsPage() {
   const targetCount = sendToAll ? usersWithToken.length : [...selectedIds].filter((id) => staffUsers.find((u) => u.uid === id)?.fcm_token).length;
 
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto" }}>
+    <Box>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
           Kirim Notifikasi
@@ -147,9 +146,9 @@ export default function NotificationsPage() {
         </Alert>
       )}
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ alignItems: "flex-start" }}>
+      <Stack direction={{ xs: "column", lg: "row" }} spacing={3} sx={{ alignItems: "flex-start" }}>
         {/* Left: compose */}
-        <Card sx={{ flex: 1, width: "100%" }}>
+        <Card sx={{ width: { xs: "100%", lg: 480 }, flexShrink: 0, position: "sticky", top: { xs: 72, md: 80 }, alignSelf: "flex-start" }}>
           <CardContent sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2.5 }}>
               Pesan
@@ -224,63 +223,124 @@ export default function NotificationsPage() {
         </Card>
 
         {/* Right: staff list */}
-        <Card sx={{ width: { xs: "100%", md: 320 }, flexShrink: 0 }}>
+        <Card sx={{ flex: 1, minWidth: 0 }}>
           <CardContent sx={{ p: 0 }}>
             <Box sx={{ p: 2.5, pb: 1.5 }}>
-              <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Daftar Staff
-                </Typography>
-                <Chip icon={<PeopleIcon />} label={staffUsers.length} size="small" />
+              <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Daftar Staff</Typography>
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                  {!sendToAll && selectedIds.size > 0 && (
+                    <Chip label={`${selectedIds.size} dipilih`} size="small" color="primary" />
+                  )}
+                  <Chip icon={<PeopleIcon />} label={staffUsers.length} size="small" />
+                </Stack>
               </Stack>
-              <Typography variant="caption" color="text.secondary">
-                Pilih individu jika tidak kirim ke semua
-              </Typography>
+
+              {/* Search */}
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Cari nama atau posisi..."
+                value={staffSearch}
+                onChange={e => setStaffSearch(e.target.value)}
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 17 }} /></InputAdornment> } }}
+                sx={{ mb: 1 }}
+              />
+
+              {/* Select all / clear (only shown when not sendToAll) */}
+              {!sendToAll && (
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    size="small"
+                    startIcon={<SelectAllIcon />}
+                    sx={{ textTransform: "none", fontSize: 12 }}
+                    onClick={() => setSelectedIds(new Set(usersWithToken.map(u => u.uid)))}
+                  >
+                    Pilih Semua ({usersWithToken.length})
+                  </Button>
+                  {selectedIds.size > 0 && (
+                    <Button size="small" sx={{ textTransform: "none", fontSize: 12 }} onClick={() => setSelectedIds(new Set())}>
+                      Batal Semua
+                    </Button>
+                  )}
+                </Stack>
+              )}
             </Box>
 
             {loading ? (
-              <Box sx={{ py: 4, textAlign: "center" }}>
-                <CircularProgress size={28} />
-              </Box>
+              <Box sx={{ py: 4, textAlign: "center" }}><CircularProgress size={28} /></Box>
             ) : staffUsers.length === 0 ? (
               <Box sx={{ py: 4, textAlign: "center", color: "text.secondary" }}>
                 <Typography variant="body2">Belum ada user dengan role Staff</Typography>
               </Box>
-            ) : (
-              <List dense disablePadding>
-                {staffUsers.map((u) => {
-                  const hasToken = !!u.fcm_token;
-                  const selected = selectedIds.has(u.uid);
-                  return (
-                    <ListItem key={u.uid} disablePadding divider>
-                      <ListItemButton
-                        disabled={sendToAll || !hasToken}
-                        selected={!sendToAll && selected}
-                        onClick={() => toggleUser(u.uid)}
-                        sx={{ px: 2, py: 1 }}
-                      >
-                        <ListItemAvatar sx={{ minWidth: 40 }}>
-                          <Avatar sx={{ width: 32, height: 32, fontSize: 14, bgcolor: hasToken ? "primary.main" : "action.disabledBackground" }}>
-                            {u.name.charAt(0).toUpperCase()}
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={u.name}
-                          secondary={u.position || u.email}
-                          slotProps={{ primary: { variant: "body2" }, secondary: { variant: "caption" } }}
-                        />
-                        {!hasToken && (
-                          <Chip label="No token" size="small" color="default" sx={{ fontSize: 10 }} />
-                        )}
-                        {!sendToAll && hasToken && (
-                          <Checkbox size="small" checked={selected} sx={{ p: 0 }} />
-                        )}
-                      </ListItemButton>
-                    </ListItem>
-                  );
-                })}
-              </List>
-            )}
+            ) : (() => {
+              const q = staffSearch.toLowerCase();
+              const visibleUsers = staffUsers.filter(u =>
+                !q || u.name.toLowerCase().includes(q) || (u.position || "").toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+              );
+              return (
+                <>
+                  <Box sx={{ borderTop: "1px solid", borderColor: "divider", p: 2 }}>
+                    {visibleUsers.length === 0 ? (
+                      <Box sx={{ py: 3, textAlign: "center", color: "text.secondary" }}>
+                        <Typography variant="body2">Tidak ada staff yang cocok</Typography>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" }, gap: 1 }}>
+                        {visibleUsers.map((u) => {
+                          const hasToken = !!u.fcm_token;
+                          const selected = selectedIds.has(u.uid);
+                          return (
+                            <Box
+                              key={u.uid}
+                              onClick={() => { if (!sendToAll && hasToken) toggleUser(u.uid); }}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1.5,
+                                p: 1.5,
+                                borderRadius: 2,
+                                border: "1px solid",
+                                borderColor: !sendToAll && selected ? "primary.main" : "divider",
+                                bgcolor: !sendToAll && selected ? "primary.50" : "background.paper",
+                                cursor: sendToAll || !hasToken ? "default" : "pointer",
+                                opacity: !hasToken ? 0.55 : 1,
+                                transition: "all 0.15s ease",
+                                "&:hover": { bgcolor: sendToAll || !hasToken ? undefined : !sendToAll && selected ? "primary.100" : "action.hover" },
+                              }}
+                            >
+                              <Avatar sx={{ width: 32, height: 32, fontSize: 13, flexShrink: 0, bgcolor: hasToken ? "primary.main" : "action.disabledBackground" }}>
+                                {u.name.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="body2" sx={{ fontWeight: selected && !sendToAll ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {u.name}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>
+                                  {u.position || u.email}
+                                </Typography>
+                              </Box>
+                              {!hasToken ? (
+                                <Chip label="Offline" size="small" sx={{ fontSize: 10, flexShrink: 0 }} />
+                              ) : !sendToAll && (
+                                <Checkbox size="small" checked={selected} sx={{ p: 0, flexShrink: 0 }} />
+                              )}
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </Box>
+                  {visibleUsers.length < staffUsers.length && (
+                    <Box sx={{ px: 2, py: 1, bgcolor: "action.hover" }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Menampilkan {visibleUsers.length} dari {staffUsers.length} staff
+                      </Typography>
+                    </Box>
+                  )}
+                </>
+              );
+            })()}
 
             {usersWithoutToken.length > 0 && (
               <Paper variant="outlined" sx={{ m: 2, p: 1.5, bgcolor: "warning.50" }}>

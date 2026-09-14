@@ -87,6 +87,58 @@ export function Providers({ children }: { children: React.ReactNode }) {
               },
             },
           },
+          MuiTableContainer: {
+            styleOverrides: {
+              root: {
+                borderRadius: 12,
+                boxShadow: "none",
+              },
+            },
+          },
+          MuiTableHead: {
+            styleOverrides: {
+              root: {
+                "& .MuiTableCell-root": {
+                  backgroundColor: "#f8fafc",
+                  color: "#475569",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  borderBottom: "1px solid rgba(0,0,0,0.08)",
+                  padding: "12px 16px",
+                },
+              },
+            },
+          },
+          MuiTableBody: {
+            styleOverrides: {
+              root: {
+                "& .MuiTableRow-root": {
+                  transition: "background-color 0.15s ease",
+                  "&:hover": {
+                    backgroundColor: "#f8fafc",
+                  },
+                  "&:last-child .MuiTableCell-root": {
+                    borderBottom: "none",
+                  },
+                },
+                "& .MuiTableCell-root": {
+                  borderBottom: "1px solid rgba(0,0,0,0.06)",
+                  padding: "12px 16px",
+                  fontSize: "0.875rem",
+                  color: "#0f172a",
+                },
+              },
+            },
+          },
+          MuiTableCell: {
+            styleOverrides: {
+              root: {
+                borderBottom: "1px solid rgba(0,0,0,0.06)",
+              },
+            },
+          },
         },
       }),
     []

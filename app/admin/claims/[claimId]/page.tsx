@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { createAdminNotif } from "@/lib/notif";
 import { db } from "@/lib/firebase";
 import {
   doc, getDoc, collection, getDocs, query, where,
@@ -202,6 +203,12 @@ export default function ClaimDetailPage() {
         approved_by: user?.uid, approved_by_name: approverName, approved_at: now,
       } : prev);
       setApproveDialog(false);
+      await createAdminNotif({
+        title: "Klaim Disetujui — Menunggu Reimbursement",
+        body: `"${claim?.title}" telah disetujui oleh ${approverName}. Siap untuk reimbursement.`,
+        link: `/admin/claims/${claimId}`,
+        type: "claim_approved",
+      });
     } catch (e: any) { setError(e.message); }
     setActionLoading(false);
   };
@@ -227,6 +234,12 @@ export default function ClaimDetailPage() {
       } : prev);
       setRejectDialog(false);
       setRejectionNotes("");
+      await createAdminNotif({
+        title: "Klaim Ditolak",
+        body: `"${claim?.title}" ditolak oleh ${rejectorName}. Alasan: ${rejectionNotes.trim()}`,
+        link: `/admin/claims/${claimId}`,
+        type: "claim_rejected",
+      });
     } catch (e: any) { setError(e.message); }
     setActionLoading(false);
   };
@@ -599,14 +612,9 @@ export default function ClaimDetailPage() {
       {/* Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3, flexWrap: "wrap", gap: 2 }}>
         <Box>
-          <Button startIcon={<BackIcon />} onClick={() => router.push("/admin/claims")} sx={{ mb: 1, color: "text.secondary", textTransform: "none" }}>
+          <Button startIcon={<BackIcon />} onClick={() => router.push("/admin/claims")} sx={{ color: "text.secondary", textTransform: "none" }}>
             Kembali
           </Button>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>{claim.title}</Typography>
-          <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: "center" }}>
-            <Chip label={STATUS_LABEL[claim.status] || claim.status} color={STATUS_COLOR[claim.status]} sx={{ fontWeight: 600 }} />
-            <Typography variant="body2" color="text.secondary">• {claim.project_title} • {claim.submitter_name}</Typography>
-          </Stack>
         </Box>
         <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap" }}>
           <Button
@@ -618,6 +626,32 @@ export default function ClaimDetailPage() {
           >
             {generatingPdf ? "Membuat PDF..." : "Export PDF"}
           </Button>
+          {claim.status === "rejected" && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              disabled={actionLoading}
+              onClick={async () => {
+                if (!confirm("Hapus klaim yang ditolak ini? Tindakan tidak bisa dibatalkan.")) return;
+                try {
+                  await deleteDoc(doc(db, "expense_claims", claimId));
+                  router.push("/admin/claims");
+                } catch {
+                  setError("Gagal menghapus klaim.");
+                }
+              }}
+              sx={{ textTransform: "none", borderRadius: 2 }}
+            >
+              Hapus Klaim
+            </Button>
+          )}
+          {isEditable && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openNewReceipt}
+              sx={{ textTransform: "none", borderRadius: 2, background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#fff" }}>
+              Tambah Nota
+            </Button>
+          )}
           {canSubmit && (
             <Button variant="outlined" color="warning" onClick={() => handleStatusChange("pending_approval")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
               Ajukan untuk Disetujui
@@ -648,14 +682,17 @@ export default function ClaimDetailPage() {
 
       <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
         {/* Info Card */}
-        <Card sx={{ flex: "0 0 280px", borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", alignSelf: "flex-start" }}>
+        <Card sx={{ flex: "0 0 320px", borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", alignSelf: "flex-start", position: "sticky", top: { xs: 72, md: 80 }, maxHeight: { xs: "calc(100vh - 88px)", md: "calc(100vh - 96px)" }, overflowY: "auto" }}>
           <CardContent sx={{ p: 3 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Informasi Pengajuan</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, lineHeight: 1.2 }}>{claim.title}</Typography>
+            <Chip label={STATUS_LABEL[claim.status] || claim.status} color={STATUS_COLOR[claim.status]} size="small" sx={{ fontWeight: 600, mb: 1.5 }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: "text.secondary" }}>Informasi Pengajuan</Typography>
             <Stack spacing={2}>
               {[
                 { label: "Proyek", value: claim.project_title },
                 { label: "Diajukan Oleh", value: claim.submitter_name },
                 { label: "Tanggal", value: claim.created_at ? new Date(claim.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-" },
+                { label: "Jumlah Nota", value: `${receipts.length} nota` },
                 { label: "Total Nilai", value: formatRp(claim.total_amount), bold: true, color: "#6366f1" },
                 ...(claim.requested_reimburse_amount != null && claim.requested_reimburse_amount > 0 ? [{ label: "Diminta Reimburse", value: formatRp(claim.requested_reimburse_amount), bold: true, color: "#f59e0b" }] : []),
               ].map(row => (
@@ -710,15 +747,6 @@ export default function ClaimDetailPage() {
 
         {/* Receipts */}
         <Box sx={{ flex: 1, minWidth: 300 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>Nota ({receipts.length})</Typography>
-            {isEditable && (
-              <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openNewReceipt}
-                sx={{ textTransform: "none", borderRadius: 2, background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#fff" }}>
-                Tambah Nota
-              </Button>
-            )}
-          </Box>
 
           {receipts.length === 0 ? (
             <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
@@ -764,7 +792,7 @@ export default function ClaimDetailPage() {
                             <TableRow>
                               <TableCell sx={{ fontWeight: 600, fontSize: 11 }}>Item</TableCell>
                               <TableCell sx={{ fontWeight: 600, fontSize: 11 }}>Kategori</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 600, fontSize: 11 }}>Qty</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 600, fontSize: 11 }}>Kuantitas</TableCell>
                               <TableCell align="right" sx={{ fontWeight: 600, fontSize: 11 }}>Harga Satuan</TableCell>
                               <TableCell align="right" sx={{ fontWeight: 600, fontSize: 11 }}>Total</TableCell>
                             </TableRow>

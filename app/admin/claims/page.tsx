@@ -167,6 +167,11 @@ export default function ClaimsPage() {
   const totalReimburse = filtered.reduce((s, c) => s + (c.reimbursement_amount || 0), 0);
   const pendingCount = filtered.filter(c => c.status === "pending_approval").length;
 
+  const thisMonthPrefix = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`; })();
+  const thisMonthClaims = claims.filter(c => c.created_at?.startsWith(thisMonthPrefix));
+  const totalAmountThisMonth = thisMonthClaims.reduce((s, c) => s + (c.total_amount || 0), 0);
+  const totalReimburseThisMonth = thisMonthClaims.reduce((s, c) => s + (c.reimbursement_amount || 0), 0);
+
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
@@ -186,14 +191,16 @@ export default function ClaimsPage() {
       </Box>
 
       {/* Summary Cards */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(3, 1fr)", lg: "repeat(6, 1fr)" }, gap: 2, mb: 3 }}>
         {[
           { label: "Total Pengajuan", value: filtered.length, color: "#6366f1", sub: "klaim" },
           { label: "Menunggu Persetujuan", value: pendingCount, color: "#f59e0b", sub: "klaim" },
           { label: "Total Nilai", value: formatRp(totalAmount), color: "#10b981", sub: "dari semua pengajuan" },
+          { label: "Total Nilai Bulan Ini", value: formatRp(totalAmountThisMonth), color: "#06b6d4", sub: "bulan berjalan" },
           { label: "Total Reimbursement", value: formatRp(totalReimburse), color: "#3b82f6", sub: "sudah dibayar" },
+          { label: "Reimbursement Bulan Ini", value: formatRp(totalReimburseThisMonth), color: "#8b5cf6", sub: "bulan berjalan" },
         ].map(card => (
-          <Card key={card.label} sx={{ flex: "1 1 180px", borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", borderTop: `3px solid ${card.color}` }}>
+          <Card key={card.label} sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", borderTop: `3px solid ${card.color}` }}>
             <CardContent sx={{ p: 2.5 }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>{card.label}</Typography>
               <Typography variant="h5" sx={{ fontWeight: 800, color: card.color, mt: 0.5 }}>{card.value}</Typography>

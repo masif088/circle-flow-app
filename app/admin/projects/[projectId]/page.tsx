@@ -58,10 +58,13 @@ import {
   MenuItem,
   FormControlLabel,
   Checkbox,
-  TablePagination
+  TablePagination,
+  LinearProgress,
+  InputAdornment
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
+  Search as SearchIcon,
   AttachMoney as MoneyIcon,
   People as PeopleIcon,
   CalendarToday as DateIcon,
@@ -220,6 +223,7 @@ export default function ProjectDetailPage() {
   const [editProjRadius, setEditProjRadius] = useState("");
   const [editProjCompId, setEditProjCompId] = useState("");
   const [editProjValue, setEditProjValue] = useState("");
+  const [editProjBudget, setEditProjBudget] = useState("");
   const [editProjStatus, setEditProjStatus] = useState("Active");
   const [editProjCheckIn, setEditProjCheckIn] = useState("08:00");
   const [editProjCheckOut, setEditProjCheckOut] = useState("17:00");
@@ -236,7 +240,7 @@ export default function ProjectDetailPage() {
 
   // Gallery States
   const [showPresencePhotos, setShowPresencePhotos] = useState(false);
-  const [galleryLimit, setGalleryLimit] = useState(10);
+  const [galleryLimit, setGalleryLimit] = useState(8);
 
   // Gallery Lightbox States
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -267,6 +271,16 @@ export default function ProjectDetailPage() {
   const [expStatus, setExpStatus] = useState("Belum Terbayar");
   const [expPage, setExpPage] = useState(0);
   const [expRowsPerPage, setExpRowsPerPage] = useState(10);
+  const [workerPage, setWorkerPage] = useState(0);
+  const workerRowsPerPage = 5;
+  const [wagePage, setWagePage] = useState(0);
+  const wageRowsPerPage = 5;
+
+  // Presence table filter & pagination
+  const [presSearch, setPresSearch] = useState("");
+  const [presFilterUser, setPresFilterUser] = useState("");
+  const [presPage, setPresPage] = useState(0);
+  const presRowsPerPage = 10;
 
   const getUserName = React.useCallback((uid: string) => {
     const u = users.find((x) => x.uid === uid);
@@ -319,6 +333,7 @@ export default function ProjectDetailPage() {
     setEditProjRadius(project.radius?.toString() || "100");
     setEditProjCompId(project.company_id || "");
     setEditProjValue(project.value?.toString() || "0");
+    setEditProjBudget((project as any).budget?.toString() || "");
     setEditProjStatus(project.status || "Active");
     setEditProjCheckIn(project.check_in_time || "08:00");
     setEditProjCheckOut(project.check_out_time || "17:00");
@@ -343,6 +358,7 @@ export default function ProjectDetailPage() {
         radius: parseFloat(editProjRadius) || 100,
         company_id: editProjCompId,
         value: parseFloat(editProjValue) || 0,
+        budget: editProjBudget ? parseFloat(editProjBudget) : null,
         status: editProjStatus,
         check_in_time: editProjCheckIn,
         check_out_time: editProjCheckOut,
@@ -908,12 +924,20 @@ export default function ProjectDetailPage() {
 
   // Filter presences registered within the selected date range (any status: Pending, Approved, Rejected)
   const filteredPresences = React.useMemo(() => {
+    const q = presSearch.toLowerCase();
     return presences.filter(p => {
       if (!p.created_at) return false;
       const localDate = getLocalDateStr(p.created_at);
-      return localDate >= startDate && localDate <= endDate;
+      if (localDate < startDate || localDate > endDate) return false;
+      if (presFilterUser && p.user_id !== presFilterUser) return false;
+      if (q && !getUserName(p.user_id).toLowerCase().includes(q)) return false;
+      return true;
     });
-  }, [presences, startDate, endDate]);
+  }, [presences, startDate, endDate, presSearch, presFilterUser, users]);
+
+  const pagedPresences = React.useMemo(() => {
+    return filteredPresences.slice(presPage * presRowsPerPage, presPage * presRowsPerPage + presRowsPerPage);
+  }, [filteredPresences, presPage, presRowsPerPage]);
 
   const galleryItems = React.useMemo(() => {
     const items: GalleryItem[] = [];
@@ -1693,14 +1717,14 @@ export default function ProjectDetailPage() {
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                 Rincian Biaya Pekerja
               </Typography>
-              <TableContainer component={Paper} elevation={0}>
+              <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>Nama Pekerja</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Jumlah Kehadiran</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Rata-rata / Hari</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Total Pendapatan</TableCell>
+                      <TableCell>Nama Pekerja</TableCell>
+                      <TableCell>Jumlah Kehadiran</TableCell>
+                      <TableCell>Rata-rata / Hari</TableCell>
+                      <TableCell>Total Pendapatan</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1711,7 +1735,7 @@ export default function ProjectDetailPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      workerSummaries.map((w) => (
+                      workerSummaries.slice(workerPage * workerRowsPerPage, workerPage * workerRowsPerPage + workerRowsPerPage).map((w) => (
                         <TableRow key={w.userId} hover>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -1732,6 +1756,15 @@ export default function ProjectDetailPage() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              <TablePagination
+                component="div"
+                count={workerSummaries.length}
+                page={workerPage}
+                onPageChange={(_, p) => setWorkerPage(p)}
+                rowsPerPage={workerRowsPerPage}
+                rowsPerPageOptions={[]}
+                labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+              />
             </CardContent>
           </Card>
         </Grid>
@@ -1752,13 +1785,13 @@ export default function ProjectDetailPage() {
                   + Atur Upah
                 </Button>
               </Box>
-              <TableContainer component={Paper} elevation={0}>
+              <TableContainer component={Paper}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>Nama Pekerja</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Tarif Harian</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
+                      <TableCell>Nama Pekerja</TableCell>
+                      <TableCell>Tarif Harian</TableCell>
+                      <TableCell align="right">Aksi</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1769,7 +1802,7 @@ export default function ProjectDetailPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      projectWages.map((w) => (
+                      projectWages.slice(wagePage * wageRowsPerPage, wagePage * wageRowsPerPage + wageRowsPerPage).map((w) => (
                         <TableRow key={w.id} hover>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -1795,6 +1828,15 @@ export default function ProjectDetailPage() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              <TablePagination
+                component="div"
+                count={projectWages.length}
+                page={wagePage}
+                onPageChange={(_, p) => setWagePage(p)}
+                rowsPerPage={wageRowsPerPage}
+                rowsPerPageOptions={[]}
+                labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+              />
             </CardContent>
           </Card>
         </Grid>
@@ -1881,6 +1923,34 @@ export default function ProjectDetailPage() {
               </Paper>
             </Grid>
           </Grid>
+
+          {/* Budget Warning */}
+          {(() => {
+            const budget = (project as any)?.budget;
+            if (!budget || budget <= 0) return null;
+            const pct = Math.min((totalPlannedExpenditure / budget) * 100, 100);
+            const isOver = totalPlannedExpenditure > budget;
+            const isWarn = !isOver && pct >= 90;
+            if (!isWarn && !isOver) return null;
+            return (
+              <Alert
+                severity={isOver ? "error" : "warning"}
+                sx={{ mb: 3, borderRadius: 2 }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  {isOver
+                    ? `Pengeluaran melebihi batas anggaran! (${formatPrice(totalPlannedExpenditure)} dari ${formatPrice(budget)})`
+                    : `Peringatan: pengeluaran sudah mencapai ${pct.toFixed(0)}% dari batas anggaran (${formatPrice(totalPlannedExpenditure)} dari ${formatPrice(budget)})`}
+                </Typography>
+                <LinearProgress
+                  variant="determinate"
+                  value={pct}
+                  color={isOver ? "error" : "warning"}
+                  sx={{ borderRadius: 1, height: 6 }}
+                />
+              </Alert>
+            );
+          })()}
 
           <Grid container spacing={3}>
             {/* Table Area */}
@@ -2220,7 +2290,7 @@ export default function ProjectDetailPage() {
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Log Kehadiran Detail & Verifikasi Geofencing (Difilter)
+              Detail Kehadiran
             </Typography>
             <Stack direction="row" spacing={1}>
               <Button
@@ -2264,6 +2334,30 @@ export default function ProjectDetailPage() {
               )}
             </Stack>
           </Box>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
+            <TextField
+              placeholder="Cari karyawan..."
+              size="small"
+              value={presSearch}
+              onChange={e => { setPresSearch(e.target.value); setPresPage(0); }}
+              sx={{ minWidth: 200 }}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18 }} /></InputAdornment> } }}
+            />
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Filter Karyawan</InputLabel>
+              <Select
+                value={presFilterUser}
+                label="Filter Karyawan"
+                onChange={e => { setPresFilterUser(e.target.value); setPresPage(0); }}
+              >
+                <MenuItem value="">Semua Karyawan</MenuItem>
+                {users.map(u => <MenuItem key={u.uid} value={u.uid}>{u.name}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <Typography variant="body2" color="text.secondary" sx={{ alignSelf: "center" }}>
+              {filteredPresences.length} record
+            </Typography>
+          </Box>
           <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
             <Table sx={{ minWidth: 700 }}>
               <TableHead>
@@ -2284,7 +2378,7 @@ export default function ProjectDetailPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredPresences.map((pres) => (
+                  pagedPresences.map((pres) => (
                     <TableRow key={pres.id} hover>
                       <TableCell sx={{ color: "text.secondary" }}>
                         <Typography variant="body2">
@@ -2362,6 +2456,16 @@ export default function ProjectDetailPage() {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={filteredPresences.length}
+            page={presPage}
+            onPageChange={(_, p) => setPresPage(p)}
+            rowsPerPage={presRowsPerPage}
+            onRowsPerPageChange={() => {}}
+            rowsPerPageOptions={[]}
+            labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+          />
         </CardContent>
       </Card>}
 
@@ -2756,7 +2860,7 @@ export default function ProjectDetailPage() {
               <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
-                  label="Anggaran Proyek (IDR)"
+                  label="Nilai Proyek (IDR)"
                   type="number"
                   placeholder="misal: 50000000"
                   value={editProjValue}
@@ -2778,6 +2882,16 @@ export default function ProjectDetailPage() {
                 </FormControl>
               </Grid>
             </Grid>
+
+            <TextField
+              fullWidth
+              label="Batas Anggaran Pengeluaran (IDR)"
+              type="number"
+              placeholder="misal: 30000000 — warning muncul saat 90%"
+              value={editProjBudget}
+              onChange={(e) => setEditProjBudget(e.target.value)}
+              helperText="Opsional. Jika diisi, akan muncul peringatan saat pengeluaran mencapai 90% dari batas ini."
+            />
 
             <Grid container spacing={2}>
               <Grid size={{ xs: 6 }}>

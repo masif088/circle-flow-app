@@ -23,6 +23,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Paper,
   Button,
   IconButton,
@@ -38,8 +39,10 @@ import {
   InputLabel,
   Alert,
   Stack,
-  Chip
+  Chip,
+  InputAdornment,
 } from "@mui/material";
+import { Search as SearchIcon } from "@mui/icons-material";
 import {
   Delete as DeleteIcon,
   Add as AddIcon,
@@ -80,7 +83,14 @@ export default function ProjectsPage() {
   const [projRadius, setProjRadius] = useState("100");
   const [projCompId, setProjCompId] = useState("");
   const [projValue, setProjValue] = useState("");
+  const [projBudget, setProjBudget] = useState("");
   const [projStatus, setProjStatus] = useState("Active");
+
+  // Filter & Pagination
+  const [search, setSearch] = useState("");
+  const [filterCompany, setFilterCompany] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Map Setup States
   const [leafletLoaded, setLeafletLoaded] = useState(false);
@@ -302,6 +312,7 @@ export default function ProjectsPage() {
         radius: parseFloat(projRadius) || 100,
         company_id: projCompId,
         value: parseFloat(projValue) || 0,
+        budget: projBudget ? parseFloat(projBudget) : null,
         status: projStatus,
         createdAt: new Date().toISOString()
       });
@@ -350,6 +361,13 @@ export default function ProjectsPage() {
         return "primary";
     }
   };
+
+  const filteredProjects = projects.filter(p => {
+    const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase());
+    const matchCompany = filterCompany ? p.company_id === filterCompany : true;
+    return matchSearch && matchCompany;
+  });
+  const pagedProjects = filteredProjects.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
     <Box>
@@ -406,37 +424,54 @@ export default function ProjectsPage() {
 
       <Card>
         <CardContent sx={{ p: 3 }}>
-          <TableContainer component={Paper} elevation={0}>
+          <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+            <TextField
+              placeholder="Cari nama atau ID proyek..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(0); }}
+              size="small"
+              sx={{ flex: 2, minWidth: 200 }}
+              slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> } }}
+            />
+            {!isClient && (
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>Filter Perusahaan</InputLabel>
+                <Select value={filterCompany} label="Filter Perusahaan" onChange={e => { setFilterCompany(e.target.value); setPage(0); }}>
+                  <MenuItem value="">Semua Perusahaan</MenuItem>
+                  {companies.map(c => <MenuItem key={c.id} value={c.id}>{c.title}</MenuItem>)}
+                </Select>
+              </FormControl>
+            )}
+          </Box>
+          <TableContainer component={Paper}>
             <Table sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 600 }}>ID Proyek</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Judul Proyek</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Perusahaan Pemilik</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Koordinat Lokasi</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Radius Geofence</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Anggaran</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
+                  <TableCell>Judul Proyek</TableCell>
+                  <TableCell>Perusahaan Pemilik</TableCell>
+                  <TableCell>Koordinat Lokasi</TableCell>
+                  <TableCell>Radius Geofence</TableCell>
+                  <TableCell>Anggaran</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="right">Aksi</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3, color: "text.secondary" }}>
                       Memuat proyek...
                     </TableCell>
                   </TableRow>
-                ) : projects.length === 0 ? (
+                ) : filteredProjects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3, color: "text.secondary" }}>
                       Proyek tidak ditemukan.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  projects.map((proj) => (
+                  pagedProjects.map((proj) => (
                     <TableRow key={proj.id} hover>
-                      <TableCell sx={{ fontFamily: "monospace" }}>{proj.id}</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{proj.title}</TableCell>
                       <TableCell>{getCompanyName(proj.company_id)}</TableCell>
                       <TableCell>{proj.latitude.toFixed(6)}, {proj.longitude.toFixed(6)}</TableCell>
@@ -479,6 +514,17 @@ export default function ProjectsPage() {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={filteredProjects.length}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+            rowsPerPageOptions={[10, 25, 50]}
+            labelRowsPerPage="Baris per halaman:"
+            labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+          />
         </CardContent>
       </Card>
 
@@ -541,7 +587,7 @@ export default function ProjectsPage() {
               <Grid size={{ xs: 6 }}>
                 <TextField
                   fullWidth
-                  label="Anggaran Proyek (IDR)"
+                  label="Nilai Proyek (IDR)"
                   type="number"
                   placeholder="misal: 50000000"
                   value={projValue}
@@ -563,6 +609,15 @@ export default function ProjectsPage() {
                 </FormControl>
               </Grid>
             </Grid>
+            <TextField
+              fullWidth
+              label="Batas Anggaran Pengeluaran (IDR)"
+              type="number"
+              placeholder="misal: 30000000 — warning muncul saat 90%"
+              value={projBudget}
+              onChange={(e) => setProjBudget(e.target.value)}
+              helperText="Opsional. Warning muncul saat pengeluaran mencapai 90% dari batas ini."
+            />
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>

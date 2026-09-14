@@ -56,8 +56,11 @@ import {
   AttachMoney as MoneyIcon,
   Add as AddIcon,
   Edit as EditIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  Search as SearchIcon
 } from "@mui/icons-material";
+import InputAdornment from "@mui/material/InputAdornment";
+import TablePagination from "@mui/material/TablePagination";
 
 interface ActivityItem {
   title: string;
@@ -234,6 +237,24 @@ export default function PresenceAdminPage() {
     setMsg({ text, type });
     setTimeout(() => setMsg({ text: "", type: "success" }), 5000);
   };
+
+  // Filter & search states
+  const [filterUser, setFilterUser] = useState("");
+  const [search, setSearch] = useState("");
+  const [presPage, setPresPage] = useState(0);
+  const [presRowsPerPage, setPresRowsPerPage] = useState(10);
+
+  // Tarif Harian filter & pagination
+  const [costsSearch, setCostsSearch] = useState("");
+  const [costsFilterUser, setCostsFilterUser] = useState("");
+  const [costsFilterProject, setCostsFilterProject] = useState("");
+  const [costsPage, setCostsPage] = useState(0);
+  const costsRowsPerPage = 10;
+
+  // Edit tarif dialog
+  const [editCostOpen, setEditCostOpen] = useState(false);
+  const [editCostRate, setEditCostRate] = useState<CostRecord | null>(null);
+  const [editCostValue, setEditCostValue] = useState("");
 
   // Bulk select states
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -492,6 +513,29 @@ export default function PresenceAdminPage() {
     }
   };
 
+  const handleOpenEditCost = (rate: CostRecord) => {
+    setEditCostRate(rate);
+    setEditCostValue(rate.cost.toString());
+    setEditCostOpen(true);
+  };
+
+  const handleSaveEditCost = async () => {
+    if (!editCostRate) return;
+    try {
+      await setDoc(doc(db, "cost_people_on_project", editCostRate.id), {
+        user_id: editCostRate.user_id,
+        project_id: editCostRate.project_id,
+        cost: parseFloat(editCostValue) || 0,
+        updatedAt: new Date().toISOString()
+      });
+      showMsg("Tarif berhasil diperbarui.");
+      setEditCostOpen(false);
+      loadAllData();
+    } catch (error: unknown) {
+      showMsg("Gagal memperbarui tarif: " + (error instanceof Error ? error.message : "Terjadi kesalahan"), "error");
+    }
+  };
+
   // Generate Dummy Data Helper
   const handleGenerateDummy = async () => {
     setDummyLoading(true);
@@ -719,12 +763,24 @@ export default function PresenceAdminPage() {
   };
 
   const filteredPresences = React.useMemo(() => {
+    const q = search.toLowerCase();
     return presences.filter(p => {
       if (!p.created_at) return false;
       const d = getLocalDateStr(p.created_at);
-      return d >= startDate && d <= endDate;
+      if (d < startDate || d > endDate) return false;
+      if (filterUser && p.user_id !== filterUser) return false;
+      if (q) {
+        const name = getUserName(p.user_id).toLowerCase();
+        const proj = getProjectName(p.project_id).toLowerCase();
+        if (!name.includes(q) && !proj.includes(q)) return false;
+      }
+      return true;
     });
-  }, [presences, startDate, endDate]);
+  }, [presences, startDate, endDate, filterUser, search, users, projects]);
+
+  const pagedPresences = React.useMemo(() => {
+    return filteredPresences.slice(presPage * presRowsPerPage, presPage * presRowsPerPage + presRowsPerPage);
+  }, [filteredPresences, presPage, presRowsPerPage]);
 
   return (
     <Box>
@@ -741,7 +797,7 @@ export default function PresenceAdminPage() {
       >
         <Box>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-            Log Kehadiran & Biaya
+            Detail Kehadiran
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Pantau log kehadiran dan kelola tarif harian karyawan per proyek.
@@ -762,11 +818,10 @@ export default function PresenceAdminPage() {
           )}
           {isAdmin && (
             <Button
-              variant="contained"
-              color="secondary"
+              variant="outlined"
               startIcon={<AddIcon />}
               onClick={handleOpenAddPresence}
-              sx={{ borderRadius: 2, fontWeight: 600 }}
+              sx={{ borderRadius: 2, fontWeight: 600, bgcolor: "background.paper" }}
             >
               Tambah Presensi Manual
             </Button>
@@ -799,29 +854,46 @@ export default function PresenceAdminPage() {
           <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Log Kehadiran</Typography>
-              <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <TextField
-                  label="Dari"
-                  type="date"
-                  size="small"
-                  value={startDate}
-                  onChange={e => setStartDate(e.target.value)}
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  sx={{ width: 150 }}
-                />
-                <TextField
-                  label="Sampai"
-                  type="date"
-                  size="small"
-                  value={endDate}
-                  onChange={e => setEndDate(e.target.value)}
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  sx={{ width: 150 }}
-                />
-                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                  {filteredPresences.length} record
-                </Typography>
-              </Stack>
+              <Typography variant="body2" color="text.secondary">{filteredPresences.length} record</Typography>
+            </Box>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
+              <TextField
+                placeholder="Cari karyawan atau proyek..."
+                size="small"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPresPage(0); }}
+                sx={{ minWidth: 220 }}
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18 }} /></InputAdornment> } }}
+              />
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel>Filter Karyawan</InputLabel>
+                <Select
+                  value={filterUser}
+                  label="Filter Karyawan"
+                  onChange={e => { setFilterUser(e.target.value); setPresPage(0); }}
+                >
+                  <MenuItem value="">Semua Karyawan</MenuItem>
+                  {users.map(u => <MenuItem key={u.uid} value={u.uid}>{u.name}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Dari"
+                type="date"
+                size="small"
+                value={startDate}
+                onChange={e => { setStartDate(e.target.value); setPresPage(0); }}
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ width: 150 }}
+              />
+              <TextField
+                label="Sampai"
+                type="date"
+                size="small"
+                value={endDate}
+                onChange={e => { setEndDate(e.target.value); setPresPage(0); }}
+                slotProps={{ inputLabel: { shrink: true } }}
+                sx={{ width: 150 }}
+              />
             </Box>
 
             {/* Bulk action toolbar */}
@@ -871,6 +943,7 @@ export default function PresenceAdminPage() {
                           else setSelectedIds(new Set());
                         }}
                       />
+
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Karyawan</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Proyek</TableCell>
@@ -896,7 +969,7 @@ export default function PresenceAdminPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredPresences.map((pres) => (
+                    pagedPresences.map((pres) => (
                       <TableRow key={pres.id} hover selected={selectedIds.has(pres.id)}>
                         <TableCell padding="checkbox">
                           <Checkbox
@@ -997,6 +1070,17 @@ export default function PresenceAdminPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredPresences.length}
+              page={presPage}
+              onPageChange={(_, p) => setPresPage(p)}
+              rowsPerPage={presRowsPerPage}
+              onRowsPerPageChange={e => { setPresRowsPerPage(parseInt(e.target.value)); setPresPage(0); }}
+              rowsPerPageOptions={[10, 25, 50]}
+              labelRowsPerPage="Per halaman:"
+              labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+            />
           </CardContent>
         </Card>
 
@@ -1006,42 +1090,100 @@ export default function PresenceAdminPage() {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               Tarif Harian Karyawan per Proyek
             </Typography>
-            <TableContainer component={Paper} elevation={0}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Nama Karyawan</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Proyek</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Tarif per Hari</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {costs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        Belum ada tarif yang dikonfigurasi.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    costs.map((rate) => (
-                      <TableRow key={rate.id}>
-                        <TableCell sx={{ fontWeight: 500 }}>{getUserName(rate.user_id)}</TableCell>
-                        <TableCell>{getProjectName(rate.project_id)}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: "success.main" }}>
-                          {formatPrice(rate.cost)}
-                        </TableCell>
-                        <TableCell align="right">
-                          <IconButton color="error" onClick={() => handleDeleteCost(rate.id)} size="small">
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
+              <TextField
+                placeholder="Cari karyawan atau proyek..."
+                size="small"
+                value={costsSearch}
+                onChange={e => { setCostsSearch(e.target.value); setCostsPage(0); }}
+                sx={{ minWidth: 220 }}
+                slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18 }} /></InputAdornment> } }}
+              />
+              <FormControl size="small" sx={{ minWidth: 170 }}>
+                <InputLabel>Filter Karyawan</InputLabel>
+                <Select value={costsFilterUser} label="Filter Karyawan" onChange={e => { setCostsFilterUser(e.target.value); setCostsPage(0); }}>
+                  <MenuItem value="">Semua Karyawan</MenuItem>
+                  {users.map(u => <MenuItem key={u.uid} value={u.uid}>{u.name}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 170 }}>
+                <InputLabel>Filter Proyek</InputLabel>
+                <Select value={costsFilterProject} label="Filter Proyek" onChange={e => { setCostsFilterProject(e.target.value); setCostsPage(0); }}>
+                  <MenuItem value="">Semua Proyek</MenuItem>
+                  {projects.map(p => <MenuItem key={p.id} value={p.id}>{p.title}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Box>
+            {(() => {
+              const q = costsSearch.toLowerCase();
+              const filtered = costs.filter(r => {
+                if (costsFilterUser && r.user_id !== costsFilterUser) return false;
+                if (costsFilterProject && r.project_id !== costsFilterProject) return false;
+                if (q) {
+                  const name = getUserName(r.user_id).toLowerCase();
+                  const proj = getProjectName(r.project_id).toLowerCase();
+                  if (!name.includes(q) && !proj.includes(q)) return false;
+                }
+                return true;
+              });
+              const paged = filtered.slice(costsPage * costsRowsPerPage, costsPage * costsRowsPerPage + costsRowsPerPage);
+              return <>
+                <TableContainer component={Paper} elevation={0}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 600 }}>Nama Karyawan</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Proyek</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Tarif per Hari</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                    </TableHead>
+                    <TableBody>
+                      {filtered.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                            {costs.length === 0 ? "Belum ada tarif yang dikonfigurasi." : "Tidak ada tarif yang cocok dengan filter."}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paged.map((rate) => (
+                          <TableRow key={rate.id}>
+                            <TableCell sx={{ fontWeight: 500 }}>{getUserName(rate.user_id)}</TableCell>
+                            <TableCell>{getProjectName(rate.project_id)}</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: "success.main" }}>
+                              {formatPrice(rate.cost)}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                                <IconButton size="small" color="primary" title="Lihat profil karyawan" onClick={() => router.push(`/admin/users/${rate.user_id}`)}>
+                                  <ViewIcon />
+                                </IconButton>
+                                <IconButton size="small" color="warning" title="Edit tarif" onClick={() => handleOpenEditCost(rate)}>
+                                  <EditIcon />
+                                </IconButton>
+                                <IconButton size="small" color="error" onClick={() => handleDeleteCost(rate.id)} title="Hapus tarif">
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                <TablePagination
+                  component="div"
+                  count={filtered.length}
+                  page={costsPage}
+                  onPageChange={(_, p) => setCostsPage(p)}
+                  rowsPerPage={costsRowsPerPage}
+                  onRowsPerPageChange={() => {}}
+                  rowsPerPageOptions={[]}
+                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+                />
+              </>;
+            })()}
           </CardContent>
         </Card>
       </Stack>
@@ -1182,6 +1324,37 @@ export default function PresenceAdminPage() {
             disabled={!addUserId || !addType || !addDateTime || addPresenceSaving}
           >
             {addPresenceSaving ? "Menyimpan..." : "Simpan Presensi"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Tarif Dialog */}
+      <Dialog open={editCostOpen} onClose={() => setEditCostOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit Tarif Harian</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>Karyawan</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 600 }}>{editCostRate ? getUserName(editCostRate.user_id) : ""}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>Proyek</Typography>
+              <Typography variant="body1">{editCostRate ? getProjectName(editCostRate.project_id) : ""}</Typography>
+            </Box>
+            <TextField
+              fullWidth
+              label="Tarif Harian (IDR)"
+              type="number"
+              value={editCostValue}
+              onChange={e => setEditCostValue(e.target.value)}
+              autoFocus
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setEditCostOpen(false)}>Batal</Button>
+          <Button variant="contained" onClick={handleSaveEditCost} disabled={!editCostValue}>
+            Simpan
           </Button>
         </DialogActions>
       </Dialog>

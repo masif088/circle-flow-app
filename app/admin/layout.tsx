@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -29,6 +29,10 @@ import {
   TextField,
   Button,
   Alert,
+  Badge,
+  Popover,
+  Paper,
+  Chip,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -44,9 +48,13 @@ import {
   Assessment as ReportIcon,
   Receipt as ClaimsIcon,
   FolderOpen as ArchiveIcon,
+  CheckCircleOutline as ReadIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { updateProfile, updatePassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { collection, query, orderBy, where, onSnapshot, updateDoc, doc, writeBatch, limit, deleteDoc } from "firebase/firestore";
+import { createAdminNotif } from "@/lib/notif";
 
 const drawerWidth = 260;
 
@@ -67,6 +75,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [profileSuccess, setProfileSuccess] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
 
+  const [notifs, setNotifs] = useState<{id: string; title: string; body: string; link?: string; read: boolean; created_at: string; type?: string}[]>([]);
+  const [notifAnchor, setNotifAnchor] = useState<null | HTMLElement>(null);
+  const unreadCount = notifs.filter(n => !n.read).length;
+
   useEffect(() => {
     if (user) {
       setProfileName(user.displayName || "");
@@ -81,6 +93,91 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push("/login");
     }
   }, [user, userProfile, loading, router]);
+
+  // Realtime listener untuk notifikasi internal admin
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "admin_notifications"), orderBy("created_at", "desc"), limit(30));
+    const unsub = onSnapshot(q, snap => {
+      setNotifs(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)));
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Listener presensi Pending baru — buat notif internal saat ada absen masuk
+  const seenPresenceIds = useRef<Set<string>>(new Set());
+  const presenceInitialized = useRef(false);
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "presences"),
+      where("status", "==", "Pending"),
+      limit(50)
+    );
+    const unsub = onSnapshot(q, async snap => {
+      if (!presenceInitialized.current) {
+        // Tandai semua yang sudah ada saat mount — tidak buat notif
+        snap.docs.forEach(d => seenPresenceIds.current.add(d.id));
+        presenceInitialized.current = true;
+        return;
+      }
+      // Hanya proses yang baru muncul
+      for (const change of snap.docChanges()) {
+        if (change.type === "added" && !seenPresenceIds.current.has(change.doc.id)) {
+          seenPresenceIds.current.add(change.doc.id);
+          const data = change.doc.data();
+          const projectId = data.project_id || "";
+          const checkInTime = data.created_at
+            ? new Date(data.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+            : "";
+          await createAdminNotif({
+            title: "Absensi Baru Menunggu Approval",
+            body: `Ada karyawan baru absen masuk${checkInTime ? ` pukul ${checkInTime}` : ""}${projectId ? " — klik untuk lihat proyek" : ""}`,
+            link: projectId ? `/admin/projects/${projectId}` : "/admin/presence",
+            type: "presence_pending",
+          });
+        }
+      }
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Listener klaim baru pending_approval
+  const seenClaimIds = useRef<Set<string>>(new Set());
+  const claimInitialized = useRef(false);
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "expense_claims"),
+      where("status", "==", "pending_approval"),
+      limit(50)
+    );
+    const unsub = onSnapshot(q, async snap => {
+      if (!claimInitialized.current) {
+        snap.docs.forEach(d => seenClaimIds.current.add(d.id));
+        claimInitialized.current = true;
+        return;
+      }
+      for (const change of snap.docChanges()) {
+        if (change.type === "added" && !seenClaimIds.current.has(change.doc.id)) {
+          seenClaimIds.current.add(change.doc.id);
+          const data = change.doc.data();
+          const title = data.title || "Klaim baru";
+          const submitter = data.submitter_name || "";
+          const total = data.total_amount
+            ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(data.total_amount)
+            : "";
+          await createAdminNotif({
+            title: "Klaim Baru Menunggu Persetujuan",
+            body: `${title}${submitter ? ` oleh ${submitter}` : ""}${total ? ` · ${total}` : ""}`,
+            link: `/admin/claims/${change.doc.id}`,
+            type: "claim_pending",
+          });
+        }
+      }
+    });
+    return () => unsub();
+  }, [user]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -180,7 +277,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       { text: "Klaim & Nota", icon: <ClaimsIcon />, path: "/admin/claims" },
       { text: "Arsip Laporan", icon: <ArchiveIcon />, path: "/admin/archives" },
       { text: "Notifikasi", icon: <NotificationsIcon />, path: "/admin/notifications" },
-      { text: "Pengaturan", icon: <SettingsIcon />, path: "/admin/settings" },
     ] : []),
   ];
 
@@ -210,7 +306,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <Divider sx={{ opacity: 0.5 }} />
       <List sx={{ px: 2, py: 3, flexGrow: 1 }}>
         {menuItems.map((item) => {
-          const active = pathname === item.path;
+          const active = pathname === item.path || (item.path !== "/admin" && pathname.startsWith(item.path + "/"));
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
               <ListItemButton
@@ -304,14 +400,101 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <MenuIcon />
             </IconButton>
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-              {menuItems.find((item) => item.path === pathname)?.text || "Dasbor"}
+              {menuItems.find((item) => item.path === pathname || (item.path !== "/admin" && pathname.startsWith(item.path + "/")))?.text || "Dasbor"}
             </Typography>
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <IconButton color="inherit" size="small">
-              <NotificationsIcon />
+            <IconButton color="inherit" size="small" onClick={e => setNotifAnchor(e.currentTarget)}>
+              <Badge badgeContent={unreadCount} color="error" max={99}>
+                <NotificationsIcon />
+              </Badge>
             </IconButton>
+            <Popover
+              open={Boolean(notifAnchor)}
+              anchorEl={notifAnchor}
+              onClose={() => setNotifAnchor(null)}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+              slotProps={{ paper: { sx: { width: 440, maxHeight: 520, borderRadius: 3, boxShadow: "0 8px 40px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column" } } }}
+            >
+              {/* Header */}
+              <Box sx={{ px: 2.5, py: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Notifikasi</Typography>
+                  {unreadCount > 0 && <Chip label={unreadCount} size="small" color="error" sx={{ height: 18, fontSize: 11 }} />}
+                </Box>
+                <Box sx={{ display: "flex", gap: 0.5 }}>
+                  {unreadCount > 0 && (
+                    <Button size="small" sx={{ textTransform: "none", fontSize: 11 }} onClick={async () => {
+                      const batch = writeBatch(db);
+                      notifs.filter(n => !n.read).forEach(n => batch.update(doc(db, "admin_notifications", n.id), { read: true }));
+                      await batch.commit();
+                    }}>
+                      Baca Semua
+                    </Button>
+                  )}
+                  {notifs.some(n => n.read) && (
+                    <Button size="small" color="error" sx={{ textTransform: "none", fontSize: 11 }} onClick={async () => {
+                      const batch = writeBatch(db);
+                      notifs.filter(n => n.read).forEach(n => batch.delete(doc(db, "admin_notifications", n.id)));
+                      await batch.commit();
+                    }}>
+                      Hapus Dibaca
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+
+              {/* List */}
+              <Box sx={{ overflowY: "auto", flex: 1 }}>
+                {notifs.length === 0 ? (
+                  <Box sx={{ py: 6, textAlign: "center", color: "text.secondary" }}>
+                    <NotificationsIcon sx={{ fontSize: 40, opacity: 0.25, mb: 1 }} />
+                    <Typography variant="body2">Belum ada notifikasi</Typography>
+                  </Box>
+                ) : notifs.map(n => (
+                  <Box
+                    key={n.id}
+                    sx={{
+                      px: 2.5, py: 1.5,
+                      bgcolor: n.read ? "transparent" : "primary.50",
+                      borderBottom: "1px solid", borderColor: "divider",
+                      display: "flex", gap: 1.5, alignItems: "flex-start",
+                      "&:hover": { bgcolor: "action.hover" },
+                      "&:hover .notif-delete": { opacity: 1 },
+                    }}
+                  >
+                    <Box
+                      sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: n.read ? "transparent" : "primary.main", mt: 0.8, flexShrink: 0 }}
+                    />
+                    <Box
+                      sx={{ flex: 1, minWidth: 0, cursor: n.link ? "pointer" : "default" }}
+                      onClick={async () => {
+                        if (!n.read) await updateDoc(doc(db, "admin_notifications", n.id), { read: true });
+                        setNotifAnchor(null);
+                        if (n.link) router.push(n.link);
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: n.read ? 400 : 700, lineHeight: 1.3 }}>{n.title}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.3 }}>{n.body}</Typography>
+                      <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 0.5 }} suppressHydrationWarning>
+                        {typeof window !== "undefined" && n.created_at ? new Date(n.created_at).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      className="notif-delete"
+                      size="small"
+                      onClick={async e => { e.stopPropagation(); await deleteDoc(doc(db, "admin_notifications", n.id)); }}
+                      sx={{ opacity: 0, transition: "opacity 0.15s", flexShrink: 0, mt: -0.5 }}
+                      title="Hapus notifikasi ini"
+                    >
+                      <CloseIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            </Popover>
             <IconButton
               onClick={handleProfileMenuOpen}
               size="small"

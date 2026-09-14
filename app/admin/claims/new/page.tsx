@@ -17,6 +17,7 @@ import {
   AutoAwesome as AIIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/context/AuthContext";
+import { createAdminNotif } from "@/lib/notif";
 
 const CATEGORIES = ["Safety Tools", "Consumable Tools", "Hand Tools", "Konsumsi", "Akomodasi"];
 
@@ -198,6 +199,16 @@ export default function NewClaimPage() {
           photo_url: r.photo_url,
           items,
           subtotal: receiptSubtotal(r),
+        });
+      }
+
+      if (submitNow) {
+        const projName = projects.find(p => p.id === projectId)?.title || projectId;
+        await createAdminNotif({
+          title: "Klaim Baru Menunggu Persetujuan",
+          body: `"${title.trim()}" dari ${user?.displayName || user?.email || "Staff"} — Proyek: ${projName}`,
+          link: `/admin/claims/${claimRef.id}`,
+          type: "claim_submitted",
         });
       }
 

@@ -50,7 +50,11 @@ import {
   Assignment,
   Refresh,
   OpenInNew,
+  Receipt as ReceiptIcon,
 } from "@mui/icons-material";
+
+type ClaimSummaryRow = { userId: string; userName: string; total: number; pending: number; approved: number; rejected: number; totalNilai: number };
+type ClaimSummaryByProject = { projectTitle: string; rows: ClaimSummaryRow[] };
 
 interface ProjectRecord {
   id: string;
@@ -283,6 +287,11 @@ function AdminDashboard() {
   const adminMapRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Ringkasan klaim per karyawan per proyek
+  const [claimSummary, setClaimSummary] = useState<Record<string, ClaimSummaryByProject>>({});
+  const [projectsMap, setProjectsMap] = useState<Record<string, string>>({});
+  const [claimCompanyFilter, setClaimCompanyFilter] = useState<string>("all");
+
   const fetchMetrics = useCallback(async () => {
     try {
       const usersSnap = await getDocs(collection(db, "users"));
@@ -322,8 +331,14 @@ function AdminDashboard() {
 
     getDocs(collection(db, "projects")).then((snap) => {
       const list: ProjectRecord[] = [];
-      snap.forEach((doc) => list.push({ id: doc.id, ...doc.data() } as ProjectRecord));
+      const pmap: Record<string, string> = {};
+      snap.forEach((doc) => {
+        const d = doc.data();
+        list.push({ id: doc.id, ...d } as ProjectRecord);
+        pmap[doc.id] = d.title || doc.id;
+      });
       setAllProjects(list);
+      setProjectsMap(pmap);
     });
 
     getDocs(collection(db, "companies")).then((snap) => {
@@ -353,6 +368,35 @@ function AdminDashboard() {
       setProjectMandays(mandays);
     });
 
+    // Fetch ringkasan klaim per user per proyek
+    getDocs(collection(db, "expense_claims")).then(async (claimsSnap) => {
+      const usersSnap = await getDocs(collection(db, "users"));
+      const umap: Record<string, string> = {};
+      usersSnap.forEach(d => { const u = d.data(); umap[d.id] = u.name || u.displayName || u.email || d.id; });
+
+      const summary: Record<string, { projectTitle: string; users: Record<string, ClaimSummaryRow> }> = {};
+      claimsSnap.forEach(d => {
+        const c = d.data();
+        const pid = c.project_id || "unknown";
+        const uid = c.submitted_by || "unknown";
+        if (!summary[pid]) summary[pid] = { projectTitle: "", users: {} };
+        if (!summary[pid].users[uid]) summary[pid].users[uid] = { userId: uid, userName: umap[uid] || uid, total: 0, pending: 0, approved: 0, rejected: 0, totalNilai: 0 };
+        const row = summary[pid].users[uid];
+        row.total++;
+        row.totalNilai += c.total_amount || 0;
+        if (c.status === "pending_approval") row.pending++;
+        else if (c.status === "pending_reimbursement" || c.status === "completed") row.approved++;
+        else if (c.status === "rejected" || c.status === "cancelled") row.rejected++;
+      });
+
+      // Resolve project titles — will be filled once projectsMap is set
+      const result: Record<string, ClaimSummaryByProject> = {};
+      Object.entries(summary).forEach(([pid, val]) => {
+        result[pid] = { projectTitle: val.projectTitle, rows: Object.values(val.users).sort((a, b) => b.total - a.total) };
+      });
+      setClaimSummary(result);
+    });
+
     fetchMetrics();
 
     const q = query(
@@ -373,6 +417,18 @@ function AdminDashboard() {
 
     return () => unsubscribe();
   }, [fetchMetrics]);
+
+  // Update project titles di claimSummary setelah projectsMap tersedia
+  useEffect(() => {
+    if (Object.keys(projectsMap).length === 0 || Object.keys(claimSummary).length === 0) return;
+    setClaimSummary(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(pid => {
+        updated[pid] = { ...updated[pid], projectTitle: projectsMap[pid] || pid };
+      });
+      return updated;
+    });
+  }, [projectsMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const allowedProjectIds = radarFilterCompanyId === "all"
@@ -601,7 +657,8 @@ function AdminDashboard() {
         </Card>
       )}
 
-      <Card sx={{ mb: 3 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3, mb: 3 }}>
+      <Card>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
             <Box>
@@ -658,12 +715,87 @@ function AdminDashboard() {
         </CardContent>
       </Card>
 
+      {/* Ringkasan Klaim per Proyek */}
+      {(() => {
+        const formatRp = (v: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
+        if (Object.keys(claimSummary).length === 0) return null;
+        // Set project IDs yang termasuk company filter
+        const allowedPids = claimCompanyFilter === "all"
+          ? null
+          : new Set(allProjects.filter(p => p.company_id === claimCompanyFilter).map(p => p.id));
+        // Aggregasi: satu baris = satu proyek
+        const rows = Object.entries(claimSummary).filter(([pid]) => !allowedPids || allowedPids.has(pid)).map(([pid, proj]) => ({
+          pid,
+          projectTitle: projectsMap[pid] || proj.projectTitle || pid,
+          total: proj.rows.reduce((s, r) => s + r.total, 0),
+          pending: proj.rows.reduce((s, r) => s + r.pending, 0),
+          approved: proj.rows.reduce((s, r) => s + r.approved, 0),
+          rejected: proj.rows.reduce((s, r) => s + r.rejected, 0),
+          totalNilai: proj.rows.reduce((s, r) => s + r.totalNilai, 0),
+        })).sort((a, b) => b.total - a.total);
+        const grandTotal = { total: rows.reduce((s, r) => s + r.total, 0), pending: rows.reduce((s, r) => s + r.pending, 0), approved: rows.reduce((s, r) => s + r.approved, 0), rejected: rows.reduce((s, r) => s + r.rejected, 0), totalNilai: rows.reduce((s, r) => s + r.totalNilai, 0) };
+        return (
+          <Card>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Ringkasan Klaim per Proyek</Typography>
+                  <Typography variant="caption" color="text.secondary">Total pengajuan, status, dan nilai klaim per proyek</Typography>
+                </Box>
+                <FormControl size="small" sx={{ minWidth: 200, flexShrink: 0 }}>
+                  <InputLabel>Filter Perusahaan</InputLabel>
+                  <Select value={claimCompanyFilter} label="Filter Perusahaan" onChange={e => setClaimCompanyFilter(e.target.value)}>
+                    <MenuItem value="all">Semua Perusahaan</MenuItem>
+                    {companies.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Box>
+              <TableContainer component={Paper}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: "action.hover" }}>
+                      <TableCell sx={{ fontWeight: 700 }}>Proyek</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Total Klaim</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Menunggu</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Disetujui</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Ditolak</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Total Nilai</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map(row => (
+                      <TableRow key={row.pid} hover sx={{ cursor: "pointer" }} onClick={() => router.push(`/admin/projects/${row.pid}`)}>
+                        <TableCell sx={{ fontWeight: 600 }}>{row.projectTitle}</TableCell>
+                        <TableCell align="center"><Chip label={row.total} size="small" sx={{ fontWeight: 700, minWidth: 36 }} /></TableCell>
+                        <TableCell align="center">{row.pending > 0 ? <Chip label={row.pending} size="small" color="warning" sx={{ fontWeight: 700, minWidth: 36 }} /> : <Typography variant="body2" color="text.disabled">—</Typography>}</TableCell>
+                        <TableCell align="center">{row.approved > 0 ? <Chip label={row.approved} size="small" color="success" sx={{ fontWeight: 700, minWidth: 36 }} /> : <Typography variant="body2" color="text.disabled">—</Typography>}</TableCell>
+                        <TableCell align="center">{row.rejected > 0 ? <Chip label={row.rejected} size="small" color="error" sx={{ fontWeight: 700, minWidth: 36 }} /> : <Typography variant="body2" color="text.disabled">—</Typography>}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: "#6366f1" }}>{formatRp(row.totalNilai)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow sx={{ bgcolor: "action.selected" }}>
+                      <TableCell sx={{ fontWeight: 700 }}>Grand Total</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>{grandTotal.total}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700, color: "warning.main" }}>{grandTotal.pending || "—"}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700, color: "success.main" }}>{grandTotal.approved || "—"}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700, color: "error.main" }}>{grandTotal.rejected || "—"}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: "#6366f1" }}>{formatRp(grandTotal.totalNilai)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        );
+      })()}
+      </Box>
+
       <Card>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
             Kehadiran Karyawan Terbaru
           </Typography>
-          <TableContainer component={Paper} elevation={0} sx={{ border: "none" }}>
+          <TableContainer component={Paper}>
             <Table sx={{ minWidth: 600 }}>
               <TableHead>
                 <TableRow>
