@@ -19,6 +19,7 @@ export default function ProfilPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [userData, setUserData] = useState<any>(null);
+  const [loadingData, setLoadingData] = useState(true);
   const [toast, setToast] = useState<{ msg: string; sev: "success" | "error" } | null>(null);
 
   // Edit profil dialog
@@ -34,10 +35,15 @@ export default function ProfilPage() {
   const [changingPass, setChangingPass] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
-      if (snap.exists()) setUserData({ uid: snap.id, ...snap.data() });
-    });
+    if (!user) { setLoadingData(false); return; }
+    const unsub = onSnapshot(
+      doc(db, "users", user.uid),
+      (snap) => {
+        if (snap.exists()) setUserData({ uid: snap.id, ...snap.data() });
+        setLoadingData(false);
+      },
+      () => setLoadingData(false)
+    );
     return () => unsub();
   }, [user]);
 
@@ -80,6 +86,14 @@ export default function ProfilPage() {
     await logout();
     router.replace("/staff/login");
   };
+
+  if (loadingData) {
+    return (
+      <Box sx={{ display: "flex", minHeight: "60vh", alignItems: "center", justifyContent: "center" }}>
+        <CircularProgress sx={{ color: "#2563eb" }} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ pb: 2 }}>

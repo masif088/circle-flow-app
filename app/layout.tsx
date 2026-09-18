@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "LuminOne",
-  description: "Next-generation administration panel",
+  description: "LuminOne App Company Management",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.png",

@@ -1,7 +1,7 @@
 {
   "name": "LuminOne Staff",
   "short_name": "LuminOne",
-  "description": "Aplikasi staff LuminOne — presensi, aktivitas, dan klaim",
+  "description": "LuminOne App Company Management",
   "start_url": "/staff",
   "display": "standalone",
   "background_color": "#f0f2f5",
