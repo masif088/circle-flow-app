@@ -19,12 +19,26 @@ import {
 } from "@mui/icons-material";
 
 const TYPE_LABEL: Record<string, string> = {
-  claim: "Klaim",
-  project: "Proyek",
+  claim: "Klaim PDF",
+  project: "Proyek PDF",
+  pdf_kehadiran: "PDF Kehadiran",
+  csv_kehadiran: "CSV Kehadiran",
+  excel_pengeluaran: "Excel Pengeluaran",
+  pdf_perusahaan: "PDF Perusahaan",
+  csv_perusahaan: "CSV Perusahaan",
+  pdf_karyawan: "PDF Karyawan",
+  csv_karyawan: "CSV Karyawan",
 };
 const TYPE_COLOR: Record<string, any> = {
   claim: "info",
   project: "success",
+  pdf_kehadiran: "error",
+  csv_kehadiran: "success",
+  excel_pengeluaran: "warning",
+  pdf_perusahaan: "error",
+  csv_perusahaan: "success",
+  pdf_karyawan: "error",
+  csv_karyawan: "success",
 };
 
 interface ArchiveEntry {
@@ -106,8 +120,15 @@ export default function ArchivesPage() {
               <InputLabel>Tipe</InputLabel>
               <Select value={filterType} label="Tipe" onChange={e => setFilterType(e.target.value)}>
                 <MenuItem value="all">Semua</MenuItem>
-                <MenuItem value="claim">Klaim</MenuItem>
-                <MenuItem value="project">Proyek</MenuItem>
+                <MenuItem value="claim">Klaim PDF</MenuItem>
+                <MenuItem value="project">Proyek PDF</MenuItem>
+                <MenuItem value="pdf_kehadiran">PDF Kehadiran</MenuItem>
+                <MenuItem value="csv_kehadiran">CSV Kehadiran</MenuItem>
+                <MenuItem value="excel_pengeluaran">Excel Pengeluaran</MenuItem>
+                <MenuItem value="pdf_perusahaan">PDF Perusahaan</MenuItem>
+                <MenuItem value="csv_perusahaan">CSV Perusahaan</MenuItem>
+                <MenuItem value="pdf_karyawan">PDF Karyawan</MenuItem>
+                <MenuItem value="csv_karyawan">CSV Karyawan</MenuItem>
               </Select>
             </FormControl>
             <TextField size="small" label="Dari tanggal" type="date" value={filterDateFrom}
@@ -154,7 +175,7 @@ export default function ArchivesPage() {
                     <TableRow key={e.id} hover>
                       <TableCell>
                         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                          <PdfIcon sx={{ color: "#ef4444", fontSize: 18 }} />
+                          <PdfIcon sx={{ color: e.type?.includes("csv") ? "#10b981" : e.type?.includes("excel") ? "#f59e0b" : "#ef4444", fontSize: 18 }} />
                           <Typography variant="body2" sx={{ fontSize: 12, fontWeight: 500 }}>{e.filename}</Typography>
                         </Stack>
                       </TableCell>
@@ -164,7 +185,14 @@ export default function ArchivesPage() {
                       <TableCell>
                         <Typography
                           variant="body2" sx={{ fontSize: 12, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
-                          onClick={() => e.type === "claim" ? window.open(`/admin/claims/${e.ref_id}`, "_blank") : window.open(`/admin/projects/${e.ref_id}`, "_blank")}
+                          onClick={() => {
+                            const url =
+                              e.type === "claim" ? `/admin/claims/${e.ref_id}`
+                              : e.type?.includes("karyawan") ? `/admin/users/${e.ref_id}`
+                              : e.type?.includes("perusahaan") ? `/admin/companies/${e.ref_id}`
+                              : `/admin/projects/${e.ref_id}`;
+                            window.open(url, "_blank");
+                          }}
                         >
                           {e.ref_title || e.ref_id}
                         </Typography>
@@ -179,17 +207,25 @@ export default function ArchivesPage() {
                         <Typography variant="body2" sx={{ fontSize: 12 }} color="text.secondary">{fmtDate(e.generated_at)}</Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: "center" }}>
-                          <Tooltip title="Buka di tab baru">
-                            <IconButton size="small" color="primary" onClick={() => window.open(e.file_url, "_blank")}>
-                              <OpenInNewIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Download">
-                            <IconButton size="small" color="success" component="a" href={e.file_url} download={e.filename} target="_blank">
-                              <DownloadIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: "center", alignItems: "center" }}>
+                          {e.file_url ? (
+                            <>
+                              <Tooltip title="Buka di tab baru">
+                                <IconButton size="small" color="primary" onClick={() => window.open(e.file_url, "_blank")}>
+                                  <OpenInNewIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Download">
+                                <IconButton size="small" color="success" component="a" href={e.file_url} download={e.filename} target="_blank">
+                                  <DownloadIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          ) : (
+                            <Tooltip title="File tersimpan di perangkat lokal saat diexport">
+                              <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, px: 0.5 }}>Lokal</Typography>
+                            </Tooltip>
+                          )}
                           <Tooltip title="Hapus dari arsip">
                             <IconButton size="small" color="error" onClick={() => handleDelete(e.id, e.filename)}>
                               <DeleteIcon fontSize="small" />

@@ -244,49 +244,49 @@ export default function ClaimDetailPage() {
     setActionLoading(false);
   };
 
+  const [reimburseSubmitting, setReimburseSubmitting] = useState(false);
+
   const handleReimburse = async () => {
-    const amount = parseFloat(reimburseAmount.replace(/\D/g, ""));
-    if (!amount) return;
+    const amount = parseFloat(reimburseAmount.replace(/[^\d.]/g, ""));
+    if (isNaN(amount) || amount < 0) return;
+    setReimburseSubmitting(true);
     setActionLoading(true); setError("");
     try {
       const now = new Date().toISOString();
-      await updateDoc(doc(db, "expense_claims", claimId), {
-        status: "completed",
-        reimbursement_amount: amount,
-        reimbursement_notes: reimburseNotes,
-        updated_at: now,
-      });
-
-      // Buat entri project_expenditures per nota
-      if (claim?.project_id && receipts.length > 0) {
-        for (const receipt of receipts) {
-          for (const item of receipt.items) {
-            await addDoc(collection(db, "project_expenditures"), {
-              project_id: claim.project_id,
-              item_name: item.name,
-              category: item.category || "Material",
-              price: item.unit_price,
-              quantity: item.qty,
-              paid_qty: item.qty,
-              unit: (item as any).unit || "pcs",
-              total_spent: item.total,
-              status: "Terbayar",
-              source: "expense_claim",
-              claim_id: claimId,
-              claim_title: claim.title,
-              vendor: receipt.vendor || "",
-              receipt_date: receipt.receipt_date || "",
-              created_at: now,
-              updated_at: now,
-            });
-          }
-        }
+      const writes: Promise<any>[] = [
+        updateDoc(doc(db, "expense_claims", claimId), {
+          status: "completed",
+          reimbursement_amount: amount,
+          reimbursement_notes: reimburseNotes,
+          updated_at: now,
+        }),
+      ];
+      if (claim?.project_id) {
+        const totalAll = receipts.reduce((s, r) => s + r.items.reduce((si, it) => si + (it.total || 0), 0), 0);
+        const unpaidAmount = Math.max(0, totalAll - amount);
+        writes.push(addDoc(collection(db, "project_expenditures"), {
+          project_id: claim.project_id,
+          item_name: claim.title,
+          category: (claim as any).category || "Pembelanjaan",
+          quantity: 1,
+          unit: "klaim",
+          price: totalAll,
+          total_spent: amount,
+          unpaid_amount: unpaidAmount,
+          status: unpaidAmount > 0 ? "Terbayar Sebagian" : "Terbayar",
+          source: "expense_claim",
+          claim_id: claimId,
+          claim_title: claim.title,
+          created_at: now,
+          updated_at: now,
+        }));
       }
-
+      await Promise.all(writes);
       setClaim(prev => prev ? { ...prev, status: "completed", reimbursement_amount: amount, reimbursement_notes: reimburseNotes } : prev);
       setReimburseDialog(false);
     } catch (e: any) { setError(e.message); }
     setActionLoading(false);
+    setReimburseSubmitting(false);
   };
 
   const openNewReceipt = () => {
@@ -663,7 +663,7 @@ export default function ClaimDetailPage() {
             </Button>
           )}
           {canReimburse && (
-            <Button variant="contained" color="primary" startIcon={<ReimburseIcon />} onClick={() => { setReimburseAmount(String(claim.requested_reimburse_amount || claim.total_amount || "")); setReimburseDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+            <Button variant="contained" color="primary" startIcon={<ReimburseIcon />} onClick={() => { setReimburseAmount("0"); setReimburseDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
               Catat Reimbursement
             </Button>
           )}
@@ -915,8 +915,15 @@ export default function ClaimDetailPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={() => setReimburseDialog(false)}>Batal</Button>
-          <Button variant="contained" color="success" onClick={handleReimburse} disabled={actionLoading} sx={{ textTransform: "none" }}>
-            Konfirmasi Reimbursement
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleReimburse}
+            disabled={reimburseSubmitting}
+            startIcon={reimburseSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{ textTransform: "none" }}
+          >
+            {reimburseSubmitting ? "Memproses..." : "Konfirmasi Reimbursement"}
           </Button>
         </DialogActions>
       </Dialog>

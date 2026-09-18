@@ -13,19 +13,14 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  Tabs,
-  Tab,
   InputAdornment,
   IconButton,
 } from "@mui/material";
 import { Visibility, VisibilityOff, LockOutlined, EmailOutlined } from "@mui/icons-material";
 
 export default function LoginPage() {
-  const { user, loading, loginWithEmail, signUpWithEmail } = useAuth();
+  const { user, loading, loginWithEmail } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState(0); // 0 = Login, 1 = Register
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -38,40 +33,21 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTab(newValue);
-    setError("");
-    setEmail("");
-    setPassword("");
-    setFirstName("");
-    setLastName("");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || (tab === 1 && (!firstName || !lastName))) {
+    if (!email || !password) {
       setError("Please fill in all fields.");
       return;
     }
     setError("");
     setSubmitting(true);
-
     try {
-      if (tab === 0) {
-        await loginWithEmail(email, password);
-      } else {
-        await signUpWithEmail(email, password, firstName, lastName);
-      }
+      await loginWithEmail(email, password);
       router.push("/admin");
     } catch (err) {
-      console.error(err);
       const fbError = err as { code?: string; message?: string };
       if (fbError.code === "auth/invalid-credential") {
         setError("Invalid email or password.");
-      } else if (fbError.code === "auth/email-already-in-use") {
-        setError("This email address is already in use.");
-      } else if (fbError.code === "auth/weak-password") {
-        setError("Password should be at least 6 characters.");
       } else {
         setError(fbError.message || "An authentication error occurred.");
       }
@@ -81,15 +57,7 @@ export default function LoginPage() {
 
   if (loading || user) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          minHeight: "100vh",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
-        }}
-      >
+      <Box sx={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)" }}>
         <CircularProgress color="primary" />
       </Box>
     );
@@ -108,12 +76,7 @@ export default function LoginPage() {
     >
       <Container maxWidth="sm">
         <Box sx={{ mb: 4, textAlign: "center" }}>
-          <Box
-            component="img"
-            src="/logo_lumina.png"
-            alt="LuminOne"
-            sx={{ height: 56, objectFit: "contain", mb: 1 }}
-          />
+          <Box component="img" src="/logo_lumina.png" alt="LuminOne" sx={{ height: 56, objectFit: "contain", mb: 1 }} />
           <Typography variant="body2" color="text.secondary">
             Enterprise Cloud Management Platform
           </Typography>
@@ -122,26 +85,16 @@ export default function LoginPage() {
         <Card
           sx={{
             background: (theme) =>
-              theme.palette.mode === "dark"
-                ? "rgba(17, 24, 39, 0.7)"
-                : "rgba(255, 255, 255, 0.8)",
+              theme.palette.mode === "dark" ? "rgba(17, 24, 39, 0.7)" : "rgba(255, 255, 255, 0.8)",
             backdropFilter: "blur(12px)",
             borderRadius: 4,
           }}
         >
-          <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-            <Tabs
-              value={tab}
-              onChange={handleTabChange}
-              variant="fullWidth"
-              textColor="primary"
-              indicatorColor="primary"
-            >
-              <Tab label="Sign In" sx={{ py: 2 }} />
-              <Tab label="Register" sx={{ py: 2 }} />
-            </Tabs>
-          </Box>
           <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, textAlign: "center" }}>
+              Sign In
+            </Typography>
+
             {error && (
               <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                 {error}
@@ -149,33 +102,10 @@ export default function LoginPage() {
             )}
 
             <Box component="form" onSubmit={handleSubmit} noValidate>
-              {tab === 1 && (
-                <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
-                  <TextField
-                    required
-                    fullWidth
-                    id="firstName"
-                    label="First Name"
-                    name="firstName"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                  />
-                  <TextField
-                    required
-                    fullWidth
-                    id="lastName"
-                    label="Last Name"
-                    name="lastName"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                  />
-                </Box>
-              )}
               <TextField
                 margin="normal"
                 required
                 fullWidth
-                id="email"
                 label="Email Address"
                 name="email"
                 autoComplete="email"
@@ -196,10 +126,9 @@ export default function LoginPage() {
                 margin="normal"
                 required
                 fullWidth
-                name="password"
                 label="Password"
                 type={showPassword ? "text" : "password"}
-                id="password"
+                name="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -212,11 +141,7 @@ export default function LoginPage() {
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
                       </InputAdornment>
@@ -235,27 +160,14 @@ export default function LoginPage() {
                 sx={{
                   py: 1.5,
                   borderRadius: 2,
-                  background:
-                    tab === 0
-                      ? "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)"
-                      : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                   color: "#ffffff",
                   fontSize: "1rem",
                   fontWeight: "bold",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    transform: "translateY(-1px)",
-                    filter: "brightness(1.1)",
-                  },
+                  "&:hover": { transform: "translateY(-1px)", filter: "brightness(1.1)" },
                 }}
               >
-                {submitting ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : tab === 0 ? (
-                  "Sign In"
-                ) : (
-                  "Create Account"
-                )}
+                {submitting ? <CircularProgress size={24} color="inherit" /> : "Sign In"}
               </Button>
             </Box>
           </CardContent>

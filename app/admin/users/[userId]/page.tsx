@@ -12,6 +12,9 @@ import {
   where,
   getDocs,
   updateDoc,
+  addDoc,
+  onSnapshot,
+  orderBy,
 } from "firebase/firestore";
 import {
   Box,
@@ -65,6 +68,54 @@ interface UserRecord {
   status: "active" | "suspended";
   createdAt: string;
   position?: string;
+}
+
+function ArsipLaporanKaryawan({ userId }: { userId: string }) {
+  const [reports, setReports] = React.useState<any[]>([]);
+  const TYPE_LABEL: Record<string, string> = {
+    pdf_karyawan: "PDF Laporan",
+    csv_karyawan: "CSV Kehadiran",
+  };
+  const TYPE_COLOR: Record<string, "error" | "success"> = {
+    pdf_karyawan: "error",
+    csv_karyawan: "success",
+  };
+
+  React.useEffect(() => {
+    const q = query(
+      collection(db, "pdf_archives"),
+      where("ref_id", "==", userId)
+    );
+    const unsub = onSnapshot(q, snap => {
+      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).sort((a: any, b: any) => (b.generated_at || "").localeCompare(a.generated_at || "")));
+    }, err => console.warn("Arsip karyawan error:", err));
+    return () => unsub();
+  }, [userId]);
+
+  if (reports.length === 0) return null;
+
+  return (
+    <Box sx={{ mt: 3 }}>
+      <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Arsip Laporan</Typography>
+          <Stack spacing={1}>
+            {reports.map((r) => (
+              <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                <Chip label={TYPE_LABEL[r.type] || r.type} size="small" color={TYPE_COLOR[r.type] || "default"} sx={{ fontWeight: 600, minWidth: 110 }} />
+                <Typography variant="body2" sx={{ flex: 1, fontFamily: "monospace", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {r.filename}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                  {r.generated_at ? new Date(r.generated_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        </CardContent>
+      </Card>
+    </Box>
+  );
 }
 
 export default function UserDetailPage() {
@@ -401,11 +452,37 @@ export default function UserDetailPage() {
       }
 
       const { buildFilename } = await import("@/lib/filename");
-      pdf.save(buildFilename(userRecord.name, "REPORT-KARYAWAN", `${startDate}_sd_${endDate}`));
+      const filename = buildFilename(userRecord.name, "REPORT-KARYAWAN", `${startDate}_sd_${endDate}`);
+      const pdfBlob = pdf.output("blob");
+      pdf.save(filename);
+      saveArsip("pdf_karyawan", filename, pdfBlob);
     } catch (e) {
       console.error("Gagal membuat laporan:", e);
     } finally {
       setGeneratingPdf(false);
+    }
+  };
+
+  const saveArsip = async (type: string, filename: string, blob: Blob) => {
+    try {
+      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+      const { storage } = await import("@/lib/firebase");
+      const storageRef = ref(storage, `archives/${type}/${Date.now()}_${filename}`);
+      await uploadBytes(storageRef, blob);
+      const file_url = await getDownloadURL(storageRef);
+      await addDoc(collection(db, "pdf_archives"), {
+        type,
+        ref_id: userId,
+        ref_title: userRecord?.name || "",
+        project_title: "",
+        filename,
+        file_url,
+        generated_at: new Date().toISOString(),
+        generated_by: "",
+        generated_by_name: "Admin",
+      });
+    } catch (e) {
+      console.warn("Gagal simpan arsip laporan:", e);
     }
   };
 
@@ -699,13 +776,15 @@ export default function UserDetailPage() {
                     ]),
                   ];
                   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-                  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-                  const url = URL.createObjectURL(blob);
+                  const csvBlob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(csvBlob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = buildFilename(userRecord?.name || "KARYAWAN", "KEHADIRAN", `${startDate}_sd_${endDate}`, "csv");
+                  const csvFilename = buildFilename(userRecord?.name || "KARYAWAN", "KEHADIRAN", `${startDate}_sd_${endDate}`, "csv");
+                  a.download = csvFilename;
                   a.click();
                   URL.revokeObjectURL(url);
+                  saveArsip("csv_karyawan", csvFilename, csvBlob);
                 }}
                 startIcon={<CsvIcon />}
                 color="success"
@@ -959,6 +1038,8 @@ export default function UserDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ArsipLaporanKaryawan userId={userId} />
 
       {lightboxSrc && (
         <Box

@@ -82,6 +82,7 @@ export default function ClaimsPage() {
   const [filterStart, setFilterStart] = useState("");
   const [filterEnd, setFilterEnd] = useState("");
   const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -130,6 +131,10 @@ export default function ClaimsPage() {
       ) return false;
     }
     return true;
+  }).sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return sortOrder === "desc" ? tb - ta : ta - tb;
   });
 
   const formatRp = (val?: number) =>
@@ -259,7 +264,9 @@ export default function ClaimsPage() {
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Total Nilai</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Reimbursement</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Tanggal</TableCell>
+                    <TableCell sx={{ fontWeight: 600, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }} onClick={() => setSortOrder(p => p === "desc" ? "asc" : "desc")}>
+                      Tanggal {sortOrder === "desc" ? "↓" : "↑"}
+                    </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>Aksi</TableCell>
                   </TableRow>
                 </TableHead>

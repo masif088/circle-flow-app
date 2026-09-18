@@ -243,6 +243,7 @@ export default function PresenceAdminPage() {
   const [search, setSearch] = useState("");
   const [presPage, setPresPage] = useState(0);
   const [presRowsPerPage, setPresRowsPerPage] = useState(10);
+  const [presSortOrder, setPresSortOrder] = useState<"desc" | "asc">("desc");
 
   // Tarif Harian filter & pagination
   const [costsSearch, setCostsSearch] = useState("");
@@ -779,8 +780,13 @@ export default function PresenceAdminPage() {
   }, [presences, startDate, endDate, filterUser, search, users, projects]);
 
   const pagedPresences = React.useMemo(() => {
-    return filteredPresences.slice(presPage * presRowsPerPage, presPage * presRowsPerPage + presRowsPerPage);
-  }, [filteredPresences, presPage, presRowsPerPage]);
+    const sorted = [...filteredPresences].sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return presSortOrder === "desc" ? tb - ta : ta - tb;
+    });
+    return sorted.slice(presPage * presRowsPerPage, presPage * presRowsPerPage + presRowsPerPage);
+  }, [filteredPresences, presPage, presRowsPerPage, presSortOrder]);
 
   return (
     <Box>
@@ -950,7 +956,9 @@ export default function PresenceAdminPage() {
                     <TableCell sx={{ fontWeight: 600 }}>GPS</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Biaya Harian</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Waktu Masuk</TableCell>
+                    <TableCell sx={{ fontWeight: 600, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }} onClick={() => { setPresSortOrder(p => p === "desc" ? "asc" : "desc"); setPresPage(0); }}>
+                      Waktu Masuk {presSortOrder === "desc" ? "↓" : "↑"}
+                    </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Waktu Keluar</TableCell>
                     <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                   </TableRow>

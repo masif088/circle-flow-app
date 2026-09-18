@@ -25,7 +25,8 @@ import {
   onSnapshot,
   orderBy,
   setDoc,
-  deleteDoc
+  deleteDoc,
+  addDoc
 } from "firebase/firestore";
 import {
   Box,
@@ -201,6 +202,61 @@ interface LeafletType {
   latLngBounds: (points: number[][]) => unknown;
 }
 
+function ArsipLaporanSection({ projectId }: { projectId: string }) {
+  const [reports, setReports] = React.useState<any[]>([]);
+  const TYPE_LABEL: Record<string, string> = {
+    pdf_kehadiran: "PDF Kehadiran",
+    csv_kehadiran: "CSV Kehadiran",
+    excel_pengeluaran: "Excel Pengeluaran",
+  };
+  const TYPE_COLOR: Record<string, "error" | "success" | "warning"> = {
+    pdf_kehadiran: "error",
+    csv_kehadiran: "success",
+    excel_pengeluaran: "warning",
+  };
+
+  React.useEffect(() => {
+    const q = query(
+      collection(db, "pdf_archives"),
+      where("ref_id", "==", projectId)
+    );
+    const unsub = onSnapshot(q, snap => {
+      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).sort((a: any, b: any) => (b.generated_at || "").localeCompare(a.generated_at || "")));
+    }, err => console.warn("Arsip proyek error:", err));
+    return () => unsub();
+  }, [projectId]);
+
+  if (reports.length === 0) return null;
+
+  return (
+    <Card sx={{ mb: 4 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+          Arsip Laporan
+        </Typography>
+        <Stack spacing={1}>
+          {reports.map((r) => (
+            <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+              <Chip label={TYPE_LABEL[r.type] || r.type} size="small" color={TYPE_COLOR[r.type] || "default"} sx={{ fontWeight: 600, minWidth: 120 }} />
+              <Typography variant="body2" sx={{ flex: 1, fontFamily: "monospace", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {r.filename}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                {r.generated_at ? new Date(r.generated_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"}
+              </Typography>
+              {r.generated_by_name && (
+                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                  oleh {r.generated_by_name}
+                </Typography>
+              )}
+            </Box>
+          ))}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const router = useRouter();
@@ -271,6 +327,7 @@ export default function ProjectDetailPage() {
   const [expStatus, setExpStatus] = useState("Belum Terbayar");
   const [expPage, setExpPage] = useState(0);
   const [expRowsPerPage, setExpRowsPerPage] = useState(10);
+  const [expSortOrder, setExpSortOrder] = useState<"desc" | "asc">("desc");
   const [workerPage, setWorkerPage] = useState(0);
   const workerRowsPerPage = 5;
   const [wagePage, setWagePage] = useState(0);
@@ -506,10 +563,33 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const saveArsip = async (type: string, filename: string, blob: Blob) => {
+    try {
+      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+      const { storage } = await import("@/lib/firebase");
+      const storageRef = ref(storage, `archives/${type}/${Date.now()}_${filename}`);
+      await uploadBytes(storageRef, blob);
+      const file_url = await getDownloadURL(storageRef);
+      await addDoc(collection(db, "pdf_archives"), {
+        type,
+        ref_id: projectId,
+        ref_title: project?.title || "",
+        project_title: project?.title || "",
+        filename,
+        file_url,
+        generated_at: new Date().toISOString(),
+        generated_by: user?.uid || "",
+        generated_by_name: user?.displayName || user?.email || "Admin",
+      });
+    } catch (e) {
+      console.warn("Gagal simpan arsip laporan:", e);
+    }
+  };
+
   const handleExportExpendituresExcel = async () => {
     if (!project) return;
     try {
-      const { utils, writeFile } = await import("xlsx");
+      const { utils, writeFile, write } = await import("xlsx");
 
       // Fetch claim receipts for entries sourced from expense_claim
       const claimRows: any[] = [];
@@ -564,7 +644,10 @@ export default function ProjectDetailPage() {
       }
 
       const { buildFilename } = await import("@/lib/filename");
-      writeFile(wb, buildFilename(project.title, "PENGELUARAN", undefined, "xlsx"));
+      const filename = buildFilename(project.title, "PENGELUARAN", undefined, "xlsx");
+      const xlsxBuf = write(wb, { type: "array", bookType: "xlsx" });
+      writeFile(wb, filename);
+      await saveArsip("excel_pengeluaran", filename, new Blob([xlsxBuf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
     } catch (e: any) {
       showMsg("Gagal export Excel: " + e.message, "error");
     }
@@ -1210,7 +1293,10 @@ export default function ProjectDetailPage() {
       }
 
       const { buildFilename } = await import("@/lib/filename");
-      pdf.save(buildFilename(project.title, "REPORT-KEHADIRAN", `${startDate}_sd_${endDate}`));
+      const filename = buildFilename(project.title, "REPORT-KEHADIRAN", `${startDate}_sd_${endDate}`);
+      const pdfBlob = pdf.output("blob");
+      pdf.save(filename);
+      await saveArsip("pdf_kehadiran", filename, pdfBlob);
     } catch (e: unknown) {
       console.error("Gagal membuat laporan PDF:", e);
       showMsg("Gagal membuat laporan PDF: " + (e instanceof Error ? e.message : String(e)), "error");
@@ -1968,50 +2054,55 @@ export default function ProjectDetailPage() {
                       <TableRow>
                         <TableCell sx={{ fontWeight: 600 }}>Barang / Jasa</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>Kategori</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Harga</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>Kuantitas</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Terbayar</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Total Rencana</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Total Terbayar</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>Total</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>Sumber</TableCell>
+                        <TableCell
+                          sx={{ fontWeight: 600, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+                          onClick={() => { setExpSortOrder(p => p === "desc" ? "asc" : "desc"); setExpPage(0); }}
+                        >
+                          Tanggal {expSortOrder === "desc" ? "↓" : "↑"}
+                        </TableCell>
                         <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {expenditures.slice(expPage * expRowsPerPage, expPage * expRowsPerPage + expRowsPerPage).map((exp) => {
-                        const totalPlanned = (exp.price || 0) * (exp.quantity || 0);
-                        const totalPaid = exp.total_spent || 0;
+                      {[...expenditures].sort((a, b) => {
+                        const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+                        const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+                        return expSortOrder === "desc" ? tb - ta : ta - tb;
+                      }).slice(expPage * expRowsPerPage, expPage * expRowsPerPage + expRowsPerPage).map((exp) => {
+                        const isFromClaim = exp.source === "expense_claim";
+                        const totalNota = (exp.price || 0) * (exp.quantity || 0);
+                        const unpaid = exp.unpaid_amount ?? Math.max(0, totalNota - (exp.total_spent || 0));
+                        const displayStatus = isFromClaim ? "Terbayar" : exp.status;
+                        const statusColor =
+                          displayStatus === "Terbayar" || displayStatus === "Sudah terbayar" ? "success"
+                          : displayStatus === "Terbayar Sebagian" || displayStatus === "Terbayar sebagian" ? "info"
+                          : displayStatus === "Direncanakan" ? "default"
+                          : displayStatus === "Ditunda" ? "secondary"
+                          : displayStatus === "Belum Terbayar" ? "warning"
+                          : "error";
                         return (
                           <TableRow key={exp.id} hover>
                             <TableCell sx={{ fontWeight: 600 }}>{exp.item_name}</TableCell>
                             <TableCell>
                               <Chip label={exp.category} size="small" variant="outlined" />
                             </TableCell>
-                            <TableCell>{formatPrice(exp.price)}</TableCell>
                             <TableCell>{exp.quantity} {exp.unit || ""}</TableCell>
-                            <TableCell>{exp.paid_qty} {exp.unit || ""}</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>{formatPrice(totalPlanned)}</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: "success.main" }}>{formatPrice(totalPaid)}</TableCell>
                             <TableCell>
-                              <Chip
-                                label={exp.status}
-                                size="small"
-                                color={
-                                  exp.status === "Sudah terbayar"
-                                    ? "success"
-                                    : exp.status === "Terbayar sebagian"
-                                    ? "info"
-                                    : exp.status === "Direncanakan"
-                                    ? "default"
-                                    : exp.status === "Ditunda"
-                                    ? "secondary"
-                                    : exp.status === "Belum Terbayar"
-                                    ? "warning"
-                                    : "error"
-                                }
-                                sx={{ fontWeight: 600 }}
-                              />
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>
+                                {formatPrice(totalNota)}
+                              </Typography>
+                              {!isFromClaim && unpaid > 0 && (
+                                <Typography variant="caption" color="warning.main">
+                                  belum terbayar {formatPrice(unpaid)}
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={displayStatus} size="small" color={statusColor as any} sx={{ fontWeight: 600 }} />
                             </TableCell>
                             <TableCell>
                               {exp.source === "expense_claim" && exp.claim_id ? (
@@ -2027,6 +2118,11 @@ export default function ProjectDetailPage() {
                               ) : (
                                 <Typography variant="caption" color="text.secondary">Manual</Typography>
                               )}
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                                {exp.created_at ? new Date(exp.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-"}
+                              </Typography>
                             </TableCell>
                             <TableCell align="right">
                               <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
@@ -2068,7 +2164,7 @@ export default function ProjectDetailPage() {
                     Ringkasan Kategori
                   </Typography>
                   <Stack spacing={2}>
-                    {["Material", "Peralatan", "Transportasi", "Jasa", "Lain-lain"].map((cat) => {
+                    {["Material", "Peralatan", "Transportasi", "Jasa", "Pembelanjaan", "Lain-lain"].map((cat) => {
                       const data = categorySummary[cat] || { planned: 0, paid: 0 };
                       return (
                         <Box key={cat} sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1.5 }}>
@@ -2089,6 +2185,9 @@ export default function ProjectDetailPage() {
           </Grid>
         </CardContent>
       </Card>}
+
+      {/* Arsip Laporan */}
+      <ArsipLaporanSection projectId={projectId as string} />
 
       {/* Section Divider / Date Filter for Presence Details */}
       <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
@@ -2309,13 +2408,15 @@ export default function ProjectDetailPage() {
                     ]),
                   ];
                   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-                  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-                  const url = URL.createObjectURL(blob);
+                  const csvBlob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(csvBlob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = buildFilename(project?.title || "PROYEK", "KEHADIRAN", `${startDate}_sd_${endDate}`, "csv");
+                  const csvFilename = buildFilename(project?.title || "PROYEK", "KEHADIRAN", `${startDate}_sd_${endDate}`, "csv");
+                  a.download = csvFilename;
                   a.click();
                   URL.revokeObjectURL(url);
+                  saveArsip("csv_kehadiran", csvFilename, csvBlob);
                 }}
                 sx={{ borderRadius: 2, textTransform: "none" }}
               >
@@ -3006,7 +3107,7 @@ export default function ProjectDetailPage() {
                 label="Kategori"
                 onChange={(e) => setExpCategory(e.target.value)}
               >
-                {["Material", "Peralatan", "Transportasi", "Jasa", "Lain-lain"].map((cat) => (
+                {["Material", "Peralatan", "Transportasi", "Jasa", "Pembelanjaan", "Lain-lain"].map((cat) => (
                   <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                 ))}
               </Select>

@@ -11,7 +11,9 @@ import {
   query,
   where,
   getDocs,
-  onSnapshot
+  onSnapshot,
+  addDoc,
+  orderBy
 } from "firebase/firestore";
 import {
   Box,
@@ -75,6 +77,52 @@ interface ProjectRecord {
   company_id: string;
   value?: number;
   status?: string;
+}
+
+function ArsipLaporanPerusahaan({ companyId }: { companyId: string }) {
+  const [reports, setReports] = React.useState<any[]>([]);
+  const TYPE_LABEL: Record<string, string> = {
+    pdf_perusahaan: "PDF Laporan",
+    csv_perusahaan: "CSV Laporan",
+  };
+  const TYPE_COLOR: Record<string, "error" | "success"> = {
+    pdf_perusahaan: "error",
+    csv_perusahaan: "success",
+  };
+
+  React.useEffect(() => {
+    const q = query(
+      collection(db, "pdf_archives"),
+      where("ref_id", "==", companyId)
+    );
+    const unsub = onSnapshot(q, snap => {
+      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).sort((a: any, b: any) => (b.generated_at || "").localeCompare(a.generated_at || "")));
+    }, err => console.warn("Arsip perusahaan error:", err));
+    return () => unsub();
+  }, [companyId]);
+
+  if (reports.length === 0) return null;
+
+  return (
+    <Card sx={{ mt: 3, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Arsip Laporan</Typography>
+        <Stack spacing={1}>
+          {reports.map((r) => (
+            <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+              <Chip label={TYPE_LABEL[r.type] || r.type} size="small" color={TYPE_COLOR[r.type] || "default"} sx={{ fontWeight: 600, minWidth: 110 }} />
+              <Typography variant="body2" sx={{ flex: 1, fontFamily: "monospace", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {r.filename}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                {r.generated_at ? new Date(r.generated_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-"}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function CompanyDetailPage() {
@@ -615,7 +663,10 @@ export default function CompanyDetailPage() {
       }
 
       const { buildFilename } = await import("@/lib/filename");
-      pdf.save(buildFilename(company.title, "REPORT", `${startDate}_sd_${endDate}`));
+      const filename = buildFilename(company.title, "REPORT", `${startDate}_sd_${endDate}`);
+      const pdfBlob = pdf.output("blob");
+      pdf.save(filename);
+      saveArsip("pdf_perusahaan", filename, pdfBlob);
     } catch (e) {
       console.error("Gagal membuat laporan:", e);
     } finally {
@@ -643,13 +694,38 @@ export default function CompanyDetailPage() {
       p.status === "Approved" ? "Disetujui" : p.status === "Rejected" ? "Ditolak" : "Menunggu",
     ]);
     const csvContent = "﻿" + [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
+    const csvBlob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(csvBlob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = buildFilename(company.title, "REPORT", `${startDate}_sd_${endDate}`, "csv");
+    const csvFilename = buildFilename(company.title, "REPORT", `${startDate}_sd_${endDate}`, "csv");
+    a.download = csvFilename;
     a.click();
     URL.revokeObjectURL(url);
+    saveArsip("csv_perusahaan", csvFilename, csvBlob);
+  };
+
+  const saveArsip = async (type: string, filename: string, blob: Blob) => {
+    try {
+      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+      const { storage } = await import("@/lib/firebase");
+      const storageRef = ref(storage, `archives/${type}/${Date.now()}_${filename}`);
+      await uploadBytes(storageRef, blob);
+      const file_url = await getDownloadURL(storageRef);
+      await addDoc(collection(db, "pdf_archives"), {
+        type,
+        ref_id: companyId,
+        ref_title: company?.title || "",
+        project_title: "",
+        filename,
+        file_url,
+        generated_at: new Date().toISOString(),
+        generated_by: "",
+        generated_by_name: "Admin",
+      });
+    } catch (e) {
+      console.warn("Gagal simpan arsip laporan:", e);
+    }
   };
 
   if (loading) {
@@ -1029,6 +1105,8 @@ export default function CompanyDetailPage() {
           </Card>
         </Grid>
       </Grid>
+
+      <ArsipLaporanPerusahaan companyId={companyId} />
 
       {lightboxPhoto && (
         <Box onClick={() => setLightboxPhoto(null)} sx={{ position: "fixed", inset: 0, zIndex: 9999, bgcolor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
