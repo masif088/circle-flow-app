@@ -90,7 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push("/login");
     }
     if (!loading && user && userProfile?.role === "staff") {
-      router.push("/login");
+      router.replace("/staff");
     }
   }, [user, userProfile, loading, router]);
 

@@ -19,7 +19,7 @@ import {
 import { Visibility, VisibilityOff, LockOutlined, EmailOutlined } from "@mui/icons-material";
 
 export default function LoginPage() {
-  const { user, loading, loginWithEmail } = useAuth();
+  const { user, userProfile, loading, loginWithEmail } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,10 +28,14 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
-      router.push("/admin");
+    if (!loading && user && userProfile) {
+      if (userProfile.role === "staff") {
+        router.replace("/staff");
+      } else {
+        router.replace("/admin");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, userProfile, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +47,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await loginWithEmail(email, password);
-      router.push("/admin");
+      // redirect handled by useEffect after userProfile loads
     } catch (err) {
       const fbError = err as { code?: string; message?: string };
       if (fbError.code === "auth/invalid-credential") {
@@ -54,6 +58,9 @@ export default function LoginPage() {
       setSubmitting(false);
     }
   };
+
+  // Keep submitting spinner until redirect fires
+
 
   if (loading || user) {
     return (

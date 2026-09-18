@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "LuminOne",
   },
+
 };
 
 export default function RootLayout({
