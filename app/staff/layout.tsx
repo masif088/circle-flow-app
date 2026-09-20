@@ -26,7 +26,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.replace("/staff/login");
+        router.replace("/login");
       }
     }
   }, [user, loading, router]);

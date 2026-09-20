@@ -84,7 +84,7 @@ export default function ProfilPage() {
   const handleLogout = async () => {
     if (!confirm("Keluar dari aplikasi?")) return;
     await logout();
-    router.replace("/staff/login");
+    router.replace("/login");
   };
 
   if (loadingData) {

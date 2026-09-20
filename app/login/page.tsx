@@ -28,11 +28,14 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && user && userProfile) {
-      if (userProfile.role === "staff") {
+    if (!loading && user) {
+      if (userProfile?.role === "staff") {
         router.replace("/staff");
-      } else {
+      } else if (userProfile) {
         router.replace("/admin");
+      } else {
+        // userProfile gagal load (timeout/offline) — default ke /staff
+        router.replace("/staff");
       }
     }
   }, [user, userProfile, loading, router]);
@@ -62,7 +65,7 @@ export default function LoginPage() {
   // Keep submitting spinner until redirect fires
 
 
-  if (loading || user) {
+  if (loading) {
     return (
       <Box sx={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)" }}>
         <CircularProgress color="primary" />

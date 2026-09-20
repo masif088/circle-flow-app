@@ -3,7 +3,7 @@
   "short_name": "LuminOne",
   "description": "LuminOne App Company Management",
   "start_url": "/staff",
-  "scope": "/staff/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f0f2f5",
   "theme_color": "#2563eb",

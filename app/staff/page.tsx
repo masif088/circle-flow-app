@@ -93,24 +93,32 @@ export default function StaffHomePage() {
   };
 
   const getCurrentLocation = (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error("GPS tidak didukung di browser ini"));
         return;
       }
+
+      // Cek permission state dulu jika browser mendukung
+      let permState: PermissionState | null = null;
+      try {
+        const status = await navigator.permissions.query({ name: "geolocation" });
+        permState = status.state;
+      } catch {}
+
       navigator.geolocation.getCurrentPosition(resolve, (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        // Jika permission API bilang granted tapi masih error → GPS hardware/Location Services mati
+        if (permState === "granted" || err.code !== err.PERMISSION_DENIED) {
           const msg = isIOS
-            ? "Izin lokasi ditolak. Di iPhone: Pengaturan → Safari → Lokasi → pilih 'Tanya' atau 'Izinkan', lalu muat ulang halaman."
-            : "Izin lokasi ditolak. Klik ikon kunci/info di address bar browser → izinkan Lokasi, lalu coba lagi.";
+            ? "GPS gagal. Pastikan Location Services aktif: Pengaturan iPhone → Privasi & Keamanan → Layanan Lokasi → aktifkan, lalu coba lagi."
+            : "GPS gagal mendapatkan posisi. Pastikan GPS aktif di perangkat.";
           reject(new Error(msg));
-        } else if (err.code === err.POSITION_UNAVAILABLE) {
-          reject(new Error("Lokasi tidak tersedia. Pastikan GPS aktif di perangkat."));
-        } else if (err.code === err.TIMEOUT) {
-          reject(new Error("Timeout mendapatkan lokasi. Pastikan GPS aktif dan coba lagi."));
         } else {
-          reject(new Error("Gagal mendapatkan lokasi GPS."));
+          const msg = isIOS
+            ? "Izin lokasi ditolak. Di iPhone: Pengaturan → Safari → Lokasi → pilih 'Saat Menggunakan App', lalu muat ulang halaman."
+            : "Izin lokasi ditolak. Klik ikon kunci di address bar → izinkan Lokasi, lalu coba lagi.";
+          reject(new Error(msg));
         }
       }, { timeout: 15000 });
     });
