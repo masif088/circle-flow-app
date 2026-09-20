@@ -8,7 +8,6 @@ import {
   CircularProgress, Alert, InputAdornment, IconButton,
 } from "@mui/material";
 import { EmailOutlined, LockOutlined, Visibility, VisibilityOff } from "@mui/icons-material";
-import Image from "next/image";
 
 export default function StaffLoginPage() {
   const { user, loading, loginWithEmail } = useAuth();
@@ -52,13 +51,9 @@ export default function StaffLoginPage() {
         alignItems: "center", justifyContent: "center", px: 2,
       }}
     >
-      {/* Logo */}
-      <Box sx={{ mb: 4, textAlign: "center" }}>
-        <Image src="/logo_lumina.png" alt="LuminOne" width={160} height={44} style={{ objectFit: "contain" }} />
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Staff Portal
-        </Typography>
-      </Box>
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 4, color: "#2563eb" }}>
+        Staff Portal
+      </Typography>
 
       <Card sx={{ borderRadius: 4, width: "100%", maxWidth: 400 }}>
         <CardContent sx={{ p: 3 }}>

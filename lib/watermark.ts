@@ -64,7 +64,7 @@ export async function addWatermarkToFile(
     const fs2 = Math.max(13, Math.round(w / 36));
     const x = Math.round(w * 0.025);
     const lines = hasAddress ? 4 : 3;
-    const gap = Math.round(blockH / (lines + 0.5));
+    const gap = Math.round(blockH / (lines + 1.2));
 
     ctx.font = `bold ${fs1}px Arial, sans-serif`;
     ctx.fillStyle = "#ffffff";
