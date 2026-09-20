@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
+import { addWatermarkToFile } from "@/lib/watermark";
 import {
   collection, query, where, getDocs, addDoc, updateDoc, doc,
   orderBy, limit, onSnapshot,
@@ -61,7 +62,7 @@ export default function StaffHomePage() {
     if (!user) return;
     const today = new Date().toISOString().slice(0, 10);
     const q = query(
-      collection(db, "presensi"),
+      collection(db, "presences"),
       where("user_id", "==", user.uid),
       where("date", "==", today)
     );
@@ -133,14 +134,33 @@ export default function StaffHomePage() {
       setToast({ msg: "Pilih proyek terlebih dahulu", sev: "error" });
       return;
     }
+
+    // Cek izin lokasi sebelum mulai
+    try {
+      const perm = await navigator.permissions.query({ name: "geolocation" });
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (perm.state === "denied") {
+        const msg = isIOS
+          ? "Izin lokasi diblokir. Di iPhone: Pengaturan → Safari → Lokasi → pilih 'Saat Menggunakan App', lalu muat ulang halaman."
+          : "Izin lokasi diblokir. Klik ikon kunci di address bar → izinkan Lokasi, lalu coba lagi.";
+        setToast({ msg, sev: "error" });
+        return;
+      }
+    } catch {}
+
     setLoading(true);
     try {
       const pos = await getCurrentLocation();
-      const photoUrl = await uploadSelfie(selfieFile);
+      const watermarked = await addWatermarkToFile(selfieFile, {
+        projectName: activeProjects[selectedProject] || selectedProject,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      const photoUrl = await uploadSelfie(watermarked);
       const today = new Date().toISOString().slice(0, 10);
       const now = new Date().toISOString();
 
-      await addDoc(collection(db, "presensi"), {
+      await addDoc(collection(db, "presences"), {
         user_id: user!.uid,
         user_name: userData?.name || user!.email,
         date: today,
@@ -174,7 +194,7 @@ export default function StaffHomePage() {
         lng = pos.coords.longitude;
       } catch {}
 
-      await updateDoc(doc(db, "presensi", todayPresence.id), {
+      await updateDoc(doc(db, "presences", todayPresence.id), {
         checked_out_at: new Date().toISOString(),
         checkout_latitude: lat,
         checkout_longitude: lng,

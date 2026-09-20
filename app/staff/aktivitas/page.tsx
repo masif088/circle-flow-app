@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
+import { addWatermarkToFile } from "@/lib/watermark";
 import {
   collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, orderBy,
 } from "firebase/firestore";
@@ -109,7 +110,22 @@ export default function AktivitasPage() {
     setSubmitting(true);
     try {
       let photoUrl = existingPhoto || "";
-      if (photoFile) photoUrl = await uploadPhoto(photoFile);
+      if (photoFile) {
+        let lat: number | null = null, lng: number | null = null;
+        try {
+          const pos = await new Promise<GeolocationPosition>((res, rej) =>
+            navigator.geolocation?.getCurrentPosition(res, rej, { timeout: 10000 }) ?? rej(new Error("no geo"))
+          );
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        } catch {}
+        const watermarked = await addWatermarkToFile(photoFile, {
+          projectName: activeProjects[selectedProject] || selectedProject || "Aktivitas",
+          latitude: lat,
+          longitude: lng,
+        });
+        photoUrl = await uploadPhoto(watermarked);
+      }
 
       const data: any = {
         user_id: user!.uid,
