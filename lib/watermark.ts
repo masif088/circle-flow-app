@@ -2,6 +2,8 @@
  * Tambahkan watermark lokasi ke foto sebelum upload.
  * Meniru fungsi addWatermarkToImage di Flutter (storage_service.dart).
  */
+const MAX_DIM = 1600; // resize sebelum watermark — cukup untuk kualitas bagus
+
 export async function addWatermarkToFile(
   file: File,
   opts: {
@@ -15,11 +17,18 @@ export async function addWatermarkToFile(
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
+      // Resize ke max MAX_DIM agar proses cepat
+      let w = img.width, h = img.height;
+      if (w > MAX_DIM || h > MAX_DIM) {
+        if (w > h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+        else { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+      }
+
       const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
 
       const now = new Date();
