@@ -100,9 +100,11 @@ export default function StaffHomePage() {
       }
       navigator.geolocation.getCurrentPosition(resolve, (err) => {
         if (err.code === err.PERMISSION_DENIED) {
-          reject(new Error(
-            "Izin lokasi ditolak. Buka pengaturan browser → klik ikon kunci/info di address bar → izinkan Lokasi, lalu coba lagi."
-          ));
+          const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+          const msg = isIOS
+            ? "Izin lokasi ditolak. Di iPhone: Pengaturan → Safari → Lokasi → pilih 'Tanya' atau 'Izinkan', lalu muat ulang halaman."
+            : "Izin lokasi ditolak. Klik ikon kunci/info di address bar browser → izinkan Lokasi, lalu coba lagi.";
+          reject(new Error(msg));
         } else if (err.code === err.POSITION_UNAVAILABLE) {
           reject(new Error("Lokasi tidak tersedia. Pastikan GPS aktif di perangkat."));
         } else if (err.code === err.TIMEOUT) {
