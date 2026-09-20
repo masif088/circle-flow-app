@@ -112,7 +112,7 @@ export default function StaffHomePage() {
         } else {
           reject(new Error("Gagal mendapatkan lokasi GPS."));
         }
-      }, { timeout: 10000, enableHighAccuracy: true });
+      }, { timeout: 15000 });
     });
   };
 

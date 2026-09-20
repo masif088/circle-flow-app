@@ -38,7 +38,13 @@ export function AuthContextProvider({ children }: { children: React.ReactNode })
       setUser(currentUser);
       if (currentUser) {
         try {
-          const snap = await getDoc(doc(db, "users", currentUser.uid));
+          const timeout = new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error("timeout")), 5000)
+          );
+          const snap = await Promise.race([
+            getDoc(doc(db, "users", currentUser.uid)),
+            timeout,
+          ]) as Awaited<ReturnType<typeof getDoc>>;
           if (snap.exists()) {
             const d = snap.data();
             setUserProfile({
