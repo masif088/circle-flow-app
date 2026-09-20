@@ -47,7 +47,7 @@ export default function StaffLoginPage() {
   return (
     <Box
       sx={{
-        minHeight: "100dvh", bgcolor: "#f0f2f5",
+        minHeight: "100dvh", bgcolor: "#ffffff",
         display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center", px: 2,
       }}

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { addWatermarkToFile } from "@/lib/watermark";
+import { addWatermarkToFile, reverseGeocode } from "@/lib/watermark";
 import {
   collection, query, where, getDocs, addDoc, updateDoc, doc,
   orderBy, limit, onSnapshot,
@@ -151,10 +151,12 @@ export default function StaffHomePage() {
     setLoading(true);
     try {
       const pos = await getCurrentLocation();
+      const address = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
       const watermarked = await addWatermarkToFile(selfieFile, {
         projectName: activeProjects[selectedProject] || selectedProject,
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
+        address,
       });
       const photoUrl = await uploadSelfie(watermarked);
       const today = new Date().toISOString().slice(0, 10);

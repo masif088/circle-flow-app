@@ -1,5 +1,24 @@
 const MAX_DIM = 1600;
 
+export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { "Accept-Language": "id" } }
+    );
+    const data = await res.json();
+    const a = data.address || {};
+    const parts = [
+      a.road || a.pedestrian || a.footway,
+      a.village || a.suburb || a.neighbourhood,
+      a.city || a.town || a.county,
+    ].filter(Boolean);
+    return parts.join(", ") || data.display_name?.split(",").slice(0, 3).join(",") || "";
+  } catch {
+    return "";
+  }
+}
+
 export async function addWatermarkToFile(
   file: File,
   opts: {
@@ -10,7 +29,6 @@ export async function addWatermarkToFile(
   }
 ): Promise<File> {
   try {
-    // createImageBitmap lebih reliable di mobile (handle EXIF orientation)
     const bitmap = await createImageBitmap(file);
 
     let w = bitmap.width, h = bitmap.height;
@@ -26,7 +44,6 @@ export async function addWatermarkToFile(
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close();
 
-    // Watermark overlay
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const timestamp = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
@@ -34,17 +51,20 @@ export async function addWatermarkToFile(
     const line2 = opts.latitude != null
       ? `GPS: ${opts.latitude.toFixed(6)}, ${opts.longitude!.toFixed(6)}`
       : "GPS: tidak tersedia";
+    const line3 = opts.address || "";
     const line4 = timestamp;
 
-    const blockH = Math.round(h * 0.2);
+    const hasAddress = !!line3;
+    const blockH = Math.round(h * (hasAddress ? 0.24 : 0.2));
     const blockY = h - blockH;
     ctx.fillStyle = "rgba(0,0,0,0.65)";
     ctx.fillRect(0, blockY, w, blockH);
 
     const fs1 = Math.max(18, Math.round(w / 28));
-    const fs2 = Math.max(14, Math.round(w / 36));
+    const fs2 = Math.max(13, Math.round(w / 36));
     const x = Math.round(w * 0.025);
-    const gap = Math.round(blockH / 4.2);
+    const lines = hasAddress ? 4 : 3;
+    const gap = Math.round(blockH / (lines + 0.5));
 
     ctx.font = `bold ${fs1}px Arial, sans-serif`;
     ctx.fillStyle = "#ffffff";
@@ -56,9 +76,13 @@ export async function addWatermarkToFile(
 
     ctx.font = `${fs2}px Arial, sans-serif`;
     ctx.fillStyle = "#dcdcdc";
-    ctx.fillText(line4, x, blockY + gap * 3, w - x * 2);
+    if (hasAddress) {
+      ctx.fillText(line3, x, blockY + gap * 3, w - x * 2);
+      ctx.fillText(line4, x, blockY + gap * 4, w - x * 2);
+    } else {
+      ctx.fillText(line4, x, blockY + gap * 3, w - x * 2);
+    }
 
-    // toDataURL lebih universal daripada toBlob di iOS
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     const res = await fetch(dataUrl);
     const blob = await res.blob();

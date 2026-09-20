@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { addWatermarkToFile } from "@/lib/watermark";
+import { addWatermarkToFile, reverseGeocode } from "@/lib/watermark";
 import {
   collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, orderBy,
 } from "firebase/firestore";
@@ -119,10 +119,12 @@ export default function AktivitasPage() {
           lat = pos.coords.latitude;
           lng = pos.coords.longitude;
         } catch {}
+        const address = lat != null ? await reverseGeocode(lat, lng!) : "";
         const watermarked = await addWatermarkToFile(photoFile, {
           projectName: activeProjects[selectedProject] || selectedProject || "Aktivitas",
           latitude: lat,
           longitude: lng,
+          address,
         });
         photoUrl = await uploadPhoto(watermarked);
       }
