@@ -46,6 +46,7 @@ export default function StaffHomePage() {
     return () => clearInterval(t);
   }, []);
 
+
   // Load user profile
   useEffect(() => {
     if (!user) return;
@@ -93,8 +94,23 @@ export default function StaffHomePage() {
 
   const getCurrentLocation = (): Promise<GeolocationPosition> => {
     return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) reject(new Error("GPS tidak didukung"));
-      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+      if (!navigator.geolocation) {
+        reject(new Error("GPS tidak didukung di browser ini"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(resolve, (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          reject(new Error(
+            "Izin lokasi ditolak. Buka pengaturan browser → klik ikon kunci/info di address bar → izinkan Lokasi, lalu coba lagi."
+          ));
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          reject(new Error("Lokasi tidak tersedia. Pastikan GPS aktif di perangkat."));
+        } else if (err.code === err.TIMEOUT) {
+          reject(new Error("Timeout mendapatkan lokasi. Pastikan GPS aktif dan coba lagi."));
+        } else {
+          reject(new Error("Gagal mendapatkan lokasi GPS."));
+        }
+      }, { timeout: 10000, enableHighAccuracy: true });
     });
   };
 
@@ -335,10 +351,10 @@ export default function StaffHomePage() {
       </Box>
 
       <Snackbar
-        open={!!toast} autoHideDuration={3000} onClose={() => setToast(null)}
+        open={!!toast} autoHideDuration={toast?.sev === "error" ? 8000 : 3000} onClose={() => setToast(null)}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={toast?.sev} onClose={() => setToast(null)} sx={{ borderRadius: 2 }}>
+        <Alert severity={toast?.sev} onClose={() => setToast(null)} sx={{ borderRadius: 2, maxWidth: 360 }}>
           {toast?.msg}
         </Alert>
       </Snackbar>

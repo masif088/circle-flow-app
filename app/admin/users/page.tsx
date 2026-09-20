@@ -19,6 +19,10 @@ import {
   TableRow,
   TablePagination,
   Paper,
+  Alert,
+  List,
+  ListItem,
+  ListItemText,
   Button,
   TextField,
   Chip,
@@ -48,7 +52,8 @@ import {
   CheckCircleOutlined as ActiveIcon,
   Visibility as ViewIcon,
   LocationOn as LocationIcon,
-  AttachMoney as MoneyIcon
+  AttachMoney as MoneyIcon,
+  WarningAmberRounded as WarningIcon
 } from "@mui/icons-material";
 
 const POSITIONS = ["Technician", "Helper", "Safetyman", "Site Engineer", "Manager"] as const;
@@ -56,6 +61,9 @@ const POSITIONS = ["Technician", "Helper", "Safetyman", "Site Engineer", "Manage
 interface UserRecord {
   uid: string;
   name: string;
+  rawName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: "admin" | "client" | "staff";
   status: "active" | "suspended";
@@ -63,6 +71,38 @@ interface UserRecord {
   teamIds: string[];
   position?: string;
   company_id?: string;
+}
+
+interface NameIssue {
+  uid: string;
+  name: string;
+  email: string;
+  issues: string[];
+}
+
+function checkNameIssues(record: { uid: string; name: string; firstName: string; lastName: string; email: string }): NameIssue | null {
+  const issues: string[] = [];
+  const rawFields: { label: string; val: string }[] = [
+    { label: "name", val: record.name },
+    { label: "firstName", val: record.firstName },
+    { label: "lastName", val: record.lastName },
+  ];
+  for (const f of rawFields) {
+    if (!f.val) continue;
+    if (f.val !== f.val.trim()) issues.push(`"${f.label}" ada spasi di awal/akhir`);
+    if (/  /.test(f.val)) issues.push(`"${f.label}" ada spasi ganda`);
+  }
+  // Flutter crash check: split(' ') produces empty string element
+  const nameTrimmed = record.name.trim();
+  if (nameTrimmed && nameTrimmed.split(" ").some((p) => p === "")) {
+    if (!issues.some((i) => i.includes('"name" ada spasi ganda'))) {
+      issues.push('"name" split berpotensi crash di Flutter');
+    }
+  }
+  if (!record.name && (record.firstName || record.lastName)) {
+    issues.push('field "name" kosong');
+  }
+  return issues.length > 0 ? { uid: record.uid, name: record.name || "(no name)", email: record.email, issues } : null;
 }
 
 interface CompanyRecord {
@@ -96,6 +136,8 @@ export default function UsersPage() {
   const [formCompanyId, setFormCompanyId] = useState("");
   const [formTeamIds, setFormTeamIds] = useState<string[]>([]);
 
+  const [showNameChecker, setShowNameChecker] = useState(true);
+
   // Filter states
   const [filterRole, setFilterRole] = useState<string>("non_client");
   const [filterPosition, setFilterPosition] = useState<string>("");
@@ -115,6 +157,9 @@ export default function UsersPage() {
           usersList.push({
             uid: doc.id,
             name: data.name || `${data.firstName || ""} ${data.lastName || ""}`.trim() || "No Name",
+            rawName: data.name ?? "",
+            firstName: data.firstName ?? "",
+            lastName: data.lastName ?? "",
             email: data.email || "",
             role: data.role || "staff",
             status: data.status || "active",
@@ -312,6 +357,14 @@ export default function UsersPage() {
   };
 
 
+  const nameIssues = users
+    .map((u) => {
+      const issue = checkNameIssues({ uid: u.uid, name: u.rawName, firstName: u.firstName, lastName: u.lastName, email: u.email });
+      if (issue) issue.name = u.name; // use computed display name
+      return issue;
+    })
+    .filter((x): x is NameIssue => x !== null);
+
   const filteredUsers = users.filter((u) => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
     const matchRole = filterRole === "non_client" ? u.role !== "client" : filterRole ? u.role === filterRole : true;
@@ -322,6 +375,28 @@ export default function UsersPage() {
 
   return (
     <Box>
+      {/* Name Checker Warning */}
+      {!loading && nameIssues.length > 0 && showNameChecker && (
+        <Alert
+          severity="warning"
+          icon={<WarningIcon />}
+          onClose={() => setShowNameChecker(false)}
+          sx={{ mb: 3, borderRadius: 2 }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+            {nameIssues.length} user dengan nama bermasalah — berpotensi crash di Flutter
+          </Typography>
+          <List dense disablePadding>
+            {nameIssues.map((n) => (
+              <ListItem key={n.uid} disablePadding sx={{ display: "block", mb: 0.5 }}>
+                <Typography variant="body2"><strong>{n.name}</strong> ({n.email})</Typography>
+                <Typography variant="caption" color="warning.dark">{n.issues.join(" · ")}</Typography>
+              </ListItem>
+            ))}
+          </List>
+        </Alert>
+      )}
+
       <Box
         sx={{
           display: "flex",
