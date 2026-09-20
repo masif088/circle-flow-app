@@ -46,11 +46,11 @@ export function AuthContextProvider({ children }: { children: React.ReactNode })
             timeout,
           ]) as Awaited<ReturnType<typeof getDoc>>;
           if (snap.exists()) {
-            const d = snap.data();
+            const d = snap.data() as Record<string, unknown>;
             setUserProfile({
-              role: d.role || "staff",
-              company_id: d.company_id || "",
-              name: d.name || "",
+              role: (d.role as UserProfile["role"]) || "staff",
+              company_id: (d.company_id as string) || "",
+              name: (d.name as string) || "",
             });
           }
         } catch {
