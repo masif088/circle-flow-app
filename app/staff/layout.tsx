@@ -31,15 +31,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <Box sx={{ display: "flex", minHeight: "100dvh", alignItems: "center", justifyContent: "center", bgcolor: "#f0f2f5" }}>
         <CircularProgress sx={{ color: "#2563eb" }} />
       </Box>
     );
   }
-
-  if (!user) return null;
 
   const navValue = pathname.startsWith("/staff/aktivitas")
     ? 1
