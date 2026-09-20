@@ -250,6 +250,9 @@ export default function UsersPage() {
       const newUser: UserRecord = {
         uid: createdUser.uid,
         name: userData.name,
+        rawName: userData.name,
+        firstName: formFirstName,
+        lastName: formLastName,
         email: userData.email,
         role: userData.role,
         status: userData.status,
