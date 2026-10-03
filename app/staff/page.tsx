@@ -170,7 +170,7 @@ export default function StaffHomePage() {
         project_name: activeProjects[selectedProject] || "",
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
-        photo_url: photoUrl,
+        photo: photoUrl,
         status: "pending",
         device_type: "PWA",
         created_at: now,
