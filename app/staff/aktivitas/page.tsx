@@ -138,9 +138,10 @@ export default function AktivitasPage() {
       if (photoFile) {
         let lat: number | null = null, lng: number | null = null;
         try {
-          const pos = await new Promise<GeolocationPosition>((res, rej) =>
-            navigator.geolocation?.getCurrentPosition(res, rej, { timeout: 10000 }) ?? rej(new Error("no geo"))
-          );
+          const pos = await new Promise<GeolocationPosition>((res, rej) => {
+            if (!navigator.geolocation) { rej(new Error("no geo")); return; }
+            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 });
+          });
           lat = pos.coords.latitude; lng = pos.coords.longitude;
         } catch {}
         const address = lat != null ? await reverseGeocode(lat, lng!) : "";
