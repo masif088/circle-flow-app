@@ -216,7 +216,8 @@ export default function PresenceAdminPage() {
     const unsubscribePresences = onSnapshot(q, (snapshot) => {
       const list: PresenceRecord[] = [];
       snapshot.forEach((docSnap) => {
-        list.push({ id: docSnap.id, ...docSnap.data() } as PresenceRecord);
+        const d = docSnap.data();
+        list.push({ id: docSnap.id, ...d, photo: d.photo || d.photo_url } as PresenceRecord);
       });
       setPresences(list);
       setLoading(false);

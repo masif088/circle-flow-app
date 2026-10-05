@@ -904,7 +904,7 @@ export default function ProjectDetailPage() {
           checkout_longitude: data.checkout_longitude,
           description: data.description,
           note: data.note,
-          photo: data.photo,
+          photo: data.photo || data.photo_url,
           approved_note: data.approved_note,
           approved_by: data.approved_by,
           approved_at: data.approved_at,
