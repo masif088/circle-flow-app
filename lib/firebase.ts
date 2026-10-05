@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
@@ -15,6 +15,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
+// Pakai localStorage agar session tetap ada di iOS PWA (IndexedDB bisa di-clear saat app di-background)
+setPersistence(auth, browserLocalPersistence).catch(() => {});
 const db = getFirestore(app);
 const storage = getStorage(app);
 
