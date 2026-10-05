@@ -64,7 +64,7 @@ export default function StaffHomePage() {
     const q = query(
       collection(db, "presences"),
       where("user_id", "==", user.uid),
-      where("date", "==", today)
+      where("tanggal", "==", today)
     );
     const unsub = onSnapshot(q, (snap) => {
       if (!snap.empty) {
@@ -165,13 +165,14 @@ export default function StaffHomePage() {
       await addDoc(collection(db, "presences"), {
         user_id: user!.uid,
         user_name: userData?.name || user!.email,
-        date: today,
+        tanggal: today,
         project_id: selectedProject,
         project_name: activeProjects[selectedProject] || "",
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
         photo: photoUrl,
-        status: "pending",
+        status: "Pending",
+        type: "Jam Kantor",
         device_type: "PWA",
         created_at: now,
       });

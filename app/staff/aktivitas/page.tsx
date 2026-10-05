@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { addWatermarkToFile, reverseGeocode } from "@/lib/watermark";
 import {
-  collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, orderBy,
+  collection, query, where, onSnapshot, updateDoc, doc, getDocs,
 } from "firebase/firestore";
 import {
   Box, Typography, Card, CardContent, Button, Dialog, DialogTitle,
@@ -51,20 +51,30 @@ export default function AktivitasPage() {
     return () => unsub();
   }, [user]);
 
+  // Fetch aktivitas dari nested activity map di presences
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, "aktivitas"), where("user_id", "==", user.uid));
+    const q = query(collection(db, "presences"), where("user_id", "==", user.uid));
     const unsub = onSnapshot(q, (snap) => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      all.sort((a: any, b: any) => (b.created_at || "").localeCompare(a.created_at || ""));
+      const all: any[] = [];
+      snap.docs.forEach(d => {
+        const data = d.data();
+        const activityMap: Record<string, any> = data.activity || {};
+        Object.entries(activityMap).forEach(([actId, act]) => {
+          if (!act.deleted_at) {
+            all.push({ id: actId, presenceId: d.id, tanggal: data.tanggal, ...act });
+          }
+        });
+      });
+      all.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
       setActivities(all);
     });
     return () => unsub();
   }, [user]);
 
   const today = new Date().toISOString().slice(0, 10);
-  const todayActivities = activities.filter((a: any) => (a.tanggal || a.date || "").slice(0, 10) === today);
-  const historyActivities = activities.filter((a: any) => (a.tanggal || a.date || "").slice(0, 10) !== today);
+  const todayActivities = activities.filter((a: any) => (a.tanggal || "").slice(0, 10) === today);
+  const historyActivities = activities.filter((a: any) => (a.tanggal || "").slice(0, 10) !== today);
 
   const displayed = tab === 0 ? todayActivities : historyActivities;
 
@@ -80,12 +90,12 @@ export default function AktivitasPage() {
   const openAdd = () => { resetForm(); setOpenForm(true); };
   const openEdit = (a: any) => {
     setEditActivity(a);
-    setJudul(a.judul || a.title || "");
-    setDeskripsi(a.deskripsi || a.description || "");
-    setKategori(a.kategori || a.category || "");
+    setJudul(a.title || "");
+    setDeskripsi(a.description || "");
+    setKategori(a.kategori || "");
     setSelectedProject(a.project_id || "");
-    setTanggal((a.tanggal || a.date || new Date().toISOString()).slice(0, 10));
-    setExistingPhoto(a.photo || a.photo_url || null);
+    setTanggal((a.tanggal || new Date().toISOString()).slice(0, 10));
+    setExistingPhoto(a.photo || null);
     setPhotoFile(null); setPhotoPreview(null);
     setOpenForm(true);
   };
@@ -105,49 +115,76 @@ export default function AktivitasPage() {
     return getDownloadURL(r);
   };
 
+  const getTodayPresenceDoc = async () => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const snap = await getDocs(query(
+      collection(db, "presences"),
+      where("user_id", "==", user!.uid),
+      where("tanggal", "==", todayStr)
+    ));
+    const active = snap.docs.find(d => {
+      const s = d.data().status;
+      return s === "Approved" || s === "Pending";
+    });
+    if (!active) throw new Error("Lakukan Check-In terlebih dahulu sebelum menambah aktivitas.");
+    return active;
+  };
+
   const handleSubmit = async () => {
     if (!judul.trim()) { setToast({ msg: "Judul wajib diisi", sev: "error" }); return; }
     setSubmitting(true);
     try {
-      let photoUrl = existingPhoto || "";
+      let photoUrl = existingPhoto || null;
       if (photoFile) {
         let lat: number | null = null, lng: number | null = null;
         try {
           const pos = await new Promise<GeolocationPosition>((res, rej) =>
             navigator.geolocation?.getCurrentPosition(res, rej, { timeout: 10000 }) ?? rej(new Error("no geo"))
           );
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
+          lat = pos.coords.latitude; lng = pos.coords.longitude;
         } catch {}
         const address = lat != null ? await reverseGeocode(lat, lng!) : "";
         const watermarked = await addWatermarkToFile(photoFile, {
           projectName: activeProjects[selectedProject] || selectedProject || "Aktivitas",
-          latitude: lat,
-          longitude: lng,
-          address,
+          latitude: lat, longitude: lng, address,
         });
         photoUrl = await uploadPhoto(watermarked);
       }
 
-      const data: any = {
-        user_id: user!.uid,
-        user_name: userData?.name || user!.email,
-        judul: judul.trim(),
-        deskripsi: deskripsi.trim(),
-        kategori,
-        project_id: selectedProject,
-        project_name: activeProjects[selectedProject] || "",
-        tanggal,
-        photo: photoUrl,
-        updated_at: new Date().toISOString(),
-      };
+      const now = new Date().toISOString();
 
       if (editActivity) {
-        await updateDoc(doc(db, "aktivitas", editActivity.id), data);
+        // Edit: update nested field di presences
+        const updated: any = {
+          title: judul.trim(),
+          description: deskripsi.trim(),
+          kategori,
+          project_id: selectedProject,
+          updated_at: now,
+        };
+        if (photoUrl) updated.photo = photoUrl;
+        await updateDoc(doc(db, "presences", editActivity.presenceId), {
+          [`activity.${editActivity.id}`]: { ...editActivity, ...updated },
+        });
         setToast({ msg: "Aktivitas diperbarui", sev: "success" });
       } else {
-        data.created_at = new Date().toISOString();
-        await addDoc(collection(db, "aktivitas"), data);
+        // Add: cari presence hari ini lalu tambah nested
+        const presenceDoc = await getTodayPresenceDoc();
+        const actId = crypto.randomUUID();
+        const actData = {
+          user_id: user!.uid,
+          project_id: selectedProject,
+          title: judul.trim(),
+          description: deskripsi.trim(),
+          kategori,
+          photo: photoUrl,
+          created_at: now,
+          updated_at: now,
+          deleted_at: null,
+        };
+        await updateDoc(doc(db, "presences", presenceDoc.id), {
+          [`activity.${actId}`]: actData,
+        });
         setToast({ msg: "Aktivitas ditambahkan", sev: "success" });
       }
       setOpenForm(false);
@@ -157,9 +194,11 @@ export default function AktivitasPage() {
     setSubmitting(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (act: any) => {
     if (!confirm("Hapus aktivitas ini?")) return;
-    await deleteDoc(doc(db, "aktivitas", id));
+    await updateDoc(doc(db, "presences", act.presenceId), {
+      [`activity.${act.id}.deleted_at`]: new Date().toISOString(),
+    });
     setToast({ msg: "Aktivitas dihapus", sev: "success" });
   };
 
@@ -190,17 +229,16 @@ export default function AktivitasPage() {
               <CardContent>
                 <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 700 }}>{a.judul || a.title}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700 }}>{a.title}</Typography>
                     {a.kategori && <Chip label={a.kategori} size="small" sx={{ mt: 0.5, mr: 0.5, bgcolor: "#eff6ff", color: "#2563eb" }} />}
-                    {a.project_name && <Typography variant="caption" color="text.secondary">{a.project_name}</Typography>}
-                    {a.deskripsi && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{a.deskripsi}</Typography>}
+                    {a.description && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{a.description}</Typography>}
                     <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                      {fmtDate(a.tanggal || a.date)}
+                      {fmtDate(a.tanggal)}
                     </Typography>
                   </Box>
                   <Stack direction="row">
                     <IconButton size="small" onClick={() => openEdit(a)}><EditRounded fontSize="small" sx={{ color: "#2563eb" }} /></IconButton>
-                    <IconButton size="small" onClick={() => handleDelete(a.id)}><DeleteRounded fontSize="small" sx={{ color: "#ef4444" }} /></IconButton>
+                    <IconButton size="small" onClick={() => handleDelete(a)}><DeleteRounded fontSize="small" sx={{ color: "#ef4444" }} /></IconButton>
                   </Stack>
                 </Stack>
               </CardContent>
