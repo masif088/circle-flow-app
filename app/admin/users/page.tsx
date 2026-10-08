@@ -287,6 +287,20 @@ export default function UsersPage() {
     try {
       const updatedName = `${formFirstName} ${formLastName}`.trim();
       const userDocRef = doc(db, "users", selectedUser.uid);
+
+      // Jika email berubah, update Firebase Auth dulu via Admin SDK
+      if (formEmail !== selectedUser.email) {
+        const res = await fetch(`/api/admin/users/${selectedUser.uid}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formEmail }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Gagal update email di Firebase Auth");
+        }
+      }
+
       await updateDoc(userDocRef, {
         firstName: formFirstName,
         lastName: formLastName,
