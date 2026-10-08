@@ -1,4 +1,4 @@
-import { getApps, initializeApp, getApp } from "firebase-admin/app";
+import { getApps, initializeApp, getApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
@@ -9,10 +9,20 @@ if (isEmulator) {
   process.env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
 }
 
-const app = getApps().length === 0 
-  ? initializeApp({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "circle-flow-3795f",
-    })
+const adminPrivateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+const app = getApps().length === 0
+  ? initializeApp(
+      adminPrivateKey
+        ? {
+            credential: cert({
+              projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+              clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+              privateKey: adminPrivateKey,
+            }),
+          }
+        : { projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "circle-flow-3795f" }
+    )
   : getApp();
 
 const adminDb = getFirestore(app);
