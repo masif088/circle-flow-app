@@ -1030,7 +1030,7 @@ export default function PresenceAdminPage() {
                                 <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", color: "text.secondary" }}>
                                   <LocationIcon sx={{ fontSize: 16 }} />
                                   <Typography variant="caption">
-                                    {pres.latitude.toFixed(4)}, {pres.longitude.toFixed(4)}
+                                    {pres.latitude?.toFixed(4) ?? "?"}, {pres.longitude?.toFixed(4) ?? "?"}
                                   </Typography>
                                 </Stack>
                                 {pres.radius !== undefined && (
@@ -1481,7 +1481,7 @@ export default function PresenceAdminPage() {
                                 <Grid size={{ xs: 6 }}>
                                   <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>Koordinat</Typography>
                                   <Typography variant="caption" sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
-                                    {act.latitude.toFixed(5)}, {act.longitude.toFixed(5)}
+                                    {act.latitude?.toFixed(5) ?? "?"}, {act.longitude?.toFixed(5) ?? "?"}
                                   </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6 }}>

@@ -135,8 +135,8 @@ export default function AktivitasPage() {
     setSubmitting(true);
     try {
       let photoUrl = existingPhoto || null;
+      let lat: number | null = null, lng: number | null = null;
       if (photoFile) {
-        let lat: number | null = null, lng: number | null = null;
         try {
           const pos = await new Promise<GeolocationPosition>((res, rej) => {
             if (!navigator.geolocation) { rej(new Error("no geo")); return; }
@@ -172,7 +172,7 @@ export default function AktivitasPage() {
         // Add: cari presence hari ini lalu tambah nested
         const presenceDoc = await getTodayPresenceDoc();
         const actId = crypto.randomUUID();
-        const actData = {
+        const actData: Record<string, unknown> = {
           user_id: user!.uid,
           project_id: selectedProject,
           title: judul.trim(),
@@ -183,6 +183,7 @@ export default function AktivitasPage() {
           updated_at: now,
           deleted_at: null,
         };
+        if (lat != null) { actData.latitude = lat; actData.longitude = lng; }
         await updateDoc(doc(db, "presences", presenceDoc.id), {
           [`activity.${actId}`]: actData,
         });
