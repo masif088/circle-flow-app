@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase-admin";
+import { getAdminAuth } from "@/lib/firebase-admin";
+
+export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: NextRequest,
@@ -13,7 +15,7 @@ export async function PATCH(
     if (body.password) update.password = body.password;
     if (body.displayName !== undefined) update.displayName = body.displayName;
 
-    await adminAuth.updateUser(uid, update);
+    await getAdminAuth().updateUser(uid, update);
     return NextResponse.json({ success: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 400 });
