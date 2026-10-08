@@ -11,7 +11,11 @@ function getAdminApp() {
     process.env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
   }
 
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const rawKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64
+    ? Buffer.from(process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64, "base64").toString("utf-8")
+    : process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+  // Strip surrounding quotes yang mungkin ikut tersimpan di env UI
+  const privateKey = rawKey?.replace(/^"+|"+$/g, "").replace(/\\n/g, "\n");
   return initializeApp(
     privateKey
       ? {
