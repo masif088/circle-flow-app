@@ -37,6 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         },
         typography: {
+          fontSize: 13,
           fontFamily: [
             "Inter",
             "-apple-system",
