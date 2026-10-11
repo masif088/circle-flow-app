@@ -707,28 +707,18 @@ export default function RabDetailPage() {
               </Button>
             </Stack>
 
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
-                <colgroup>
-                  <col style={{ width: "18%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "20%" }} />
-                  <col style={{ width: "6%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "11%" }} />
-                  <col style={{ width: "4%" }} />
-                </colgroup>
+            <TableContainer component={Paper} variant="outlined" sx={{ overflowX: "auto" }}>
+              <Table size="small" sx={{ minWidth: 900 }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: "grey.50" }}>
-                    <TableCell>Nama Item</TableCell>
-                    <TableCell>Kategori</TableCell>
-                    <TableCell>Link ke Preparation</TableCell>
-                    <TableCell>Qty</TableCell>
-                    <TableCell>Satuan</TableCell>
-                    <TableCell>Harga</TableCell>
-                    <TableCell>Total</TableCell>
-                    <TableCell />
+                    <TableCell sx={{ minWidth: 160 }}>Nama Item</TableCell>
+                    <TableCell sx={{ minWidth: 120 }}>Kategori</TableCell>
+                    <TableCell sx={{ minWidth: 160 }}>Link ke Preparation</TableCell>
+                    <TableCell sx={{ width: 65 }}>Qty</TableCell>
+                    <TableCell sx={{ width: 75 }}>Satuan</TableCell>
+                    <TableCell sx={{ minWidth: 120 }}>Harga</TableCell>
+                    <TableCell sx={{ minWidth: 110 }}>Total</TableCell>
+                    <TableCell sx={{ width: 40 }} />
                   </TableRow>
                 </TableHead>
                 <TableBody>

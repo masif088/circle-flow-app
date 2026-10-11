@@ -210,26 +210,16 @@ export default function NewRabPage() {
             </Button>
           </Stack>
 
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
-              <colgroup>
-                <col style={{ width: "22%" }} />
-                <col style={{ width: "16%" }} />
-                <col style={{ width: "7%" }} />
-                <col style={{ width: "8%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "13%" }} />
-                <col style={{ width: "16%" }} />
-                <col style={{ width: "3%" }} />
-              </colgroup>
+          <TableContainer component={Paper} variant="outlined" sx={{ overflowX: "auto" }}>
+            <Table size="small" sx={{ minWidth: 900 }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: "grey.50" }}>
-                  <TableCell>Nama Item</TableCell>
-                  <TableCell>Kategori</TableCell>
-                  <TableCell>Qty</TableCell>
-                  <TableCell>Satuan</TableCell>
-                  <TableCell>Harga Satuan</TableCell>
-                  <TableCell>Total</TableCell>
+                  <TableCell sx={{ minWidth: 180 }}>Nama Item</TableCell>
+                  <TableCell sx={{ minWidth: 140 }}>Kategori</TableCell>
+                  <TableCell sx={{ width: 70 }}>Qty</TableCell>
+                  <TableCell sx={{ width: 80 }}>Satuan</TableCell>
+                  <TableCell sx={{ minWidth: 130 }}>Harga Satuan</TableCell>
+                  <TableCell sx={{ minWidth: 120 }}>Total</TableCell>
                   <TableCell>Catatan</TableCell>
                   <TableCell />
                 </TableRow>
