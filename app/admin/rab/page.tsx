@@ -66,6 +66,7 @@ export default function RabListPage() {
   const [loading, setLoading] = useState(true);
   const [filterRabStatus, setFilterRabStatus] = useState("");
   const [filterProject, setFilterProject] = useState("");
+  const [filterReportStatus, setFilterReportStatus] = useState("");
   const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
 
   useEffect(() => {
@@ -88,6 +89,7 @@ export default function RabListPage() {
   const filtered = rabs.filter(r => {
     if (filterRabStatus && r.rab_status !== filterRabStatus) return false;
     if (filterProject && r.project_id !== filterProject) return false;
+    if (filterReportStatus && r.report_status !== filterReportStatus) return false;
     return true;
   });
 
@@ -123,6 +125,19 @@ export default function RabListPage() {
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Stack direction="row" sx={{ gap: 2, flexWrap: "wrap" }}>
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel>Proyek</InputLabel>
+              <Select
+                value={filterProject}
+                label="Proyek"
+                onChange={e => setFilterProject(e.target.value)}
+              >
+                <MenuItem value="">Semua Proyek</MenuItem>
+                {projects.map(p => (
+                  <MenuItem key={p.id} value={p.id}>{p.title}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <FormControl size="small" sx={{ minWidth: 180 }}>
               <InputLabel>Status RAB</InputLabel>
               <Select
@@ -136,17 +151,18 @@ export default function RabListPage() {
                 <MenuItem value="paid">Dicairkan</MenuItem>
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Proyek</InputLabel>
+            <FormControl size="small" sx={{ minWidth: 190 }}>
+              <InputLabel>Status Laporan</InputLabel>
               <Select
-                value={filterProject}
-                label="Proyek"
-                onChange={e => setFilterProject(e.target.value)}
+                value={filterReportStatus}
+                label="Status Laporan"
+                onChange={e => setFilterReportStatus(e.target.value)}
               >
-                <MenuItem value="">Semua Proyek</MenuItem>
-                {projects.map(p => (
-                  <MenuItem key={p.id} value={p.id}>{p.title}</MenuItem>
-                ))}
+                <MenuItem value="">Semua</MenuItem>
+                <MenuItem value="unreported">Belum Dilaporkan</MenuItem>
+                <MenuItem value="draft">Draft Laporan</MenuItem>
+                <MenuItem value="approved">Laporan Disetujui</MenuItem>
+                <MenuItem value="revision">Perlu Revisi</MenuItem>
               </Select>
             </FormControl>
           </Stack>
