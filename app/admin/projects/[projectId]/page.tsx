@@ -1626,39 +1626,42 @@ export default function ProjectDetailPage() {
           >
             Kembali ke Daftar Proyek
           </Button>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 800 }}>
-              {project.title}
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-              <Chip
-                size="small"
-                label={`Masuk: ${project.check_in_time || "08:00"} WIB`}
-                color="primary"
-                variant="outlined"
-              />
-              <Chip
-                size="small"
-                label={`Pulang: ${project.check_out_time || "17:00"} WIB`}
-                color="secondary"
-                variant="outlined"
-              />
-              {!isClient && (
-                <Button
-                  variant="contained"
-                  startIcon={<EditIcon />}
-                  onClick={handleOpenEditProject}
-                  sx={{
-                    borderRadius: 1,
-                    background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                    color: "#ffffff",
-                    textTransform: "none"
-                  }}
-                >
-                  Edit Proyek
-                </Button>
-              )}
-            </Stack>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
+            <Box>
+              <Typography variant="h4" component="h1" sx={{ fontWeight: 800 }}>
+                {project.title}
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Chip
+                  size="small"
+                  label={`Masuk: ${project.check_in_time || "08:00"} WIB`}
+                  color="primary"
+                  variant="outlined"
+                />
+                <Chip
+                  size="small"
+                  label={`Pulang: ${project.check_out_time || "17:00"} WIB`}
+                  color="secondary"
+                  variant="outlined"
+                />
+              </Stack>
+            </Box>
+            {!isClient && (
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={handleOpenEditProject}
+                sx={{
+                  borderRadius: 1,
+                  flexShrink: 0,
+                  background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                  color: "#ffffff",
+                  textTransform: "none"
+                }}
+              >
+                Edit Proyek
+              </Button>
+            )}
           </Box>
         </Box>
       </Box>
@@ -1675,7 +1678,7 @@ export default function ProjectDetailPage() {
           <Card>
             <CardContent>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "primary.light", color: "primary.main" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "primary.main", color: "#ffffff", display: "flex" }}>
                   <MoneyIcon />
                 </Box>
                 <Box>
@@ -1695,7 +1698,7 @@ export default function ProjectDetailPage() {
           <Card>
             <CardContent>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "success.light", color: "success.main" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "success.main", color: "#ffffff", display: "flex" }}>
                   <TrendIcon />
                 </Box>
                 <Box>
@@ -1715,7 +1718,7 @@ export default function ProjectDetailPage() {
           <Card>
             <CardContent>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "warning.light", color: "warning.main" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "warning.main", color: "#ffffff", display: "flex" }}>
                   <PeopleIcon />
                 </Box>
                 <Box>
@@ -1735,7 +1738,7 @@ export default function ProjectDetailPage() {
           <Card>
             <CardContent>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "info.light", color: "info.main" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "info.main", color: "#ffffff", display: "flex" }}>
                   <DateIcon />
                 </Box>
                 <Box>
