@@ -1798,11 +1798,13 @@ export default function ProjectDetailPage() {
       {isAdmin && <>
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-          <Card>
+          <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                Rincian Biaya Pekerja
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", minHeight: 32, mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Rincian Biaya Pekerja
+                </Typography>
+              </Box>
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
@@ -1853,9 +1855,9 @@ export default function ProjectDetailPage() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-          <Card>
+          <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 32, mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Pengaturan Upah Pekerja
                 </Typography>
@@ -1869,7 +1871,7 @@ export default function ProjectDetailPage() {
                 </Button>
               </Box>
               <TableContainer component={Paper}>
-                <Table size="small">
+                <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell>Nama Pekerja</TableCell>
@@ -1897,10 +1899,10 @@ export default function ProjectDetailPage() {
                           </TableCell>
                           <TableCell align="right">
                             <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-                              <IconButton size="small" color="primary" onClick={() => handleOpenEditWage(w)}>
+                              <IconButton size="small" color="primary" sx={{ p: 0.25 }} onClick={() => handleOpenEditWage(w)}>
                                 <EditIcon fontSize="small" />
                               </IconButton>
-                              <IconButton size="small" color="error" onClick={() => handleDeleteWage(w.id)}>
+                              <IconButton size="small" color="error" sx={{ p: 0.25 }} onClick={() => handleDeleteWage(w.id)}>
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
                             </Stack>
