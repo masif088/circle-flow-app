@@ -67,7 +67,7 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)" }}>
+      <Box sx={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #e0e7ff 100%)" }}>
         <CircularProgress color="primary" />
       </Box>
     );
@@ -80,7 +80,7 @@ export default function LoginPage() {
         minHeight: "100vh",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #0b0f19 0%, #111827 50%, #1e1b4b 100%)",
+        background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #e0e7ff 100%)",
         p: 2,
       }}
     >
@@ -95,9 +95,9 @@ export default function LoginPage() {
         <Card
           sx={{
             background: (theme) =>
-              theme.palette.mode === "dark" ? "rgba(17, 24, 39, 0.7)" : "rgba(255, 255, 255, 0.8)",
+              theme.palette.mode === "dark" ? "rgba(17, 24, 39, 0.7)" : "#ffffff",
             backdropFilter: "blur(12px)",
-            borderRadius: 4,
+            borderRadius: 1,
           }}
         >
           <CardContent sx={{ p: 4 }}>
@@ -106,7 +106,7 @@ export default function LoginPage() {
             </Typography>
 
             {error && (
-              <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+              <Alert severity="error" sx={{ mb: 3, borderRadius: 1 }}>
                 {error}
               </Alert>
             )}
@@ -169,7 +169,7 @@ export default function LoginPage() {
                 disabled={submitting}
                 sx={{
                   py: 1.5,
-                  borderRadius: 2,
+                  borderRadius: 1,
                   background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                   color: "#ffffff",
                   fontSize: "1rem",
