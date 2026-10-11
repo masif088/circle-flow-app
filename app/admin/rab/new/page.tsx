@@ -135,61 +135,42 @@ export default function NewRabPage() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {/* Step 1 — Tipe */}
+      {/* Tipe + Proyek */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="body2" sx={{ fontWeight: 700,  mb: 2 }}>
-            1. Tipe RAB
+          <Typography variant="body2" sx={{ fontWeight: 700, mb: 2 }}>
+            1. Tipe RAB & Proyek / Site
           </Typography>
-          <Stack direction="row" sx={{ gap: 2 }}>
-            {(["Operasional", "Penambahan MP"] as const).map(t => (
-              <Card
-                key={t}
-                variant="outlined"
-                onClick={() => setType(t)}
-                sx={{
-                  flex: 1,
-                  cursor: "pointer",
-                  borderColor: type === t ? "primary.main" : "divider",
-                  borderWidth: type === t ? 2 : 1,
-                  bgcolor: type === t ? "primary.50" : "background.paper",
-                  "&:hover": { borderColor: "primary.main" },
+          <Stack direction={{ xs: "column", sm: "row" }} sx={{ gap: 2 }}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Tipe RAB</InputLabel>
+              <Select
+                value={type}
+                label="Tipe RAB"
+                onChange={e => setType(e.target.value as "Operasional" | "Penambahan MP")}
+              >
+                <MenuItem value="Operasional">Operasional</MenuItem>
+                <MenuItem value="Penambahan MP">Penambahan MP</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl size="small" fullWidth disabled={step < 2}>
+              <InputLabel>Proyek / Site</InputLabel>
+              <Select
+                value={projectId}
+                label="Proyek / Site"
+                onChange={e => {
+                  const pid = e.target.value;
+                  setProjectId(pid);
+                  const p = projects.find(x => x.id === pid);
+                  setProjectName(p?.title || "");
                 }}
               >
-                <CardContent sx={{ textAlign: "center" }}>
-                  <Typography sx={{ fontWeight: 700 }} color={type === t ? "primary" : "text.primary"}>
-                    {t}
-                  </Typography>
-                </CardContent>
-              </Card>
-            ))}
+                {projects.map(p => (
+                  <MenuItem key={p.id} value={p.id}>{p.title}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Stack>
-        </CardContent>
-      </Card>
-
-      {/* Step 2 — Proyek */}
-      <Card sx={{ mb: 2, opacity: step < 2 ? 0.5 : 1 }}>
-        <CardContent>
-          <Typography variant="body2" sx={{ fontWeight: 700,  mb: 2 }}>
-            2. Pilih Proyek / Site
-          </Typography>
-          <FormControl fullWidth disabled={step < 2}>
-            <InputLabel>Proyek</InputLabel>
-            <Select
-              value={projectId}
-              label="Proyek"
-              onChange={e => {
-                const pid = e.target.value;
-                setProjectId(pid);
-                const p = projects.find(x => x.id === pid);
-                setProjectName(p?.title || "");
-              }}
-            >
-              {projects.map(p => (
-                <MenuItem key={p.id} value={p.id}>{p.title}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
         </CardContent>
       </Card>
 
@@ -198,7 +179,7 @@ export default function NewRabPage() {
         <CardContent>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              3. Item Preparation (Rencana Anggaran)
+              2. Item Preparation (Rencana Anggaran)
             </Typography>
             <Button
               size="small"
