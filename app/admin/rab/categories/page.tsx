@@ -123,7 +123,7 @@ export default function RabCategoriesPage() {
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
           <CategoryIcon color="primary" />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Kelola Kategori RAB</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>Kelola Kategori RAB</Typography>
         </Stack>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
           Tambah Kategori

@@ -416,7 +416,7 @@ export default function RabDetailPage() {
       {tab === 0 && (
         <Card>
           <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+            <Typography variant="body1" sx={{ fontWeight: 700, mb: 2 }}>
               Rencana Anggaran
             </Typography>
             <TableContainer component={Paper} variant="outlined">
@@ -460,7 +460,7 @@ export default function RabDetailPage() {
         <Card>
           <CardContent>
             <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Nota Realisasi</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 700 }}>Nota Realisasi</Typography>
               <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openNewNota}>
                 Tambah Nota
               </Button>
@@ -549,7 +549,7 @@ export default function RabDetailPage() {
       {tab === 2 && (
         <Card>
           <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+            <Typography variant="body1" sx={{ fontWeight: 700, mb: 2 }}>
               Matching Preparation vs Realisasi
             </Typography>
             <TableContainer component={Paper} variant="outlined">

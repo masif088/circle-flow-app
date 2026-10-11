@@ -130,7 +130,7 @@ export default function NewRabPage() {
         <IconButton onClick={() => router.push("/admin/rab")} size="small">
           <BackIcon />
         </IconButton>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>Buat RAB Baru</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>Buat RAB Baru</Typography>
       </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -138,7 +138,7 @@ export default function NewRabPage() {
       {/* Step 1 — Tipe */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700,  mb: 2 }}>
+          <Typography variant="body1" sx={{ fontWeight: 700,  mb: 2 }}>
             1. Tipe RAB
           </Typography>
           <Stack direction="row" sx={{ gap: 2 }}>
@@ -170,7 +170,7 @@ export default function NewRabPage() {
       {/* Step 2 — Proyek */}
       <Card sx={{ mb: 2, opacity: step < 2 ? 0.5 : 1 }}>
         <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700,  mb: 2 }}>
+          <Typography variant="body1" sx={{ fontWeight: 700,  mb: 2 }}>
             2. Pilih Proyek / Site
           </Typography>
           <FormControl fullWidth disabled={step < 2}>
@@ -197,7 +197,7 @@ export default function NewRabPage() {
       <Card sx={{ mb: 3, opacity: step < 3 ? 0.5 : 1 }}>
         <CardContent>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>
               3. Item Preparation (Rencana Anggaran)
             </Typography>
             <Button

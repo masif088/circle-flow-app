@@ -99,7 +99,7 @@ export default function RabListPage() {
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
           <RabIcon color="primary" />
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>RAB (Rencana Anggaran Biaya)</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>RAB (Rencana Anggaran Biaya)</Typography>
         </Stack>
         <Stack direction="row" sx={{ gap: 1 }}>
           <Button
