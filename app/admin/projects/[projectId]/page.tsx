@@ -1853,7 +1853,7 @@ export default function ProjectDetailPage() {
                       workerSummaries.slice(workerPage * workerRowsPerPage, workerPage * workerRowsPerPage + workerRowsPerPage).map((w) => (
                         <TableRow key={w.userId} hover>
                           <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={() => router.push("/admin/users/" + w.userId)}>
                               {w.userName}
                             </Typography>
                           </TableCell>
@@ -1917,7 +1917,7 @@ export default function ProjectDetailPage() {
                       projectWages.slice(wagePage * wageRowsPerPage, wagePage * wageRowsPerPage + wageRowsPerPage).map((w) => (
                         <TableRow key={w.id} hover>
                           <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={() => router.push("/admin/users/" + w.user_id)}>
                               {getUserName(w.user_id)}
                             </Typography>
                           </TableCell>
