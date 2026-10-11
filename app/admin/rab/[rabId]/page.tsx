@@ -416,7 +416,7 @@ export default function RabDetailPage() {
       {tab === 0 && (
         <Card>
           <CardContent>
-            <Typography variant="body1" sx={{ fontWeight: 700, mb: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, mb: 2 }}>
               Rencana Anggaran
             </Typography>
             <TableContainer component={Paper} variant="outlined">
@@ -460,7 +460,7 @@ export default function RabDetailPage() {
         <Card>
           <CardContent>
             <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-              <Typography variant="body1" sx={{ fontWeight: 700 }}>Nota Realisasi</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Nota Realisasi</Typography>
               <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openNewNota}>
                 Tambah Nota
               </Button>
@@ -549,7 +549,7 @@ export default function RabDetailPage() {
       {tab === 2 && (
         <Card>
           <CardContent>
-            <Typography variant="body1" sx={{ fontWeight: 700, mb: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, mb: 2 }}>
               Matching Preparation vs Realisasi
             </Typography>
             <TableContainer component={Paper} variant="outlined">
@@ -708,14 +708,14 @@ export default function RabDetailPage() {
             </Stack>
 
             <TableContainer component={Paper} variant="outlined" sx={{ overflowX: "auto" }}>
-              <Table size="small" sx={{ minWidth: 900 }}>
+              <Table size="small" sx={{ minWidth: 900, "& .MuiInputBase-root": { fontSize: "0.875rem" }, "& .MuiTableBody-root .MuiTableCell-root": { px: 1, py: 0.75 }, "& .MuiTableHead-root .MuiTableCell-root": { px: 1 } }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: "grey.50" }}>
                     <TableCell sx={{ minWidth: 160 }}>Nama Item</TableCell>
                     <TableCell sx={{ minWidth: 120 }}>Kategori</TableCell>
                     <TableCell sx={{ minWidth: 160 }}>Link ke Preparation</TableCell>
-                    <TableCell sx={{ width: 65 }}>Qty</TableCell>
-                    <TableCell sx={{ width: 75 }}>Satuan</TableCell>
+                    <TableCell sx={{ width: 90 }}>Qty</TableCell>
+                    <TableCell sx={{ width: 90 }}>Satuan</TableCell>
                     <TableCell sx={{ minWidth: 120 }}>Harga</TableCell>
                     <TableCell sx={{ minWidth: 110 }}>Total</TableCell>
                     <TableCell sx={{ width: 40 }} />

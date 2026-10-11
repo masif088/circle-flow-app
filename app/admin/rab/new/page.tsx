@@ -138,7 +138,7 @@ export default function NewRabPage() {
       {/* Step 1 — Tipe */}
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="body1" sx={{ fontWeight: 700,  mb: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700,  mb: 2 }}>
             1. Tipe RAB
           </Typography>
           <Stack direction="row" sx={{ gap: 2 }}>
@@ -170,7 +170,7 @@ export default function NewRabPage() {
       {/* Step 2 — Proyek */}
       <Card sx={{ mb: 2, opacity: step < 2 ? 0.5 : 1 }}>
         <CardContent>
-          <Typography variant="body1" sx={{ fontWeight: 700,  mb: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700,  mb: 2 }}>
             2. Pilih Proyek / Site
           </Typography>
           <FormControl fullWidth disabled={step < 2}>
@@ -197,7 +197,7 @@ export default function NewRabPage() {
       <Card sx={{ mb: 3, opacity: step < 3 ? 0.5 : 1 }}>
         <CardContent>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Typography variant="body1" sx={{ fontWeight: 700 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
               3. Item Preparation (Rencana Anggaran)
             </Typography>
             <Button
@@ -211,13 +211,13 @@ export default function NewRabPage() {
           </Stack>
 
           <TableContainer component={Paper} variant="outlined" sx={{ overflowX: "auto" }}>
-            <Table size="small" sx={{ minWidth: 900 }}>
+            <Table size="small" sx={{ minWidth: 900, "& .MuiInputBase-root": { fontSize: "0.875rem" }, "& .MuiTableBody-root .MuiTableCell-root": { px: 1, py: 0.75 }, "& .MuiTableHead-root .MuiTableCell-root": { px: 1 } }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: "grey.50" }}>
                   <TableCell sx={{ minWidth: 180 }}>Nama Item</TableCell>
                   <TableCell sx={{ minWidth: 140 }}>Kategori</TableCell>
-                  <TableCell sx={{ width: 70 }}>Qty</TableCell>
-                  <TableCell sx={{ width: 80 }}>Satuan</TableCell>
+                  <TableCell sx={{ width: 90 }}>Qty</TableCell>
+                  <TableCell sx={{ width: 90 }}>Satuan</TableCell>
                   <TableCell sx={{ minWidth: 130 }}>Harga Satuan</TableCell>
                   <TableCell sx={{ minWidth: 120 }}>Total</TableCell>
                   <TableCell>Catatan</TableCell>
