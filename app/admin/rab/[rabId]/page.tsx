@@ -23,6 +23,7 @@ import {
   Replay as RevisionIcon,
   Paid as PaidIcon,
   Upload as UploadIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
@@ -281,11 +282,24 @@ export default function RabDetailPage() {
   };
 
   // --- Matching ---
-  const getMatchStatus = (prepItem: PrepItem) => {
-    const linked = (rab?.report || []).flatMap(n => n.items).filter(
-      i => i.preparation_item_id === prepItem.item_id
-    );
-    return linked.length > 0 ? linked : null;
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const assignReportItem = async (itemId: string, prepId: string | null) => {
+    if (!rab) return;
+    const prevReport = rab.report || [];
+    const updatedReport = prevReport.map(n => ({
+      ...n,
+      items: n.items.map(i => (i.item_id === itemId ? { ...i, preparation_item_id: prepId } : i)),
+    }));
+    setRab(prev => (prev ? { ...prev, report: updatedReport } : prev));
+    try {
+      await updateDoc(doc(db, "rab", rab.id), { report: updatedReport });
+    } catch (e: any) {
+      setRab(prev => (prev ? { ...prev, report: prevReport } : prev));
+      setError("Gagal menyimpan matching: " + (e?.message || e));
+    }
   };
 
   if (loading) return <Box sx={{ display: "flex", justifyContent: "center", p: 8 }}><CircularProgress /></Box>;
@@ -546,96 +560,171 @@ export default function RabDetailPage() {
       )}
 
       {/* Tab 2 — Matching */}
-      {tab === 2 && (
-        <Card>
-          <CardContent>
-            <Typography variant="body2" sx={{ fontWeight: 700, mb: 2 }}>
-              Matching Preparation vs Realisasi
-            </Typography>
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: "grey.50" }}>
-                    <TableCell>Item Preparation</TableCell>
-                    <TableCell>Kategori</TableCell>
-                    <TableCell>Anggaran</TableCell>
-                    <TableCell>Realisasi</TableCell>
-                    <TableCell>Selisih</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {(rab.preparation || []).map(prep => {
-                    const linked = (rab.report || []).flatMap(n => n.items).filter(
-                      i => i.preparation_item_id === prep.item_id
-                    );
-                    const totalLinked = linked.reduce((s, i) => s + (i.total || 0), 0);
-                    const selisih = prep.total - totalLinked;
-                    return (
-                      <TableRow key={prep.item_id} hover>
-                        <TableCell><Typography sx={{ fontWeight: 600 }}>{prep.name}</Typography></TableCell>
-                        <TableCell><Chip label={catName(prep.category_id)} size="small" variant="outlined" /></TableCell>
-                        <TableCell>{formatRp(prep.total)}</TableCell>
-                        <TableCell>
-                          {linked.length > 0 ? (
-                            <Tooltip title={`${linked.length} item nota`}>
-                              <Typography sx={{ fontWeight: 600 }}>{formatRp(totalLinked)}</Typography>
-                            </Tooltip>
-                          ) : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Typography color={selisih < 0 ? "error" : "success.main"} sx={{ fontWeight: 600 }}>
-                            {linked.length > 0 ? formatRp(selisih) : "—"}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          {linked.length === 0 ? (
-                            <Chip label="Belum ada realisasi" size="small" color="default" />
-                          ) : selisih < 0 ? (
-                            <Chip label="Over Budget" size="small" color="error" />
-                          ) : selisih === 0 ? (
-                            <Chip label="Pas" size="small" color="success" />
-                          ) : (
-                            <Chip label="Sisa Anggaran" size="small" color="info" />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {/* Unplanned items */}
-                  {(() => {
-                    const unplanned = (rab.report || []).flatMap(n => n.items).filter(
-                      i => !i.preparation_item_id
-                    );
-                    if (unplanned.length === 0) return null;
-                    return (
-                      <>
-                        <TableRow>
-                          <TableCell colSpan={6}>
-                            <Typography variant="caption" color="warning.main" sx={{ fontWeight: 700 }}>
-                              PENGELUARAN TAK TERDUGA (tidak ada di preparation)
+      {tab === 2 && (() => {
+        const allReportItems = (rab.report || []).flatMap(n => n.items.map(i => ({ ...i, nota_date: n.tanggal })));
+        const unlinked = allReportItems.filter(i => !i.preparation_item_id || !rab.preparation.some(p => p.item_id === i.preparation_item_id));
+        const unlinkedTotal = unlinked.reduce((s, i) => s + (i.total || 0), 0);
+
+        const reportCard = (item: typeof allReportItems[number], removable: boolean) => (
+          <Paper
+            key={item.item_id}
+            variant="outlined"
+            draggable
+            onDragStart={e => { e.dataTransfer.setData("text/plain", item.item_id); e.dataTransfer.effectAllowed = "move"; setDragId(item.item_id); }}
+            onDragEnd={() => { setDragId(null); setDragOver(null); }}
+            onClick={() => setSelectedId(prev => (prev === item.item_id ? null : item.item_id))}
+            sx={{
+              p: 1, cursor: "grab", fontSize: "0.8125rem",
+              borderColor: selectedId === item.item_id ? "primary.main" : "divider",
+              borderWidth: selectedId === item.item_id ? 2 : 1,
+              bgcolor: dragId === item.item_id ? "action.hover" : "background.paper",
+              opacity: dragId === item.item_id ? 0.5 : 1,
+            }}
+          >
+            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", gap: 1 }}>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{item.name || "(tanpa nama)"}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {item.quantity} {item.unit} · {item.nota_date} · {catName(item.category_id)}
+                </Typography>
+              </Box>
+              <Stack direction="row" sx={{ alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatRp(item.total)}</Typography>
+                {removable && (
+                  <Tooltip title="Lepas dari item RAB">
+                    <IconButton size="small" onClick={e => { e.stopPropagation(); assignReportItem(item.item_id, null); }}>
+                      <CloseIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Stack>
+            </Stack>
+          </Paper>
+        );
+
+        return (
+          <Card>
+            <CardContent>
+              <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>Matching RAB vs Realisasi</Typography>
+                {selectedId && (
+                  <Button size="small" onClick={() => setSelectedId(null)}>Batal pilih</Button>
+                )}
+              </Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+                Drag item realisasi (kanan) ke item RAB (kiri). Di layar sentuh: klik item realisasi, lalu klik item RAB.
+              </Typography>
+
+              <Stack direction={{ xs: "column", md: "row" }} sx={{ gap: 2, alignItems: "flex-start" }}>
+                {/* Kiri: RAB */}
+                <Box sx={{ flex: 1, minWidth: 0, width: "100%" }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                    Rencana (RAB) · {formatRp(totalPrep)}
+                  </Typography>
+                  <Stack sx={{ gap: 1, mt: 1 }}>
+                    {(rab.preparation || []).map(prep => {
+                      const linked = allReportItems.filter(i => i.preparation_item_id === prep.item_id);
+                      const totalLinked = linked.reduce((s, i) => s + (i.total || 0), 0);
+                      const selisih = prep.total - totalLinked;
+                      const active = dragOver === prep.item_id;
+                      return (
+                        <Paper
+                          key={prep.item_id}
+                          variant="outlined"
+                          onDragOver={e => { e.preventDefault(); setDragOver(prep.item_id); }}
+                          onDragLeave={() => setDragOver(prev => (prev === prep.item_id ? null : prev))}
+                          onDrop={e => {
+                            e.preventDefault();
+                            const id = e.dataTransfer.getData("text/plain") || dragId;
+                            if (id) assignReportItem(id, prep.item_id);
+                            setDragId(null); setDragOver(null);
+                          }}
+                          onClick={() => { if (selectedId) { assignReportItem(selectedId, prep.item_id); setSelectedId(null); } }}
+                          sx={{
+                            p: 1.5,
+                            borderColor: active ? "primary.main" : "divider",
+                            borderWidth: active ? 2 : 1,
+                            bgcolor: active ? "action.hover" : "background.paper",
+                            cursor: selectedId ? "pointer" : "default",
+                          }}
+                        >
+                          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700 }}>{prep.name}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {prep.quantity} {prep.unit} · {catName(prep.category_id)}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ textAlign: "right", flexShrink: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700 }} color="primary">{formatRp(prep.total)}</Typography>
+                              {linked.length === 0 ? (
+                                <Chip label="Belum ada realisasi" size="small" />
+                              ) : selisih < 0 ? (
+                                <Chip label={`Over ${formatRp(-selisih)}`} size="small" color="error" />
+                              ) : selisih === 0 ? (
+                                <Chip label="Pas" size="small" color="success" />
+                              ) : (
+                                <Chip label={`Sisa ${formatRp(selisih)}`} size="small" color="info" />
+                              )}
+                            </Box>
+                          </Stack>
+                          <Stack sx={{ gap: 0.75, mt: linked.length ? 1 : 0 }}>
+                            {linked.map(i => reportCard(i, true))}
+                          </Stack>
+                          {linked.length > 0 && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, textAlign: "right" }}>
+                              Realisasi: <b>{formatRp(totalLinked)}</b>
                             </Typography>
-                          </TableCell>
-                        </TableRow>
-                        {unplanned.map(item => (
-                          <TableRow key={item.item_id} sx={{ bgcolor: "warning.50" }}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell><Chip label={catName(item.category_id)} size="small" variant="outlined" /></TableCell>
-                            <TableCell>—</TableCell>
-                            <TableCell>{formatRp(item.total)}</TableCell>
-                            <TableCell color="error">—</TableCell>
-                            <TableCell><Chip label="Tak Terduga" size="small" color="warning" /></TableCell>
-                          </TableRow>
-                        ))}
-                      </>
-                    );
-                  })()}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      )}
+                          )}
+                        </Paper>
+                      );
+                    })}
+                  </Stack>
+                </Box>
+
+                {/* Kanan: laporan belum ter-match */}
+                <Box
+                  sx={{ flex: 1, minWidth: 0, width: "100%" }}
+                  onDragOver={e => { e.preventDefault(); setDragOver("__pool"); }}
+                  onDragLeave={() => setDragOver(prev => (prev === "__pool" ? null : prev))}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const id = e.dataTransfer.getData("text/plain") || dragId;
+                    if (id) assignReportItem(id, null);
+                    setDragId(null); setDragOver(null);
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                    Realisasi belum ter-match · {unlinked.length} item · {formatRp(unlinkedTotal)}
+                  </Typography>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 1, mt: 1, minHeight: 120,
+                      borderStyle: "dashed",
+                      borderColor: dragOver === "__pool" ? "primary.main" : "divider",
+                      bgcolor: dragOver === "__pool" ? "action.hover" : "grey.50",
+                    }}
+                  >
+                    {unlinked.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+                        Semua item realisasi sudah ter-match. Drop di sini untuk melepas match.
+                      </Typography>
+                    ) : (
+                      <Stack sx={{ gap: 0.75 }}>
+                        {unlinked.map(i => reportCard(i, false))}
+                      </Stack>
+                    )}
+                  </Paper>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                    Item yang tetap di sini dihitung sebagai pengeluaran tak terduga.
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Nota Dialog */}
       <Dialog open={notaDialogOpen} onClose={() => setNotaDialogOpen(false)} maxWidth="lg" fullWidth>
