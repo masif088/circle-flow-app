@@ -47,6 +47,7 @@ import {
   Groups as GroupsIcon,
   Assessment as ReportIcon,
   Receipt as ClaimsIcon,
+  Assignment as RabIcon,
   FolderOpen as ArchiveIcon,
   CheckCircleOutlined as ReadIcon,
   Close as CloseIcon,
@@ -275,6 +276,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ...(!isClient ? [
       { text: "Kehadiran", icon: <PersonIcon />, path: "/admin/presence" },
       { text: "Klaim & Nota", icon: <ClaimsIcon />, path: "/admin/claims" },
+      { text: "RAB", icon: <RabIcon />, path: "/admin/rab" },
       { text: "Arsip Laporan", icon: <ArchiveIcon />, path: "/admin/archives" },
       { text: "Notifikasi", icon: <NotificationsIcon />, path: "/admin/notifications" },
     ] : []),
