@@ -119,7 +119,7 @@ export default function NewRabPage() {
   const step = !type ? 1 : !projectId ? 2 : 3;
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
+    <Box sx={{ p: 3 }}>
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/admin" style={{ textDecoration: "none", color: "inherit" }}>Dashboard</Link>
         <Link href="/admin/rab" style={{ textDecoration: "none", color: "inherit" }}>RAB</Link>
@@ -211,17 +211,27 @@ export default function NewRabPage() {
           </Stack>
 
           <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
+            <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
+              <colgroup>
+                <col style={{ width: "22%" }} />
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "7%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "15%" }} />
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "3%" }} />
+              </colgroup>
               <TableHead>
                 <TableRow sx={{ bgcolor: "grey.50" }}>
-                  <TableCell sx={{ minWidth: 180 }}>Nama Item</TableCell>
-                  <TableCell sx={{ minWidth: 140 }}>Kategori</TableCell>
-                  <TableCell sx={{ width: 80 }}>Qty</TableCell>
-                  <TableCell sx={{ width: 80 }}>Satuan</TableCell>
-                  <TableCell sx={{ minWidth: 130 }}>Harga Satuan</TableCell>
-                  <TableCell sx={{ minWidth: 130 }}>Total</TableCell>
-                  <TableCell sx={{ minWidth: 140 }}>Catatan</TableCell>
-                  <TableCell sx={{ width: 40 }} />
+                  <TableCell>Nama Item</TableCell>
+                  <TableCell>Kategori</TableCell>
+                  <TableCell>Qty</TableCell>
+                  <TableCell>Satuan</TableCell>
+                  <TableCell>Harga Satuan</TableCell>
+                  <TableCell>Total</TableCell>
+                  <TableCell>Catatan</TableCell>
+                  <TableCell />
                 </TableRow>
               </TableHead>
               <TableBody>

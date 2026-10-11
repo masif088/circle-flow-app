@@ -113,7 +113,7 @@ export default function RabCategoriesPage() {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
+    <Box sx={{ p: 3 }}>
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/admin" style={{ textDecoration: "none", color: "inherit" }}>Dashboard</Link>
         <Link href="/admin/rab" style={{ textDecoration: "none", color: "inherit" }}>RAB</Link>

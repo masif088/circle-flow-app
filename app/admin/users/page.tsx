@@ -333,9 +333,9 @@ export default function UsersPage() {
         )
       );
       setOpenEditDialog(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user:", error);
-      alert("Failed to update user in Firestore.");
+      alert("Gagal update user: " + (error?.message || String(error)));
     }
   };
 

@@ -292,7 +292,7 @@ export default function RabDetailPage() {
   if (!rab) return null;
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1100, mx: "auto" }}>
+    <Box sx={{ p: 3 }}>
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/admin" style={{ textDecoration: "none", color: "inherit" }}>Dashboard</Link>
         <Link href="/admin/rab" style={{ textDecoration: "none", color: "inherit" }}>RAB</Link>
@@ -708,17 +708,27 @@ export default function RabDetailPage() {
             </Stack>
 
             <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
+              <Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
+                <colgroup>
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "20%" }} />
+                  <col style={{ width: "6%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "4%" }} />
+                </colgroup>
                 <TableHead>
                   <TableRow sx={{ bgcolor: "grey.50" }}>
-                    <TableCell sx={{ minWidth: 160 }}>Nama Item</TableCell>
-                    <TableCell sx={{ minWidth: 130 }}>Kategori</TableCell>
-                    <TableCell sx={{ minWidth: 170 }}>Link ke Preparation</TableCell>
-                    <TableCell sx={{ width: 70 }}>Qty</TableCell>
-                    <TableCell sx={{ width: 80 }}>Satuan</TableCell>
-                    <TableCell sx={{ minWidth: 120 }}>Harga</TableCell>
-                    <TableCell sx={{ minWidth: 110 }}>Total</TableCell>
-                    <TableCell sx={{ width: 40 }} />
+                    <TableCell>Nama Item</TableCell>
+                    <TableCell>Kategori</TableCell>
+                    <TableCell>Link ke Preparation</TableCell>
+                    <TableCell>Qty</TableCell>
+                    <TableCell>Satuan</TableCell>
+                    <TableCell>Harga</TableCell>
+                    <TableCell>Total</TableCell>
+                    <TableCell />
                   </TableRow>
                 </TableHead>
                 <TableBody>
