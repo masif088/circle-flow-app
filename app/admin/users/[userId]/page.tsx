@@ -12,6 +12,9 @@ import {
   where,
   getDocs,
   updateDoc,
+  setDoc,
+  deleteDoc,
+  deleteField,
   addDoc,
   onSnapshot,
   orderBy,
@@ -57,6 +60,8 @@ import {
   Visibility as ViewIcon,
   GridOn as CsvIcon,
   Edit as EditIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 
 interface UserRecord {
@@ -126,6 +131,11 @@ export default function UserDetailPage() {
   const [companyName, setCompanyName] = useState<string>("");
   const [presences, setPresences] = useState<any[]>([]);
   const [costs, setCosts] = useState<any[]>([]);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignProjectId, setAssignProjectId] = useState("");
+  const [assignCost, setAssignCost] = useState("");
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [assignError, setAssignError] = useState("");
   const [projects, setProjects] = useState<any[]>([]);
   const [allTeams, setAllTeams] = useState<{id: string; title: string}[]>([]);
   const [allCompanies, setAllCompanies] = useState<{id: string; name: string}[]>([]);
@@ -295,6 +305,47 @@ export default function UserDetailPage() {
   const formatPrice = (val?: number) => {
     if (val === undefined || val === null) return "Rp 0";
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
+  };
+
+  const handleAssignProject = async () => {
+    if (!assignProjectId) { setAssignError("Pilih proyek terlebih dahulu"); return; }
+    setAssignSaving(true);
+    setAssignError("");
+    try {
+      const proj = projects.find(p => p.id === assignProjectId);
+      const costId = `${userId}_${assignProjectId}`;
+      const cost = parseFloat(assignCost) || 0;
+      await setDoc(doc(db, "cost_people_on_project", costId), {
+        user_id: userId,
+        project_id: assignProjectId,
+        cost,
+        updatedAt: new Date().toISOString(),
+      });
+      await updateDoc(doc(db, "users", userId), {
+        [`activeProjects.${assignProjectId}`]: proj?.title || assignProjectId,
+      });
+      setCosts(prev => [...prev.filter(c => c.id !== costId), { id: costId, user_id: userId, project_id: assignProjectId, cost }]);
+      setAssignOpen(false);
+      setAssignProjectId("");
+      setAssignCost("");
+    } catch (e: any) {
+      setAssignError(e?.message || "Gagal menambahkan ke proyek");
+    } finally {
+      setAssignSaving(false);
+    }
+  };
+
+  const handleUnassignProject = async (rate: any) => {
+    if (!confirm(`Keluarkan pengguna ini dari proyek "${getProjectName(rate.project_id)}"?`)) return;
+    try {
+      await deleteDoc(doc(db, "cost_people_on_project", rate.id));
+      await updateDoc(doc(db, "users", userId), {
+        [`activeProjects.${rate.project_id}`]: deleteField(),
+      });
+      setCosts(prev => prev.filter(c => c.id !== rate.id));
+    } catch (e: any) {
+      alert("Gagal mengeluarkan dari proyek: " + (e?.message || e));
+    }
   };
 
   const getProjectName = (projId: string) => {
@@ -638,6 +689,15 @@ export default function UserDetailPage() {
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Tarif Upah Pekerja per Proyek
                 </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => { setAssignError(""); setAssignOpen(true); }}
+                  sx={{ textTransform: "none" }}
+                >
+                  Tambah ke Proyek
+                </Button>
                 {costs.length > 0 && (
                   <Box sx={{ display: "flex", gap: 1 }}>
                     <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -659,7 +719,7 @@ export default function UserDetailPage() {
               </Box>
               {costs.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
-                  Tidak ada tarif kustom yang dikonfigurasi untuk pengguna ini.
+                  Pengguna ini belum ditugaskan ke proyek mana pun.
                 </Typography>
               ) : (
                 <>
@@ -698,6 +758,14 @@ export default function UserDetailPage() {
                               >
                                 <ViewIcon fontSize="small" />
                               </IconButton>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleUnassignProject(rate)}
+                                title="Keluarkan dari Proyek"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -723,6 +791,38 @@ export default function UserDetailPage() {
           </Card>
         </Grid>
       </Grid>
+
+      <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Tambah ke Proyek</DialogTitle>
+        <DialogContent>
+          <Stack sx={{ gap: 2, pt: 1 }}>
+            {assignError && <Alert severity="error">{assignError}</Alert>}
+            <FormControl size="small" fullWidth>
+              <InputLabel>Proyek</InputLabel>
+              <Select value={assignProjectId} label="Proyek" onChange={e => setAssignProjectId(e.target.value)}>
+                {projects
+                  .filter(p => !costs.some(c => c.project_id === p.id))
+                  .map(p => <MenuItem key={p.id} value={p.id}>{p.title || p.id}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <TextField
+              size="small"
+              fullWidth
+              type="number"
+              label="Tarif Harian (Rp)"
+              value={assignCost}
+              onChange={e => setAssignCost(e.target.value)}
+              slotProps={{ htmlInput: { min: 0 } }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAssignOpen(false)} disabled={assignSaving}>Batal</Button>
+          <Button variant="contained" onClick={handleAssignProject} disabled={assignSaving}>
+            {assignSaving ? <CircularProgress size={20} /> : "Simpan"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Filtered Presence Logs */}
       <Card sx={{ mb: 4 }}>
