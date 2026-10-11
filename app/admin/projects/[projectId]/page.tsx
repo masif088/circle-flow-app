@@ -226,6 +226,23 @@ function ArsipLaporanSection({ projectId }: { projectId: string }) {
     return () => unsub();
   }, [projectId]);
 
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const objUrl = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
+
   if (reports.length === 0) return null;
 
   return (
@@ -248,6 +265,13 @@ function ArsipLaporanSection({ projectId }: { projectId: string }) {
                 <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
                   oleh {r.generated_by_name}
                 </Typography>
+              )}
+              {r.file_url ? (
+                <IconButton size="small" color="success" title="Download" onClick={() => handleDownload(r.file_url, r.filename)}>
+                  <DownloadIcon fontSize="small" />
+                </IconButton>
+              ) : (
+                <Typography variant="caption" color="text.disabled" sx={{ px: 0.5 }}>Lokal</Typography>
               )}
             </Box>
           ))}
