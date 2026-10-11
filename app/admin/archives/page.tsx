@@ -95,6 +95,24 @@ export default function ArchivesPage() {
     return true;
   });
 
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
+
   const fmtDate = (iso: string) => iso ? new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
 
   return (
@@ -216,7 +234,7 @@ export default function ArchivesPage() {
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Download">
-                                <IconButton size="small" color="success" component="a" href={e.file_url} download={e.filename} target="_blank">
+                                <IconButton size="small" color="success" onClick={() => handleDownload(e.file_url, e.filename)}>
                                   <DownloadIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>

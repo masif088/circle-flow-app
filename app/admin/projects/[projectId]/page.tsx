@@ -1827,9 +1827,6 @@ export default function ProjectDetailPage() {
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
                               {w.userName}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {w.email}
-                            </Typography>
                           </TableCell>
                           <TableCell>{w.daysAttended} hari</TableCell>
                           <TableCell>{formatPrice(w.averagePaidPerDay)}</TableCell>
