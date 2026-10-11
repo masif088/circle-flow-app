@@ -818,7 +818,7 @@ export default function PresenceAdminPage() {
               startIcon={<DummyIcon />}
               onClick={handleGenerateDummy}
               disabled={dummyLoading}
-              sx={{ borderRadius: 2, fontWeight: 600 }}
+              sx={{ borderRadius: 1, fontWeight: 600 }}
             >
               {dummyLoading ? "Memuat..." : "Gen Dummy Data"}
             </Button>
@@ -828,7 +828,7 @@ export default function PresenceAdminPage() {
               variant="outlined"
               startIcon={<AddIcon />}
               onClick={handleOpenAddPresence}
-              sx={{ borderRadius: 2, fontWeight: 600, bgcolor: "background.paper" }}
+              sx={{ borderRadius: 1, fontWeight: 600, bgcolor: "background.paper" }}
             >
               Tambah Presensi Manual
             </Button>
@@ -839,7 +839,7 @@ export default function PresenceAdminPage() {
             startIcon={<AddIcon />}
             onClick={() => setOpenCostDialog(true)}
             sx={{
-              borderRadius: 2,
+              borderRadius: 1,
               fontWeight: 600,
               background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
             }}
@@ -850,7 +850,7 @@ export default function PresenceAdminPage() {
       </Box>
 
       {msg.text && (
-        <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 2 }}>
+        <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 1 }}>
           {msg.text}
         </Alert>
       )}
@@ -905,7 +905,7 @@ export default function PresenceAdminPage() {
 
             {/* Bulk action toolbar */}
             {selectedIds.size > 0 && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, p: 1.5, bgcolor: "primary.50", borderRadius: 2, border: "1px solid", borderColor: "primary.200" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, p: 1.5, bgcolor: "primary.50", borderRadius: 1, border: "1px solid", borderColor: "primary.200" }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
                   {selectedIds.size} dipilih
                 </Typography>
@@ -1382,7 +1382,7 @@ export default function PresenceAdminPage() {
                   sx={{
                     width: "100%",
                     maxHeight: 320,
-                    borderRadius: "12px",
+                    borderRadius: "8px",
                     objectFit: "contain",
                     bgcolor: "action.hover",
                     border: "1px solid #ddd"
@@ -1460,7 +1460,7 @@ export default function PresenceAdminPage() {
                     </Typography>
                     <Stack spacing={1.5}>
                       {Object.entries(selectedPresence.activity).map(([uuid, act]) => (
-                        <Box key={uuid} sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+                        <Box key={uuid} sx={{ p: 2, borderRadius: 1, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
                           <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
                             {act.photo && (
                               <Box

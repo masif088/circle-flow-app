@@ -237,7 +237,7 @@ export default function FileManagerPage() {
             variant="outlined"
             startIcon={<NewFolderIcon />}
             onClick={() => setOpenFolderDialog(true)}
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 1 }}
           >
             New Folder
           </Button>
@@ -246,7 +246,7 @@ export default function FileManagerPage() {
             variant="contained"
             startIcon={<UploadIcon />}
             sx={{
-              borderRadius: 2,
+              borderRadius: 1,
               background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
               color: "#ffffff",
             }}
@@ -291,7 +291,7 @@ export default function FileManagerPage() {
           <Typography variant="body2" sx={{ mb: 1 }}>
             Uploading file... {uploadProgress}%
           </Typography>
-          <LinearProgress variant="determinate" value={uploadProgress} sx={{ height: 6, borderRadius: 3 }} />
+          <LinearProgress variant="determinate" value={uploadProgress} sx={{ height: 6, borderRadius: 1 }} />
         </Box>
       )}
 

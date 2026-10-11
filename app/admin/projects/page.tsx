@@ -386,7 +386,7 @@ export default function ProjectsPage() {
             startIcon={<AddIcon />}
             onClick={() => setOpenProjectDialog(true)}
             sx={{
-              borderRadius: 2,
+              borderRadius: 1,
               background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
               color: "#ffffff"
             }}
@@ -396,10 +396,10 @@ export default function ProjectsPage() {
         )}
       </Box>
 
-      {msg.text && <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 2 }}>{msg.text}</Alert>}
+      {msg.text && <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 1 }}>{msg.text}</Alert>}
 
       {/* Map Card */}
-      <Card sx={{ mb: 4, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+      <Card sx={{ mb: 4, borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             <MapIcon color="primary" /> Peta Lokasi Proyek
@@ -408,7 +408,7 @@ export default function ProjectsPage() {
             id={mapContainerId}
             sx={{
               height: 350,
-              borderRadius: 2,
+              borderRadius: 1,
               overflow: "hidden",
               border: "1px solid",
               borderColor: "divider",
@@ -488,7 +488,7 @@ export default function ProjectsPage() {
                           }
                           size="small"
                           color={getStatusChipColor(proj.status)}
-                          sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                          sx={{ fontWeight: 600, borderRadius: 1 }}
                         />
                       </TableCell>
                       <TableCell align="right">

@@ -685,7 +685,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleAddFirstTask}
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 1 }}
           >
             Tambah Tugas Pertama
           </Button>
@@ -695,7 +695,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
               startIcon={<SeedIcon />}
               onClick={handleSeedData}
               disabled={seeding}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: 1 }}
             >
               Isi Data Demo
             </Button>
@@ -705,7 +705,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
             color="success"
             startIcon={<UploadIcon />}
             onClick={triggerImportFile}
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 1 }}
           >
             Impor JSON
           </Button>
@@ -714,7 +714,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
             color="secondary"
             startIcon={<DownloadIcon />}
             onClick={handleDownloadTemplate}
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 1 }}
           >
             Unduh Templat
           </Button>
@@ -751,7 +751,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
           size="small"
           startIcon={<UploadIcon />}
           onClick={triggerImportFile}
-          sx={{ borderRadius: 1.5 }}
+          sx={{ borderRadius: 1 }}
         >
           Import JSON
         </Button>
@@ -761,7 +761,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
           size="small"
           startIcon={<DownloadIcon />}
           onClick={handleExportJSON}
-          sx={{ borderRadius: 1.5 }}
+          sx={{ borderRadius: 1 }}
         >
           Export JSON
         </Button>
@@ -771,7 +771,7 @@ export default function GanttChart({ projectId = "proj-1" }: { projectId?: strin
           size="small"
           startIcon={<DownloadIcon />}
           onClick={handleDownloadTemplate}
-          sx={{ borderRadius: 1.5 }}
+          sx={{ borderRadius: 1 }}
         >
           Get Template
         </Button>

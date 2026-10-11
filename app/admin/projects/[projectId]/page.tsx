@@ -236,7 +236,7 @@ function ArsipLaporanSection({ projectId }: { projectId: string }) {
         </Typography>
         <Stack spacing={1}>
           {reports.map((r) => (
-            <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+            <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
               <Chip label={TYPE_LABEL[r.type] || r.type} size="small" color={TYPE_COLOR[r.type] || "default"} sx={{ fontWeight: 600, minWidth: 120 }} />
               <Typography variant="body2" sx={{ flex: 1, fontFamily: "monospace", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {r.filename}
@@ -1625,7 +1625,7 @@ export default function ProjectDetailPage() {
                   startIcon={<EditIcon />}
                   onClick={handleOpenEditProject}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: 1,
                     background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                     color: "#ffffff",
                     textTransform: "none"
@@ -1640,7 +1640,7 @@ export default function ProjectDetailPage() {
       </Box>
 
       {msg.text && (
-        <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 2 }}>
+        <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 1 }}>
           {msg.text}
         </Alert>
       )}
@@ -1651,7 +1651,7 @@ export default function ProjectDetailPage() {
           <Card>
             <CardContent>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "primary.light", color: "primary.main" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "primary.light", color: "primary.main" }}>
                   <MoneyIcon />
                 </Box>
                 <Box>
@@ -1671,7 +1671,7 @@ export default function ProjectDetailPage() {
           <Card>
             <CardContent>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "success.light", color: "success.main" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "success.light", color: "success.main" }}>
                   <TrendIcon />
                 </Box>
                 <Box>
@@ -1691,7 +1691,7 @@ export default function ProjectDetailPage() {
           <Card>
             <CardContent>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "warning.light", color: "warning.main" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "warning.light", color: "warning.main" }}>
                   <PeopleIcon />
                 </Box>
                 <Box>
@@ -1711,7 +1711,7 @@ export default function ProjectDetailPage() {
           <Card>
             <CardContent>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "info.light", color: "info.main" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "info.light", color: "info.main" }}>
                   <DateIcon />
                 </Box>
                 <Box>
@@ -1866,7 +1866,7 @@ export default function ProjectDetailPage() {
                   variant="outlined"
                   size="small"
                   onClick={handleOpenAddWage}
-                  sx={{ textTransform: "none", borderRadius: 2 }}
+                  sx={{ textTransform: "none", borderRadius: 1 }}
                 >
                   + Atur Upah
                 </Button>
@@ -1930,7 +1930,7 @@ export default function ProjectDetailPage() {
       </>}
 
       {/* Project Gantt Chart Schedule */}
-      <Card sx={{ mb: 4, borderRadius: 3, overflow: "hidden" }}>
+      <Card sx={{ mb: 4, borderRadius: 1, overflow: "hidden" }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
             Jadwal Proyek
@@ -1940,7 +1940,7 @@ export default function ProjectDetailPage() {
       </Card>
 
       {/* Pengeluaran & Belanja Proyek Section */}
-      {!isClient && <Card sx={{ mb: 4, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+      {!isClient && <Card sx={{ mb: 4, borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", overflow: "hidden" }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
             <Box>
@@ -1956,7 +1956,7 @@ export default function ProjectDetailPage() {
                 variant="outlined"
                 startIcon={<DownloadIcon />}
                 onClick={handleExportExpendituresExcel}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+                sx={{ borderRadius: 1, textTransform: "none", fontWeight: 600 }}
               >
                 Export Excel
               </Button>
@@ -1964,7 +1964,7 @@ export default function ProjectDetailPage() {
                 variant="contained"
                 onClick={handleOpenAddExpenditure}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 1,
                   background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                   color: "#ffffff",
                   textTransform: "none",
@@ -1979,7 +1979,7 @@ export default function ProjectDetailPage() {
           {/* Expenditure Metrics */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderLeft: "4px solid #6366f1" }}>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, borderLeft: "4px solid #6366f1" }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
                   TOTAL RENCANA ANGGARAN
                 </Typography>
@@ -1989,7 +1989,7 @@ export default function ProjectDetailPage() {
               </Paper>
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderLeft: "4px solid #10b981" }}>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, borderLeft: "4px solid #10b981" }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
                   TOTAL REALISASI (TERBAYAR)
                 </Typography>
@@ -1999,7 +1999,7 @@ export default function ProjectDetailPage() {
               </Paper>
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderLeft: "4px solid #f59e0b" }}>
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, borderLeft: "4px solid #f59e0b" }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
                   SISA KEWAJIBAN (BELUM TERBAYAR)
                 </Typography>
@@ -2021,7 +2021,7 @@ export default function ProjectDetailPage() {
             return (
               <Alert
                 severity={isOver ? "error" : "warning"}
-                sx={{ mb: 3, borderRadius: 2 }}
+                sx={{ mb: 3, borderRadius: 1 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
                   {isOver
@@ -2042,7 +2042,7 @@ export default function ProjectDetailPage() {
             {/* Table Area */}
             <Grid size={{ xs: 12, md: 9 }}>
               {expenditures.length === 0 ? (
-                <Box sx={{ py: 6, textAlign: "center", bgcolor: "action.hover", borderRadius: 2, border: "1px dashed", borderColor: "divider" }}>
+                <Box sx={{ py: 6, textAlign: "center", bgcolor: "action.hover", borderRadius: 1, border: "1px dashed", borderColor: "divider" }}>
                   <Typography variant="body2" color="text.secondary">
                     Belum ada data pengeluaran yang dicatat untuk proyek ini.
                   </Typography>
@@ -2158,7 +2158,7 @@ export default function ProjectDetailPage() {
 
             {/* Category Summary Grouping Card */}
             <Grid size={{ xs: 12, md: 3 }}>
-              <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
+              <Card variant="outlined" sx={{ borderRadius: 1, height: "100%" }}>
                 <CardContent sx={{ p: 2.5 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
                     Ringkasan Kategori
@@ -2167,7 +2167,7 @@ export default function ProjectDetailPage() {
                     {["Material", "Peralatan", "Transportasi", "Jasa", "Pembelanjaan", "Lain-lain"].map((cat) => {
                       const data = categorySummary[cat] || { planned: 0, paid: 0 };
                       return (
-                        <Box key={cat} sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1.5 }}>
+                        <Box key={cat} sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, fontSize: "0.85rem" }}>
                             {cat}
                           </Typography>
@@ -2194,7 +2194,7 @@ export default function ProjectDetailPage() {
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           Verifikasi Kehadiran & Geolokasi
         </Typography>
-        <Card sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 2, borderRadius: 2, boxShadow: "0 2px 10px rgba(0,0,0,0.05)", flexWrap: "wrap" }}>
+        <Card sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 2, borderRadius: 1, boxShadow: "0 2px 10px rgba(0,0,0,0.05)", flexWrap: "wrap" }}>
           <DateIcon color="action" />
           <TextField
             label="Dari Tanggal"
@@ -2265,7 +2265,7 @@ export default function ProjectDetailPage() {
           <Box
             id={mapContainerId}
             sx={{
-              borderRadius: 2,
+              borderRadius: 1,
               overflow: "hidden",
               border: "1px solid",
               borderColor: "divider",
@@ -2282,7 +2282,7 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
       {/* Galeri Proyek */}
-      <Card sx={{ mb: 4, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+      <Card sx={{ mb: 4, borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -2294,7 +2294,7 @@ export default function ProjectDetailPage() {
           </Box>
           
           {displayedGalleryItems.length === 0 ? (
-            <Box sx={{ textAlignment: "center", py: 6, bgcolor: "action.hover", borderRadius: 2, border: "1px dashed", borderColor: "divider" }}>
+            <Box sx={{ textAlignment: "center", py: 6, bgcolor: "action.hover", borderRadius: 1, border: "1px dashed", borderColor: "divider" }}>
               <Typography variant="body2" color="text.secondary" align="center">
                 Tidak ada foto dokumentasi ditemukan untuk proyek ini.
               </Typography>
@@ -2311,7 +2311,7 @@ export default function ProjectDetailPage() {
                         height: "100%",
                         display: "flex",
                         flexDirection: "column",
-                        borderRadius: 2,
+                        borderRadius: 1,
                         overflow: "hidden",
                         border: "1px solid",
                         borderColor: "divider",
@@ -2373,7 +2373,7 @@ export default function ProjectDetailPage() {
                   <Button
                     variant="outlined"
                     onClick={handleLoadMore}
-                    sx={{ borderRadius: 2, px: 4, py: 1, fontWeight: 600, textTransform: "none" }}
+                    sx={{ borderRadius: 1, px: 4, py: 1, fontWeight: 600, textTransform: "none" }}
                   >
                     Muat Lebih Banyak
                   </Button>
@@ -2418,7 +2418,7 @@ export default function ProjectDetailPage() {
                   URL.revokeObjectURL(url);
                   saveArsip("csv_kehadiran", csvFilename, csvBlob);
                 }}
-                sx={{ borderRadius: 2, textTransform: "none" }}
+                sx={{ borderRadius: 1, textTransform: "none" }}
               >
                 Unduh CSV
               </Button>
@@ -2428,7 +2428,7 @@ export default function ProjectDetailPage() {
                   startIcon={generatingReport ? <CircularProgress size={16} /> : <PdfIcon />}
                   onClick={handleGenerateReport}
                   disabled={generatingReport || filteredPresences.length === 0}
-                  sx={{ borderRadius: 2, textTransform: "none" }}
+                  sx={{ borderRadius: 1, textTransform: "none" }}
                 >
                   {generatingReport ? "Membuat Laporan..." : "Unduh Laporan PDF"}
                 </Button>
@@ -2698,7 +2698,7 @@ export default function ProjectDetailPage() {
                   sx={{
                     width: "100%",
                     maxHeight: 320,
-                    borderRadius: "12px",
+                    borderRadius: "8px",
                     objectFit: "contain",
                     bgcolor: "action.hover",
                     border: "1px solid #ddd"
@@ -2793,7 +2793,7 @@ export default function ProjectDetailPage() {
                     </Typography>
                     <Stack spacing={1.5}>
                       {Object.entries(selectedPresence.activity).map(([uuid, act]) => (
-                        <Box key={uuid} sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+                        <Box key={uuid} sx={{ p: 2, borderRadius: 1, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
                           <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
                             {act.photo && (
                               <Box
@@ -3214,7 +3214,7 @@ export default function ProjectDetailPage() {
             src={lightboxPhoto}
             alt="foto besar"
             onClick={(e) => e.stopPropagation()}
-            sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 2, boxShadow: 24 }}
+            sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 1, boxShadow: 24 }}
           />
         </Box>
       )}

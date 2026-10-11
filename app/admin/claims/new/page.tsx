@@ -231,11 +231,11 @@ export default function NewClaimPage() {
           <Typography variant="h4" sx={{ fontWeight: 800 }}>Buat Pengajuan Baru</Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
-          <Button variant="outlined" startIcon={<SaveIcon />} onClick={() => handleSave(false)} disabled={saving} sx={{ textTransform: "none", borderRadius: 2 }}>
+          <Button variant="outlined" startIcon={<SaveIcon />} onClick={() => handleSave(false)} disabled={saving} sx={{ textTransform: "none", borderRadius: 1 }}>
             Simpan Draft
           </Button>
           <Button variant="contained" onClick={() => handleSave(true)} disabled={saving}
-            sx={{ textTransform: "none", borderRadius: 2, background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#fff" }}>
+            sx={{ textTransform: "none", borderRadius: 1, background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#fff" }}>
             {saving ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "Simpan & Ajukan"}
           </Button>
         </Stack>
@@ -245,7 +245,7 @@ export default function NewClaimPage() {
 
       <Stack spacing={3}>
         {/* Info Dasar */}
-        <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+        <Card sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
           <CardContent sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2.5 }}>Informasi Pengajuan</Typography>
             <Stack spacing={2.5}>
@@ -263,7 +263,7 @@ export default function NewClaimPage() {
 
         {/* Nota-nota */}
         {receipts.map((r, ri) => (
-          <Card key={ri} sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+          <Card key={ri} sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>Nota #{ri + 1}</Typography>
@@ -282,9 +282,9 @@ export default function NewClaimPage() {
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 1 }}>FOTO NOTA</Typography>
                 <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
                   {r.photo_url ? (
-                    <Box component="img" src={r.photo_url} alt="Nota" sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }} />
+                    <Box component="img" src={r.photo_url} alt="Nota" sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1, border: "1px solid", borderColor: "divider" }} />
                   ) : (
-                    <Box sx={{ width: 80, height: 80, borderRadius: 1.5, border: "1px dashed", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "action.hover" }}>
+                    <Box sx={{ width: 80, height: 80, borderRadius: 1, border: "1px dashed", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "action.hover" }}>
                       <Typography variant="caption" color="text.secondary">Foto</Typography>
                     </Box>
                   )}
@@ -346,10 +346,10 @@ export default function NewClaimPage() {
 
         {/* Tambah Nota & Grand Total */}
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setReceipts(prev => [...prev, emptyReceipt()]); setPhotoFiles(prev => [...prev, null]); }} sx={{ textTransform: "none", borderRadius: 2 }}>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => { setReceipts(prev => [...prev, emptyReceipt()]); setPhotoFiles(prev => [...prev, null]); }} sx={{ textTransform: "none", borderRadius: 1 }}>
             Tambah Nota Lagi
           </Button>
-          <Card sx={{ borderRadius: 2, px: 3, py: 1.5, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+          <Card sx={{ borderRadius: 1, px: 3, py: 1.5, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase" }}>Grand Total</Typography>
             <Typography variant="h5" sx={{ fontWeight: 800, color: "#6366f1" }}>{formatRp(grandTotal)}</Typography>
           </Card>

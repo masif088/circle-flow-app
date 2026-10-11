@@ -1201,17 +1201,17 @@ export default function FinancePage() {
         </Box>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
           {selectedWalletId !== "all" && (
-            <Button variant="outlined" color="secondary" startIcon={<ClearIcon />} onClick={() => setSelectedWalletId("all")} sx={{ borderRadius: 2 }}>
+            <Button variant="outlined" color="secondary" startIcon={<ClearIcon />} onClick={() => setSelectedWalletId("all")} sx={{ borderRadius: 1 }}>
               Clear Filter
             </Button>
           )}
-          <Button variant="outlined" startIcon={<TransferIcon />} onClick={handleOpenTransfer} sx={{ borderRadius: 2 }} color="info">
+          <Button variant="outlined" startIcon={<TransferIcon />} onClick={handleOpenTransfer} sx={{ borderRadius: 1 }} color="info">
             Transfer Dana
           </Button>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={handleOpenAddWallet} sx={{ borderRadius: 2 }}>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={handleOpenAddWallet} sx={{ borderRadius: 1 }}>
             New Wallet
           </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddTx} sx={{ borderRadius: 2, background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#ffffff" }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddTx} sx={{ borderRadius: 1, background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#ffffff" }}>
             Add Transaction
           </Button>
         </Box>
@@ -1227,7 +1227,7 @@ export default function FinancePage() {
             <Select
               value={selectedWalletId}
               onChange={(e) => setSelectedWalletId(e.target.value)}
-              sx={{ borderRadius: 2, bgcolor: "background.paper", fontWeight: 600 }}
+              sx={{ borderRadius: 1, bgcolor: "background.paper", fontWeight: 600 }}
             >
               <MenuItem value="all">All Wallets Summary</MenuItem>
               {wallets.map((w) => (
@@ -1251,9 +1251,9 @@ export default function FinancePage() {
       {/* Financial Overview Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ height: "100%", borderRadius: 3, background: "rgba(17, 24, 39, 0.45)", backdropFilter: "blur(10px)" }}>
+          <Card sx={{ height: "100%", borderRadius: 1, background: "rgba(17, 24, 39, 0.45)", backdropFilter: "blur(10px)" }}>
             <CardContent sx={{ p: 3, display: "flex", alignItems: "center", gap: 2.5 }}>
-              <Box sx={{ p: 2, borderRadius: 3, backgroundColor: "rgba(99, 102, 241, 0.15)", color: "#6366f1" }}>
+              <Box sx={{ p: 2, borderRadius: 1, backgroundColor: "rgba(99, 102, 241, 0.15)", color: "#6366f1" }}>
                 <WalletIcon fontSize="large" />
               </Box>
               <Box>
@@ -1264,9 +1264,9 @@ export default function FinancePage() {
           </Card>
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ height: "100%", borderRadius: 3, background: "rgba(17, 24, 39, 0.45)", backdropFilter: "blur(10px)" }}>
+          <Card sx={{ height: "100%", borderRadius: 1, background: "rgba(17, 24, 39, 0.45)", backdropFilter: "blur(10px)" }}>
             <CardContent sx={{ p: 3, display: "flex", alignItems: "center", gap: 2.5 }}>
-              <Box sx={{ p: 2, borderRadius: 3, backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981" }}>
+              <Box sx={{ p: 2, borderRadius: 1, backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981" }}>
                 <TrendingUp fontSize="large" />
               </Box>
               <Box>
@@ -1277,9 +1277,9 @@ export default function FinancePage() {
           </Card>
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ height: "100%", borderRadius: 3, background: "rgba(17, 24, 39, 0.45)", backdropFilter: "blur(10px)" }}>
+          <Card sx={{ height: "100%", borderRadius: 1, background: "rgba(17, 24, 39, 0.45)", backdropFilter: "blur(10px)" }}>
             <CardContent sx={{ p: 3, display: "flex", alignItems: "center", gap: 2.5 }}>
-              <Box sx={{ p: 2, borderRadius: 3, backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#ef4444" }}>
+              <Box sx={{ p: 2, borderRadius: 1, backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#ef4444" }}>
                 <TrendingDown fontSize="large" />
               </Box>
               <Box>
@@ -1294,7 +1294,7 @@ export default function FinancePage() {
       {/* Row 2: Balance Trend Chart */}
       <Grid container spacing={4} sx={{ mb: 4 }}>
         <Grid size={12}>
-          <Card sx={{ height: "100%", borderRadius: 3 }}>
+          <Card sx={{ height: "100%", borderRadius: 1 }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
                 <ChartIcon color="primary" /> Balance Trend Over Time ({currentWalletName})
@@ -1308,7 +1308,7 @@ export default function FinancePage() {
       {/* Row 3: Transaction logs & Snap tables */}
       <Grid container spacing={4}>
         <Grid size={{ xs: 12, lg: 6 }}>
-          <Card sx={{ borderRadius: 3, height: "100%" }}>
+          <Card sx={{ borderRadius: 1, height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
                 Recent Transactions ({currentWalletName})
@@ -1374,7 +1374,7 @@ export default function FinancePage() {
         </Grid>
 
         <Grid size={{ xs: 12, lg: 6 }}>
-          <Card sx={{ borderRadius: 3, height: "100%" }}>
+          <Card sx={{ borderRadius: 1, height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3, display: "flex", alignItems: "center", gap: 1 }}>
                 <AssessmentIcon color="primary" /> Monthly & Yearly Recaps ({currentWalletName})

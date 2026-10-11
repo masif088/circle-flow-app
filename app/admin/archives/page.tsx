@@ -107,7 +107,7 @@ export default function ArchivesPage() {
       </Box>
 
       {/* Filter Bar */}
-      <Card sx={{ mb: 3, borderRadius: 3 }}>
+      <Card sx={{ mb: 3, borderRadius: 1 }}>
         <CardContent sx={{ p: 2.5 }}>
           <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
             <FilterIcon color="action" />
@@ -147,7 +147,7 @@ export default function ArchivesPage() {
         </CardContent>
       </Card>
 
-      <Card sx={{ borderRadius: 3 }}>
+      <Card sx={{ borderRadius: 1 }}>
         <CardContent sx={{ p: 0 }}>
           {loading ? (
             <Box sx={{ py: 8, display: "flex", justifyContent: "center" }}><CircularProgress /></Box>

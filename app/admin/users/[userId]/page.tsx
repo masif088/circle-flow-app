@@ -96,12 +96,12 @@ function ArsipLaporanKaryawan({ userId }: { userId: string }) {
 
   return (
     <Box sx={{ mt: 3 }}>
-      <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+      <Card sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Arsip Laporan</Typography>
           <Stack spacing={1}>
             {reports.map((r) => (
-              <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+              <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
                 <Chip label={TYPE_LABEL[r.type] || r.type} size="small" color={TYPE_COLOR[r.type] || "default"} sx={{ fontWeight: 600, minWidth: 110 }} />
                 <Typography variant="body2" sx={{ flex: 1, fontFamily: "monospace", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.filename}
@@ -583,7 +583,7 @@ export default function UserDetailPage() {
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>POSISI / JABATAN</Typography>
                   {userRecord.position
-                    ? <Chip label={userRecord.position} size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 1.5 }} />
+                    ? <Chip label={userRecord.position} size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 1 }} />
                     : <Typography variant="body2" color="text.secondary">—</Typography>
                   }
                 </Grid>
@@ -595,7 +595,7 @@ export default function UserDetailPage() {
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                       {userTeamIds.map(tid => {
                         const team = allTeams.find(t => t.id === tid);
-                        return <Chip key={tid} label={team?.title || tid} size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 1.5 }} />;
+                        return <Chip key={tid} label={team?.title || tid} size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 1 }} />;
                       })}
                     </Box>
                   )}
@@ -686,7 +686,7 @@ export default function UserDetailPage() {
                                 label={formatPrice(rate.cost)}
                                 size="small"
                                 color="success"
-                                sx={{ fontWeight: 700, borderRadius: 1.5 }}
+                                sx={{ fontWeight: 700, borderRadius: 1 }}
                               />
                             </TableCell>
                             <TableCell align="right">
@@ -756,7 +756,7 @@ export default function UserDetailPage() {
                 startIcon={generatingPdf ? <CircularProgress size={14} /> : <PdfIcon />}
                 onClick={handleGenerateReport}
                 disabled={generatingPdf || filteredPresences.length === 0}
-                sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+                sx={{ borderRadius: 1, textTransform: "none", whiteSpace: "nowrap" }}
               >
                 {generatingPdf ? "Membuat..." : "Unduh PDF"}
               </Button>
@@ -788,7 +788,7 @@ export default function UserDetailPage() {
                 }}
                 startIcon={<CsvIcon />}
                 color="success"
-                sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+                sx={{ borderRadius: 1, textTransform: "none", whiteSpace: "nowrap" }}
               >
                 Unduh CSV
               </Button>
@@ -873,7 +873,7 @@ export default function UserDetailPage() {
                   src={detailPres.photo}
                   alt="Foto Verifikasi"
                   onClick={() => { setDetailPres(null); setLightboxSrc(detailPres.photo); }}
-                  sx={{ width: "100%", maxHeight: 300, objectFit: "contain", bgcolor: "#f3f4f6", borderRadius: 2, border: "1px solid #ddd", cursor: "zoom-in" }}
+                  sx={{ width: "100%", maxHeight: 300, objectFit: "contain", bgcolor: "#f3f4f6", borderRadius: 1, border: "1px solid #ddd", cursor: "zoom-in" }}
                 />
               ) : (
                 <Alert severity="info">Tidak ada foto verifikasi.</Alert>
@@ -944,7 +944,7 @@ export default function UserDetailPage() {
                     </Typography>
                     <Stack spacing={1.5}>
                       {Object.entries(detailPres.activity).map(([uuid, act]: [string, any]) => (
-                        <Box key={uuid} sx={{ p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+                        <Box key={uuid} sx={{ p: 1.5, borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
                           <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
                             {act.photo && (
                               <Box
@@ -1059,7 +1059,7 @@ export default function UserDetailPage() {
             sx={{
               maxWidth: "90vw", maxHeight: "90vh",
               objectFit: "contain",
-              borderRadius: 2,
+              borderRadius: 1,
               boxShadow: 24,
             }}
           />

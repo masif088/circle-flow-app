@@ -397,7 +397,7 @@ export default function UsersPage() {
           severity="warning"
           icon={<WarningIcon />}
           onClose={() => setShowNameChecker(false)}
-          sx={{ mb: 3, borderRadius: 2 }}
+          sx={{ mb: 3, borderRadius: 1 }}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
             {nameIssues.length} user dengan nama bermasalah — berpotensi crash di Flutter
@@ -436,7 +436,7 @@ export default function UsersPage() {
           startIcon={<AddIcon />}
           onClick={handleOpenAdd}
           sx={{
-            borderRadius: 2,
+            borderRadius: 1,
             background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
             color: "#ffffff",
           }}

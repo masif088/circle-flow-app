@@ -299,7 +299,7 @@ export default function NotificationsPage() {
                                 alignItems: "center",
                                 gap: 1.5,
                                 p: 1.5,
-                                borderRadius: 2,
+                                borderRadius: 1,
                                 border: "1px solid",
                                 borderColor: !sendToAll && selected ? "primary.main" : "divider",
                                 bgcolor: !sendToAll && selected ? "primary.50" : "background.paper",

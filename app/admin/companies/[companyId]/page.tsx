@@ -104,12 +104,12 @@ function ArsipLaporanPerusahaan({ companyId }: { companyId: string }) {
   if (reports.length === 0) return null;
 
   return (
-    <Card sx={{ mt: 3, borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+    <Card sx={{ mt: 3, borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
       <CardContent sx={{ p: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Arsip Laporan</Typography>
         <Stack spacing={1}>
           {reports.map((r) => (
-            <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+            <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
               <Chip label={TYPE_LABEL[r.type] || r.type} size="small" color={TYPE_COLOR[r.type] || "default"} sx={{ fontWeight: 600, minWidth: 110 }} />
               <Typography variant="body2" sx={{ flex: 1, fontFamily: "monospace", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {r.filename}
@@ -742,7 +742,7 @@ export default function CompanyDetailPage() {
         <Button startIcon={<BackIcon />} onClick={() => router.push("/admin/companies")} sx={{ mb: 2 }}>
           Kembali ke Perusahaan
         </Button>
-        <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2 }}>
+        <Paper sx={{ p: 4, textAlign: "center", borderRadius: 1 }}>
           <Typography variant="h6" color="error">Perusahaan tidak ditemukan atau telah dihapus.</Typography>
         </Paper>
       </Box>
@@ -783,7 +783,7 @@ export default function CompanyDetailPage() {
                 sx={{
                   width: 50,
                   height: 50,
-                  borderRadius: "12px",
+                  borderRadius: "8px",
                   objectFit: "contain",
                   bgcolor: "background.paper",
                   border: "1px solid",
@@ -825,7 +825,7 @@ export default function CompanyDetailPage() {
             startIcon={<GridOnIcon />}
             onClick={handleExportCsv}
             disabled={projects.length === 0}
-            sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+            sx={{ borderRadius: 1, textTransform: "none", whiteSpace: "nowrap" }}
           >
             Unduh CSV
           </Button>
@@ -834,7 +834,7 @@ export default function CompanyDetailPage() {
             startIcon={generatingPdf ? <CircularProgress size={16} /> : <PdfIcon />}
             onClick={handleGenerateReport}
             disabled={generatingPdf || projects.length === 0}
-            sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+            sx={{ borderRadius: 1, textTransform: "none", whiteSpace: "nowrap" }}
           >
             {generatingPdf ? "Membuat..." : "Unduh Laporan PDF"}
           </Button>
@@ -843,7 +843,7 @@ export default function CompanyDetailPage() {
             startIcon={<EditIcon />}
             onClick={handleOpenEditDialog}
             sx={{
-              borderRadius: 2,
+              borderRadius: 1,
               background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
               color: "#ffffff",
               textTransform: "none"
@@ -857,7 +857,7 @@ export default function CompanyDetailPage() {
       <Grid container spacing={3}>
         {/* Info Cards */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card sx={{ height: "100%", borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+          <Card sx={{ height: "100%", borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
             <CardContent sx={{ p: 3 }}>
               {/* Logo & Identity Grid Preview */}
               <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 3, textAlign: "center" }}>
@@ -869,7 +869,7 @@ export default function CompanyDetailPage() {
                     sx={{
                       width: 90,
                       height: 90,
-                      borderRadius: "16px",
+                      borderRadius: "8px",
                       objectFit: "contain",
                       bgcolor: "background.paper",
                       border: "2px solid",
@@ -884,7 +884,7 @@ export default function CompanyDetailPage() {
                     sx={{
                       width: 90,
                       height: 90,
-                      borderRadius: "16px",
+                      borderRadius: "8px",
                       bgcolor: "primary.light",
                       color: "primary.main",
                       display: "flex",
@@ -983,7 +983,7 @@ export default function CompanyDetailPage() {
 
         {/* Map Container */}
         <Grid size={{ xs: 12, md: 8 }}>
-          <Card sx={{ height: "100%", borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+          <Card sx={{ height: "100%", borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
             <CardContent sx={{ p: 3, display: "flex", flexDirection: "column", height: "100%" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
@@ -999,7 +999,7 @@ export default function CompanyDetailPage() {
                     flexGrow: 1,
                     minHeight: 350,
                     bgcolor: "action.hover",
-                    borderRadius: 2,
+                    borderRadius: 1,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -1020,7 +1020,7 @@ export default function CompanyDetailPage() {
                   sx={{
                     flexGrow: 1,
                     minHeight: 350,
-                    borderRadius: 2,
+                    borderRadius: 1,
                     overflow: "hidden",
                     border: "1px solid",
                     borderColor: "divider",
@@ -1038,7 +1038,7 @@ export default function CompanyDetailPage() {
 
         {/* Projects List Table */}
         <Grid size={{ xs: 12 }}>
-          <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+          <Card sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                 Registrasi Proyek
@@ -1082,7 +1082,7 @@ export default function CompanyDetailPage() {
                               }
                               size="small"
                               color={getStatusChipColor(proj.status)}
-                              sx={{ fontWeight: 600, borderRadius: 1.5 }}
+                              sx={{ fontWeight: 600, borderRadius: 1 }}
                             />
                           </TableCell>
                           <TableCell align="right">
@@ -1110,7 +1110,7 @@ export default function CompanyDetailPage() {
 
       {lightboxPhoto && (
         <Box onClick={() => setLightboxPhoto(null)} sx={{ position: "fixed", inset: 0, zIndex: 9999, bgcolor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
-          <Box component="img" src={lightboxPhoto} onClick={(e) => e.stopPropagation()} sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 2, boxShadow: 24 }} />
+          <Box component="img" src={lightboxPhoto} onClick={(e) => e.stopPropagation()} sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 1, boxShadow: 24 }} />
         </Box>
       )}
 

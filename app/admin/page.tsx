@@ -211,7 +211,7 @@ function ClientDashboard({ companyId }: { companyId: string }) {
             ref={mapContainerRef}
             sx={{
               height: 420,
-              borderRadius: 2,
+              borderRadius: 1,
               overflow: "hidden",
               border: "1px solid",
               borderColor: "divider",
@@ -595,7 +595,7 @@ function AdminDashboard() {
           variant="outlined"
           startIcon={<Refresh />}
           onClick={() => { setLoading(true); fetchMetrics(); }}
-          sx={{ borderRadius: 2 }}
+          sx={{ borderRadius: 1 }}
         >
           Perbarui Data
         </Button>
@@ -609,7 +609,7 @@ function AdminDashboard() {
                 <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
                   {stat.title}
                 </Typography>
-                <Box sx={{ p: 1, borderRadius: 2, backgroundColor: "action.hover", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Box sx={{ p: 1, borderRadius: 1, backgroundColor: "action.hover", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {stat.icon}
                 </Box>
               </Box>
@@ -619,7 +619,7 @@ function AdminDashboard() {
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
                 {stat.subtitle}
               </Typography>
-              <LinearProgress variant="determinate" value={stat.progress} color={stat.color} sx={{ height: 6, borderRadius: 3 }} />
+              <LinearProgress variant="determinate" value={stat.progress} color={stat.color} sx={{ height: 6, borderRadius: 1 }} />
             </CardContent>
           </Card>
         ))}
@@ -651,7 +651,7 @@ function AdminDashboard() {
             </Box>
             <Box
               id="admin-dashboard-map"
-              sx={{ height: 380, borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "divider" }}
+              sx={{ height: 380, borderRadius: 1, overflow: "hidden", border: "1px solid", borderColor: "divider" }}
             />
           </CardContent>
         </Card>

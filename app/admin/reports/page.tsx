@@ -500,15 +500,15 @@ export default function ReportsPage() {
         </Typography>
       </Box>
 
-      {msg && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{msg}</Alert>}
+      {msg && <Alert severity="error" sx={{ mb: 3, borderRadius: 1 }}>{msg}</Alert>}
 
       <Grid container spacing={4}>
         {/* Company Report */}
         <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ borderRadius: 3, height: "100%" }}>
+          <Card sx={{ borderRadius: 1, height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Stack direction="row" spacing={1.5} sx={{ mb: 3, alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "primary.main", color: "primary.contrastText", display: "flex" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "primary.main", color: "primary.contrastText", display: "flex" }}>
                   <BusinessIcon />
                 </Box>
                 <Box>
@@ -549,7 +549,7 @@ export default function ReportsPage() {
                 </Stack>
 
                 {companyId && (
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: "action.hover" }}>
+                  <Box sx={{ p: 2, borderRadius: 1, bgcolor: "action.hover" }}>
                     <Typography variant="body2" color="text.secondary">
                       Proyek terdaftar: <strong>{projects.filter(p => p.company_id === companyId).length}</strong> proyek
                     </Typography>
@@ -575,7 +575,7 @@ export default function ReportsPage() {
                   startIcon={generatingCompany ? <CircularProgress size={18} color="inherit" /> : <PdfIcon />}
                   onClick={handleCompanyReport}
                   disabled={generatingCompany || !companyId}
-                  sx={{ borderRadius: 2, fontWeight: 600, py: 1.5 }}
+                  sx={{ borderRadius: 1, fontWeight: 600, py: 1.5 }}
                 >
                   {generatingCompany ? "Membuat Laporan..." : "Unduh Laporan PDF"}
                 </Button>
@@ -586,10 +586,10 @@ export default function ReportsPage() {
 
         {/* Individual Report */}
         <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ borderRadius: 3, height: "100%" }}>
+          <Card sx={{ borderRadius: 1, height: "100%" }}>
             <CardContent sx={{ p: 3 }}>
               <Stack direction="row" spacing={1.5} sx={{ mb: 3, alignItems: "center" }}>
-                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "success.main", color: "success.contrastText", display: "flex" }}>
+                <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "success.main", color: "success.contrastText", display: "flex" }}>
                   <PersonIcon />
                 </Box>
                 <Box>
@@ -630,7 +630,7 @@ export default function ReportsPage() {
                 </Stack>
 
                 {userId && (
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: "action.hover" }}>
+                  <Box sx={{ p: 2, borderRadius: 1, bgcolor: "action.hover" }}>
                     <Typography variant="body2" color="text.secondary">
                       Kehadiran dalam range:{" "}
                       <strong>
@@ -652,7 +652,7 @@ export default function ReportsPage() {
                   startIcon={generatingUser ? <CircularProgress size={18} color="inherit" /> : <PdfIcon />}
                   onClick={handleUserReport}
                   disabled={generatingUser || !userId}
-                  sx={{ borderRadius: 2, fontWeight: 600, py: 1.5 }}
+                  sx={{ borderRadius: 1, fontWeight: 600, py: 1.5 }}
                 >
                   {generatingUser ? "Membuat Laporan..." : "Unduh Laporan PDF"}
                 </Button>

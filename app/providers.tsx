@@ -66,7 +66,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         },
         shape: {
-          borderRadius: 12,
+          borderRadius: 8,
         },
         components: {
           MuiButton: {
@@ -91,7 +91,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           MuiTableContainer: {
             styleOverrides: {
               root: {
-                borderRadius: 12,
+                borderRadius: 8,
                 boxShadow: "none",
               },
             },

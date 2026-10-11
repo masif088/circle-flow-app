@@ -317,7 +317,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   if (isMobile) setMobileOpen(false);
                 }}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 1,
                   backgroundColor: active
                     ? "primary.main"
                     : "transparent",
@@ -357,7 +357,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <ListItemButton
             onClick={handleLogout}
             sx={{
-              borderRadius: 2,
+              borderRadius: 1,
               color: "error.main",
               "&:hover": {
                 backgroundColor: "error.light",
@@ -418,7 +418,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               onClose={() => setNotifAnchor(null)}
               anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
               transformOrigin={{ vertical: "top", horizontal: "right" }}
-              slotProps={{ paper: { sx: { width: 440, maxHeight: 520, borderRadius: 3, boxShadow: "0 8px 40px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column" } } }}
+              slotProps={{ paper: { sx: { width: 440, maxHeight: 520, borderRadius: 1, boxShadow: "0 8px 40px rgba(0,0,0,0.15)", display: "flex", flexDirection: "column" } } }}
             >
               {/* Header */}
               <Box sx={{ px: 2.5, py: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}>

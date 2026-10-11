@@ -622,7 +622,7 @@ export default function ClaimDetailPage() {
             startIcon={generatingPdf ? <CircularProgress size={16} /> : <PdfIcon />}
             onClick={handleGeneratePDF}
             disabled={generatingPdf || loading}
-            sx={{ textTransform: "none", borderRadius: 2 }}
+            sx={{ textTransform: "none", borderRadius: 1 }}
           >
             {generatingPdf ? "Membuat PDF..." : "Export PDF"}
           </Button>
@@ -641,39 +641,39 @@ export default function ClaimDetailPage() {
                   setError("Gagal menghapus klaim.");
                 }
               }}
-              sx={{ textTransform: "none", borderRadius: 2 }}
+              sx={{ textTransform: "none", borderRadius: 1 }}
             >
               Hapus Klaim
             </Button>
           )}
           {isEditable && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={openNewReceipt}
-              sx={{ textTransform: "none", borderRadius: 2, background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#fff" }}>
+              sx={{ textTransform: "none", borderRadius: 1, background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#fff" }}>
               Tambah Nota
             </Button>
           )}
           {canSubmit && (
-            <Button variant="outlined" color="warning" onClick={() => handleStatusChange("pending_approval")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+            <Button variant="outlined" color="warning" onClick={() => handleStatusChange("pending_approval")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 1 }}>
               Ajukan untuk Disetujui
             </Button>
           )}
           {canApprove && (
-            <Button variant="contained" color="success" startIcon={<ApproveIcon />} onClick={() => setApproveDialog(true)} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+            <Button variant="contained" color="success" startIcon={<ApproveIcon />} onClick={() => setApproveDialog(true)} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 1 }}>
               Setujui
             </Button>
           )}
           {canReimburse && (
-            <Button variant="contained" color="primary" startIcon={<ReimburseIcon />} onClick={() => { setReimburseAmount("0"); setReimburseDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+            <Button variant="contained" color="primary" startIcon={<ReimburseIcon />} onClick={() => { setReimburseAmount("0"); setReimburseDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 1 }}>
               Catat Reimbursement
             </Button>
           )}
           {canReject && (
-            <Button variant="outlined" color="error" startIcon={<RejectIcon />} onClick={() => { setRejectionNotes(""); setRejectDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+            <Button variant="outlined" color="error" startIcon={<RejectIcon />} onClick={() => { setRejectionNotes(""); setRejectDialog(true); }} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 1 }}>
               Tolak
             </Button>
           )}
           {canSubmit && (
-            <Button variant="outlined" color="error" startIcon={<RejectIcon />} onClick={() => handleStatusChange("cancelled")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 2 }}>
+            <Button variant="outlined" color="error" startIcon={<RejectIcon />} onClick={() => handleStatusChange("cancelled")} disabled={actionLoading} sx={{ textTransform: "none", borderRadius: 1 }}>
               Batalkan
             </Button>
           )}
@@ -682,7 +682,7 @@ export default function ClaimDetailPage() {
 
       <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
         {/* Info Card */}
-        <Card sx={{ flex: "0 0 320px", borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", alignSelf: "flex-start", position: "sticky", top: { xs: 72, md: 80 }, maxHeight: { xs: "calc(100vh - 88px)", md: "calc(100vh - 96px)" }, overflowY: "auto" }}>
+        <Card sx={{ flex: "0 0 320px", borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", alignSelf: "flex-start", position: "sticky", top: { xs: 72, md: 80 }, maxHeight: { xs: "calc(100vh - 88px)", md: "calc(100vh - 96px)" }, overflowY: "auto" }}>
           <CardContent sx={{ p: 3 }}>
             <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, lineHeight: 1.2 }}>{claim.title}</Typography>
             <Chip label={STATUS_LABEL[claim.status] || claim.status} color={STATUS_COLOR[claim.status]} size="small" sx={{ fontWeight: 600, mb: 1.5 }} />
@@ -749,7 +749,7 @@ export default function ClaimDetailPage() {
         <Box sx={{ flex: 1, minWidth: 300 }}>
 
           {receipts.length === 0 ? (
-            <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+            <Card sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
               <CardContent sx={{ textAlign: "center", py: 6 }}>
                 <ReceiptIcon sx={{ fontSize: 48, opacity: 0.2, mb: 1 }} />
                 <Typography color="text.secondary">Belum ada nota ditambahkan</Typography>
@@ -759,14 +759,14 @@ export default function ClaimDetailPage() {
           ) : (
             <Stack spacing={2}>
               {receipts.map(r => (
-                <Card key={r.id} sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+                <Card key={r.id} sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
                   <CardContent sx={{ p: 3 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
                       <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                         {r.photo_url && (
                           <Box component="img" src={r.photo_url} alt="Nota"
                             onClick={() => setLightbox(r.photo_url!)}
-                            sx={{ width: 56, height: 56, objectFit: "cover", borderRadius: 1.5, cursor: "zoom-in", border: "1px solid", borderColor: "divider" }} />
+                            sx={{ width: 56, height: 56, objectFit: "cover", borderRadius: 1, cursor: "zoom-in", border: "1px solid", borderColor: "divider" }} />
                         )}
                         <Box>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{r.vendor || "Tanpa Nama Vendor"}</Typography>
@@ -786,7 +786,7 @@ export default function ClaimDetailPage() {
                     </Box>
 
                     {r.items?.length > 0 && (
-                      <TableContainer component={Paper} elevation={0} sx={{ bgcolor: "action.hover", borderRadius: 1.5 }}>
+                      <TableContainer component={Paper} elevation={0} sx={{ bgcolor: "action.hover", borderRadius: 1 }}>
                         <Table size="small">
                           <TableHead>
                             <TableRow>
@@ -829,9 +829,9 @@ export default function ClaimDetailPage() {
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 1 }}>FOTO NOTA</Typography>
               <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
                 {rPhotoUrl ? (
-                  <Box component="img" src={rPhotoUrl} alt="Nota" sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1.5, border: "1px solid", borderColor: "divider", cursor: "zoom-in" }} onClick={() => setLightbox(rPhotoUrl)} />
+                  <Box component="img" src={rPhotoUrl} alt="Nota" sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1, border: "1px solid", borderColor: "divider", cursor: "zoom-in" }} onClick={() => setLightbox(rPhotoUrl)} />
                 ) : (
-                  <Box sx={{ width: 80, height: 80, borderRadius: 1.5, border: "1px dashed", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Box sx={{ width: 80, height: 80, borderRadius: 1, border: "1px dashed", borderColor: "divider", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <PhotoIcon color="disabled" />
                   </Box>
                 )}
@@ -976,7 +976,7 @@ export default function ClaimDetailPage() {
       {/* Lightbox */}
       {lightbox && (
         <Box onClick={() => setLightbox(null)} sx={{ position: "fixed", inset: 0, zIndex: 9999, bgcolor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
-          <Box component="img" src={lightbox} onClick={e => e.stopPropagation()} sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 2, boxShadow: 24 }} />
+          <Box component="img" src={lightbox} onClick={e => e.stopPropagation()} sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 1, boxShadow: 24 }} />
         </Box>
       )}
     </Box>

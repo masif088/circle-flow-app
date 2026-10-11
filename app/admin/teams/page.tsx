@@ -124,7 +124,7 @@ export default function TeamsPage() {
           startIcon={<AddIcon />}
           onClick={() => setOpenTeamDialog(true)}
           sx={{
-            borderRadius: 2,
+            borderRadius: 1,
             background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
             color: "#ffffff",
             textTransform: "none"
@@ -134,7 +134,7 @@ export default function TeamsPage() {
         </Button>
       </Box>
 
-      {msg.text && <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 2 }}>{msg.text}</Alert>}
+      {msg.text && <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 1 }}>{msg.text}</Alert>}
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>

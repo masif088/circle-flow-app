@@ -240,7 +240,7 @@ export default function TeamDetailPage() {
             variant="outlined"
             startIcon={<EditIcon />}
             onClick={handleOpenEditTeam}
-            sx={{ borderRadius: 2, textTransform: "none" }}
+            sx={{ borderRadius: 1, textTransform: "none" }}
           >
             Edit Tim
           </Button>
@@ -249,7 +249,7 @@ export default function TeamDetailPage() {
             startIcon={<PersonAddIcon />}
             onClick={() => setOpenAddMemberDialog(true)}
             sx={{
-              borderRadius: 2,
+              borderRadius: 1,
               background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
               color: "#ffffff",
               textTransform: "none"
@@ -261,7 +261,7 @@ export default function TeamDetailPage() {
       </Box>
 
       {msg.text && (
-        <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 2 }}>
+        <Alert severity={msg.type} sx={{ mb: 3, borderRadius: 1 }}>
           {msg.text}
         </Alert>
       )}

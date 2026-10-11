@@ -185,11 +185,11 @@ export default function ClaimsPage() {
           <Typography variant="body2" color="text.secondary">Kelola pengajuan pengeluaran dan reimbursement proyek</Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
-          <Button variant="outlined" color="success" startIcon={<GridOnIcon />} onClick={handleExportCsv} sx={{ textTransform: "none", borderRadius: 2 }}>
+          <Button variant="outlined" color="success" startIcon={<GridOnIcon />} onClick={handleExportCsv} sx={{ textTransform: "none", borderRadius: 1 }}>
             Unduh CSV
           </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push("/admin/claims/new")}
-            sx={{ borderRadius: 2, textTransform: "none", background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#fff" }}>
+            sx={{ borderRadius: 1, textTransform: "none", background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", color: "#fff" }}>
             Buat Pengajuan
           </Button>
         </Stack>
@@ -205,7 +205,7 @@ export default function ClaimsPage() {
           { label: "Total Reimbursement", value: formatRp(totalReimburse), color: "#3b82f6", sub: "sudah dibayar" },
           { label: "Reimbursement Bulan Ini", value: formatRp(totalReimburseThisMonth), color: "#8b5cf6", sub: "bulan berjalan" },
         ].map(card => (
-          <Card key={card.label} sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", borderTop: `3px solid ${card.color}` }}>
+          <Card key={card.label} sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", borderTop: `3px solid ${card.color}` }}>
             <CardContent sx={{ p: 2.5 }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>{card.label}</Typography>
               <Typography variant="h5" sx={{ fontWeight: 800, color: card.color, mt: 0.5 }}>{card.value}</Typography>
@@ -216,7 +216,7 @@ export default function ClaimsPage() {
       </Box>
 
       {/* Filters */}
-      <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", mb: 3 }}>
+      <Card sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", mb: 3 }}>
         <CardContent sx={{ p: 2.5 }}>
           <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
             <TextField size="small" label="Cari judul / nama..." value={search} onChange={e => setSearch(e.target.value)} sx={{ minWidth: 200 }} />
@@ -246,7 +246,7 @@ export default function ClaimsPage() {
       </Card>
 
       {/* Table */}
-      <Card sx={{ borderRadius: 3, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+      <Card sx={{ borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
             Daftar Pengajuan <Chip label={filtered.length} size="small" sx={{ ml: 1 }} />
@@ -285,7 +285,7 @@ export default function ClaimsPage() {
                         <TableCell>{c.project_title || "-"}</TableCell>
                         <TableCell>{c.submitter_name || "-"}</TableCell>
                         <TableCell>
-                          <Chip label={STATUS_LABEL[c.status] || c.status} size="small" color={STATUS_COLOR[c.status] || "default"} sx={{ fontWeight: 600, borderRadius: 1.5 }} />
+                          <Chip label={STATUS_LABEL[c.status] || c.status} size="small" color={STATUS_COLOR[c.status] || "default"} sx={{ fontWeight: 600, borderRadius: 1 }} />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{formatRp(c.total_amount)}</TableCell>
                         <TableCell>{c.reimbursement_amount ? formatRp(c.reimbursement_amount) : "-"}</TableCell>
