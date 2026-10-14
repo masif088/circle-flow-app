@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { addWatermarkToFile, reverseGeocode } from "@/lib/watermark";
+import { addWatermarkToFile, reverseGeocode, resizeImageFile } from "@/lib/watermark";
 import {
   collection, query, where, onSnapshot, updateDoc, doc, getDocs,
 } from "firebase/firestore";
@@ -11,7 +11,7 @@ import {
   Box, Typography, Card, CardContent, Button, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, MenuItem, Select, FormControl,
   InputLabel, CircularProgress, Snackbar, Alert, IconButton, Chip, Stack,
-  Tabs, Tab, Fab,
+  Tabs, Tab, Fab, Switch, FormControlLabel,
 } from "@mui/material";
 import {
   AddRounded, CloseRounded, CameraAltRounded, PhotoLibraryRounded,
@@ -38,6 +38,7 @@ export default function AktivitasPage() {
   const [selectedProject, setSelectedProject] = useState("");
   const [tanggal, setTanggal] = useState(new Date().toISOString().slice(0, 10));
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [withWatermark, setWithWatermark] = useState(true);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [existingPhoto, setExistingPhoto] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -144,12 +145,17 @@ export default function AktivitasPage() {
           });
           lat = pos.coords.latitude; lng = pos.coords.longitude;
         } catch {}
-        const address = lat != null ? await reverseGeocode(lat, lng!) : "";
-        const watermarked = await addWatermarkToFile(photoFile, {
-          projectName: activeProjects[selectedProject] || selectedProject || "Aktivitas",
-          latitude: lat, longitude: lng, address,
-        });
-        photoUrl = await uploadPhoto(watermarked);
+        let finalFile: File;
+        if (withWatermark) {
+          const address = lat != null ? await reverseGeocode(lat, lng!) : "";
+          finalFile = await addWatermarkToFile(photoFile, {
+            projectName: activeProjects[selectedProject] || selectedProject || "Aktivitas",
+            latitude: lat, longitude: lng, address,
+          });
+        } else {
+          finalFile = await resizeImageFile(photoFile);
+        }
+        photoUrl = await uploadPhoto(finalFile);
       }
 
       const now = new Date().toISOString();
@@ -347,6 +353,11 @@ export default function AktivitasPage() {
                   Galeri
                 </Button>
               </Stack>
+              <FormControlLabel
+                sx={{ mt: 1, ml: 0 }}
+                control={<Switch checked={withWatermark} onChange={(e) => setWithWatermark(e.target.checked)} />}
+                label={<Typography variant="body2">Tambahkan watermark (proyek, GPS, waktu)</Typography>}
+              />
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handlePhoto} />
               <input ref={galleryRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
             </Box>

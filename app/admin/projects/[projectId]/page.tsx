@@ -14,6 +14,7 @@ const GanttChart = dynamic(() => import("../../gantt/GanttChart"), {
   ),
 });
 import { db } from "@/lib/firebase";
+import ProjectBukuKas from "@/app/_components/ProjectBukuKas";
 import { useAuth } from "@/context/AuthContext";
 import {
   doc,
@@ -1965,252 +1966,8 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Pengeluaran & Belanja Proyek Section */}
-      {!isClient && <Card sx={{ mb: 4, borderRadius: 1, boxShadow: "0 4px 20px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-                Pengeluaran & Belanja Logistik Proyek
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Kelola dan catat semua anggaran pengeluaran barang, material, jasa, dan logistik untuk proyek ini.
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                startIcon={<DownloadIcon />}
-                onClick={handleExportExpendituresExcel}
-                sx={{ borderRadius: 1, textTransform: "none", fontWeight: 600 }}
-              >
-                Export Excel
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleOpenAddExpenditure}
-                sx={{
-                  borderRadius: 1,
-                  background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-                  color: "#ffffff",
-                  textTransform: "none",
-                  fontWeight: 600
-                }}
-              >
-                + Tambah Pengeluaran
-              </Button>
-            </Stack>
-          </Box>
-
-          {/* Expenditure Metrics */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, borderLeft: "4px solid #6366f1" }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
-                  TOTAL RENCANA ANGGARAN
-                </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: "text.primary" }}>
-                  {formatPrice(totalPlannedExpenditure)}
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, borderLeft: "4px solid #10b981" }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
-                  TOTAL REALISASI (TERBAYAR)
-                </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: "success.main" }}>
-                  {formatPrice(totalPaidExpenditure)}
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, borderLeft: "4px solid #f59e0b" }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
-                  SISA KEWAJIBAN (BELUM TERBAYAR)
-                </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: "warning.main" }}>
-                  {formatPrice(totalUnpaidExpenditure)}
-                </Typography>
-              </Paper>
-            </Grid>
-          </Grid>
-
-          {/* Budget Warning */}
-          {(() => {
-            const budget = (project as any)?.budget;
-            if (!budget || budget <= 0) return null;
-            const pct = Math.min((totalPlannedExpenditure / budget) * 100, 100);
-            const isOver = totalPlannedExpenditure > budget;
-            const isWarn = !isOver && pct >= 90;
-            if (!isWarn && !isOver) return null;
-            return (
-              <Alert
-                severity={isOver ? "error" : "warning"}
-                sx={{ mb: 3, borderRadius: 1 }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                  {isOver
-                    ? `Pengeluaran melebihi batas anggaran! (${formatPrice(totalPlannedExpenditure)} dari ${formatPrice(budget)})`
-                    : `Peringatan: pengeluaran sudah mencapai ${pct.toFixed(0)}% dari batas anggaran (${formatPrice(totalPlannedExpenditure)} dari ${formatPrice(budget)})`}
-                </Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={pct}
-                  color={isOver ? "error" : "warning"}
-                  sx={{ borderRadius: 1, height: 6 }}
-                />
-              </Alert>
-            );
-          })()}
-
-          <Grid container spacing={3}>
-            {/* Table Area */}
-            <Grid size={{ xs: 12, md: 9 }}>
-              {expenditures.length === 0 ? (
-                <Box sx={{ py: 6, textAlign: "center", bgcolor: "action.hover", borderRadius: 1, border: "1px dashed", borderColor: "divider" }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Belum ada data pengeluaran yang dicatat untuk proyek ini.
-                  </Typography>
-                </Box>
-              ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ border: "1px solid", borderColor: "divider" }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 600 }}>Barang / Jasa</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Kategori</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Kuantitas</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Total</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Sumber</TableCell>
-                        <TableCell
-                          sx={{ fontWeight: 600, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-                          onClick={() => { setExpSortOrder(p => p === "desc" ? "asc" : "desc"); setExpPage(0); }}
-                        >
-                          Tanggal {expSortOrder === "desc" ? "↓" : "↑"}
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="right">Aksi</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {[...expenditures].sort((a, b) => {
-                        const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-                        const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-                        return expSortOrder === "desc" ? tb - ta : ta - tb;
-                      }).slice(expPage * expRowsPerPage, expPage * expRowsPerPage + expRowsPerPage).map((exp) => {
-                        const isFromClaim = exp.source === "expense_claim";
-                        const totalNota = (exp.price || 0) * (exp.quantity || 0);
-                        const unpaid = exp.unpaid_amount ?? Math.max(0, totalNota - (exp.total_spent || 0));
-                        const displayStatus = isFromClaim ? "Terbayar" : exp.status;
-                        const statusColor =
-                          displayStatus === "Terbayar" || displayStatus === "Sudah terbayar" ? "success"
-                          : displayStatus === "Terbayar Sebagian" || displayStatus === "Terbayar sebagian" ? "info"
-                          : displayStatus === "Direncanakan" ? "default"
-                          : displayStatus === "Ditunda" ? "secondary"
-                          : displayStatus === "Belum Terbayar" ? "warning"
-                          : "error";
-                        return (
-                          <TableRow key={exp.id} hover>
-                            <TableCell sx={{ fontWeight: 600 }}>{exp.item_name}</TableCell>
-                            <TableCell>
-                              <Chip label={exp.category} size="small" variant="outlined" />
-                            </TableCell>
-                            <TableCell>{exp.quantity} {exp.unit || ""}</TableCell>
-                            <TableCell>
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>
-                                {formatPrice(totalNota)}
-                              </Typography>
-                              {!isFromClaim && unpaid > 0 && (
-                                <Typography variant="caption" color="warning.main">
-                                  belum terbayar {formatPrice(unpaid)}
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Chip label={displayStatus} size="small" color={statusColor as any} sx={{ fontWeight: 600 }} />
-                            </TableCell>
-                            <TableCell>
-                              {exp.source === "expense_claim" && exp.claim_id ? (
-                                <Chip
-                                  label={exp.claim_title || "Klaim"}
-                                  size="small"
-                                  color="info"
-                                  variant="outlined"
-                                  icon={<OpenInNewIcon style={{ fontSize: 12 }} />}
-                                  onClick={() => window.open(`/admin/claims/${exp.claim_id}`, "_blank")}
-                                  sx={{ cursor: "pointer", fontSize: 11 }}
-                                />
-                              ) : (
-                                <Typography variant="caption" color="text.secondary">Manual</Typography>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                {exp.created_at ? new Date(exp.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-"}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                                {exp.source !== "expense_claim" && (
-                                  <IconButton size="small" color="primary" onClick={() => handleOpenEditExpenditure(exp)}>
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                )}
-                                <IconButton size="small" color="error" onClick={() => handleDeleteExpenditure(exp.id)}>
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Stack>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                  <TablePagination
-                    component="div"
-                    count={expenditures.length}
-                    page={expPage}
-                    onPageChange={(_e, newPage) => setExpPage(newPage)}
-                    rowsPerPage={expRowsPerPage}
-                    onRowsPerPageChange={(e) => { setExpRowsPerPage(parseInt(e.target.value, 10)); setExpPage(0); }}
-                    rowsPerPageOptions={[5, 10, 25, 50]}
-                    labelRowsPerPage="Baris per halaman:"
-                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
-                  />
-                </TableContainer>
-              )}
-            </Grid>
-
-            {/* Category Summary Grouping Card */}
-            <Grid size={{ xs: 12, md: 3 }}>
-              <Card variant="outlined" sx={{ borderRadius: 1, height: "100%" }}>
-                <CardContent sx={{ p: 2.5 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
-                    Ringkasan Kategori
-                  </Typography>
-                  <Stack spacing={2}>
-                    {["Material", "Peralatan", "Transportasi", "Jasa", "Pembelanjaan", "Lain-lain"].map((cat) => {
-                      const data = categorySummary[cat] || { planned: 0, paid: 0 };
-                      return (
-                        <Box key={cat} sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, fontSize: "0.85rem" }}>
-                            {cat}
-                          </Typography>
-                          <Box sx={{ display: "flex", flexDirection: "column", fontSize: "0.7rem", color: "text.secondary", gap: 0.5 }}>
-                            <span>Rencana: <strong>{formatPrice(data.planned)}</strong></span>
-                            <span style={{ color: "#10b981" }}>Terbayar: <strong>{formatPrice(data.paid)}</strong></span>
-                          </Box>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>}
+      {/* Buku Kas */}
+      {!isClient && <ProjectBukuKas projectId={projectId as string} />}
 
       {/* Arsip Laporan */}
       <ArsipLaporanSection projectId={projectId as string} />
@@ -2538,7 +2295,7 @@ export default function ProjectDetailPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={(e) => { e.stopPropagation(); router.push("/admin/users/" + pres.user_id); }}>
                           {getUserName(pres.user_id)}
                         </Typography>
                       </TableCell>
@@ -2737,7 +2494,7 @@ export default function ProjectDetailPage() {
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>NAMA KARYAWAN</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={() => router.push("/admin/users/" + selectedPresence.user_id)}>
                     {getUserName(selectedPresence.user_id)}
                   </Typography>
                 </Grid>

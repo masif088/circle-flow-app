@@ -55,6 +55,24 @@ export default function RabCategoriesPage() {
 
   useEffect(() => { fetchCategories(); }, []);
 
+  const STANDARD = ["SITE OFFICE SPENDING", "KONSUMSI", "TRANSPORT HARIAN", "PERALATAN HABIS PAKAI", "SEWA OPERASIONAL", "ENTERTAINMENT", "BEBAN LAIN-LAIN"];
+
+  const seedStandard = async () => {
+    setSaving(true);
+    try {
+      const existing = new Set(categories.map(c => c.name.trim().toUpperCase()));
+      for (const name of STANDARD) {
+        if (existing.has(name)) continue;
+        await addDoc(collection(db, "rab_categories"), { name, description: "", created_at: new Date().toISOString() });
+      }
+      await fetchCategories();
+    } catch (e: any) {
+      setError(e.message || "Gagal menambah kategori standar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openAdd = () => {
     setEditTarget(null);
     setFormName("");
@@ -125,9 +143,14 @@ export default function RabCategoriesPage() {
           <CategoryIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 700 }}>Kelola Kategori RAB</Typography>
         </Stack>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
-          Tambah Kategori
-        </Button>
+        <Stack direction="row" sx={{ gap: 1 }}>
+          <Button variant="outlined" onClick={seedStandard} disabled={saving}>
+            Tambah Kategori Standar
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
+            Tambah Kategori
+          </Button>
+        </Stack>
       </Stack>
 
       <Card>

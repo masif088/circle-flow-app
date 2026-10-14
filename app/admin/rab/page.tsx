@@ -26,20 +26,23 @@ interface Rab {
   project_id: string;
   project_name: string;
   type: "Operasional" | "Penambahan MP";
-  rab_status: "draft" | "approved" | "paid";
-  report_status: "unreported" | "draft" | "approved" | "revision";
+  rab_status: "draft" | "submitted" | "approved" | "paid";
+  report_status: "unreported" | "draft" | "submitted" | "approved" | "revision";
   created_at: string;
   created_by: string;
+  cad_number?: string;
   preparation: { total: number }[];
 }
 
 const RAB_STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
+  submitted: "Diajukan",
   approved: "Disetujui",
   paid: "Dicairkan",
 };
 const RAB_STATUS_COLOR: Record<string, "default" | "warning" | "success" | "info"> = {
   draft: "default",
+  submitted: "warning",
   approved: "success",
   paid: "info",
 };
@@ -47,12 +50,14 @@ const RAB_STATUS_COLOR: Record<string, "default" | "warning" | "success" | "info
 const REPORT_STATUS_LABEL: Record<string, string> = {
   unreported: "Belum Dilaporkan",
   draft: "Draft Laporan",
+  submitted: "Laporan Diajukan",
   approved: "Laporan Disetujui",
   revision: "Perlu Revisi",
 };
 const REPORT_STATUS_COLOR: Record<string, "default" | "warning" | "success" | "error"> = {
   unreported: "default",
-  draft: "warning",
+  draft: "default",
+  submitted: "warning",
   approved: "success",
   revision: "error",
 };
@@ -147,6 +152,7 @@ export default function RabListPage() {
               >
                 <MenuItem value="">Semua</MenuItem>
                 <MenuItem value="draft">Draft</MenuItem>
+                <MenuItem value="submitted">Diajukan</MenuItem>
                 <MenuItem value="approved">Disetujui</MenuItem>
                 <MenuItem value="paid">Dicairkan</MenuItem>
               </Select>
@@ -161,6 +167,7 @@ export default function RabListPage() {
                 <MenuItem value="">Semua</MenuItem>
                 <MenuItem value="unreported">Belum Dilaporkan</MenuItem>
                 <MenuItem value="draft">Draft Laporan</MenuItem>
+                <MenuItem value="submitted">Laporan Diajukan</MenuItem>
                 <MenuItem value="approved">Laporan Disetujui</MenuItem>
                 <MenuItem value="revision">Perlu Revisi</MenuItem>
               </Select>
@@ -186,6 +193,7 @@ export default function RabListPage() {
                 <TableHead>
                   <TableRow sx={{ bgcolor: "grey.50" }}>
                     <TableCell><strong>Proyek / Site</strong></TableCell>
+                    <TableCell><strong>No. CAD</strong></TableCell>
                     <TableCell><strong>Tipe</strong></TableCell>
                     <TableCell><strong>Total Anggaran</strong></TableCell>
                     <TableCell><strong>Status RAB</strong></TableCell>
@@ -200,6 +208,7 @@ export default function RabListPage() {
                       <TableCell>
                         <Typography sx={{ fontWeight: 600 }}>{rab.project_name || rab.project_id}</Typography>
                       </TableCell>
+                      <TableCell>{rab.cad_number || "-"}</TableCell>
                       <TableCell>
                         <Chip
                           label={rab.type}

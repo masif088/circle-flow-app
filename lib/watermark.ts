@@ -92,3 +92,24 @@ export async function addWatermarkToFile(
     return file;
   }
 }
+
+export async function resizeImageFile(file: File): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    let w = bitmap.width, h = bitmap.height;
+    if (w > MAX_DIM || h > MAX_DIM) {
+      if (w > h) { h = Math.round(h * MAX_DIM / w); w = MAX_DIM; }
+      else { w = Math.round(w * MAX_DIM / h); h = MAX_DIM; }
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const res = await fetch(canvas.toDataURL("image/jpeg", 0.85));
+    const blob = await res.blob();
+    return new File([blob], file.name.replace(/.w+$/, ".jpg"), { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}

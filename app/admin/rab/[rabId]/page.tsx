@@ -24,10 +24,14 @@ import {
   Paid as PaidIcon,
   Upload as UploadIcon,
   Close as CloseIcon,
+  PictureAsPdf as PdfIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
+import { buildLedger, diffSummary } from "@/lib/rab-ledger";
+import { downloadRabPdf } from "@/lib/rab-pdf";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { app } from "@/lib/firebase";
 
@@ -61,6 +65,8 @@ interface Nota {
   receipt_url: string;
   ai_extracted: boolean;
   tanggal: string;
+  vendor?: string;
+  note?: string;
   nota_total: number;
   items: ReportItem[];
 }
@@ -70,21 +76,27 @@ interface Rab {
   project_id: string;
   project_name: string;
   type: string;
-  rab_status: "draft" | "approved" | "paid";
-  report_status: "unreported" | "draft" | "approved" | "revision";
+  rab_status: "draft" | "submitted" | "approved" | "paid";
+  report_status: "unreported" | "draft" | "submitted" | "approved" | "revision";
   created_at: string;
   created_by: string;
+  note?: string;
+  cad_number?: string;
+  created_by_name?: string;
+  refund?: { tanggal: string; amount: number } | null;
   preparation: PrepItem[];
   report: Nota[];
 }
 
 const formatRp = (n: number) => "Rp " + (n || 0).toLocaleString("id-ID");
 
+const RAB_LABEL: Record<string, string> = { draft: "Draft", submitted: "Diajukan", approved: "Disetujui", paid: "Dicairkan" };
+const REPORT_LABEL: Record<string, string> = { unreported: "Belum Dilaporkan", draft: "Draft", submitted: "Diajukan", approved: "Disetujui", revision: "Perlu Revisi" };
 const RAB_STATUS_COLOR: Record<string, any> = {
-  draft: "default", approved: "success", paid: "info",
+  draft: "default", submitted: "warning", approved: "success", paid: "info",
 };
 const REPORT_STATUS_COLOR: Record<string, any> = {
-  unreported: "default", draft: "warning", approved: "success", revision: "error",
+  unreported: "default", draft: "default", submitted: "warning", approved: "success", revision: "error",
 };
 
 const emptyReportItem = (prepItems: PrepItem[]): ReportItem => ({
@@ -114,10 +126,15 @@ export default function RabDetailPage() {
   // New nota dialog
   const [notaDialogOpen, setNotaDialogOpen] = useState(false);
   const [notaDate, setNotaDate] = useState(new Date().toISOString().slice(0, 10));
+  const [notaVendor, setNotaVendor] = useState("");
+  const [notaNote, setNotaNote] = useState("");
   const [notaItems, setNotaItems] = useState<ReportItem[]>([]);
   const [notaFile, setNotaFile] = useState<File | null>(null);
   const [notaUploading, setNotaUploading] = useState(false);
   const [notaScanning, setNotaScanning] = useState(false);
+  const [notaScanned, setNotaScanned] = useState(false);
+  const [photoView, setPhotoView] = useState<string | null>(null);
+  const [diffMode, setDiffMode] = useState<"approve" | "view" | null>(null);
   const [notaPreviewUrl, setNotaPreviewUrl] = useState("");
   const [editingNota, setEditingNota] = useState<Nota | null>(null);
 
@@ -139,6 +156,8 @@ export default function RabDetailPage() {
     });
   }, [fetchRab]);
 
+  const canReport = rab?.rab_status === "paid" && rab?.report_status !== "approved";
+
   const catName = (id: string) => categories.find(c => c.id === id)?.name || id || "—";
 
   const totalPrep = (rab?.preparation || []).reduce((s, i) => s + (i.total || 0), 0);
@@ -149,10 +168,49 @@ export default function RabDetailPage() {
     if (!rab) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, "rab", rab.id), { rab_status });
-      setRab(prev => prev ? { ...prev, rab_status } : prev);
+      const extra = rab_status === "paid" ? { paid_at: new Date().toISOString() } : {};
+      await updateDoc(doc(db, "rab", rab.id), { rab_status, ...extra });
+      setRab(prev => prev ? { ...prev, rab_status, ...extra } : prev);
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
+  };
+
+  const printPdf = async () => {
+    if (!rab) return;
+    let pemohon = rab.created_by_name || "";
+    let jabatan = "";
+    try {
+      const u = await getDoc(doc(db, "users", rab.created_by));
+      if (u.exists()) {
+        pemohon = (u.data().name as string) || pemohon;
+        jabatan = ((u.data().position as string) || "").toUpperCase();
+      }
+    } catch {}
+    await downloadRabPdf(rab, { pemohon, pemohonJabatan: jabatan });
+  };
+
+  const saveRefund = async () => {
+    if (!rab) return;
+    const before = buildLedger(rab, catName).saldoBeforeRefund;
+    const amount = Math.max(before, 0);
+    const refund = amount > 0 ? { tanggal: new Date().toISOString().slice(0, 10), amount } : null;
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, "rab", rab.id), { refund });
+      setRab(prev => prev ? { ...prev, refund } : prev);
+    } catch (e: any) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const setItemCategory = async (notaId: string, itemId: string, categoryId: string) => {
+    if (!rab) return;
+    const updatedReport = (rab.report || []).map(n =>
+      n.nota_id !== notaId ? n : { ...n, items: n.items.map(i => i.item_id === itemId ? { ...i, category_id: categoryId } : i) }
+    );
+    setRab(prev => prev ? { ...prev, report: updatedReport } : prev);
+    try {
+      await updateDoc(doc(db, "rab", rab.id), { report: updatedReport });
+    } catch (e: any) { setError(e.message); }
   };
 
   const updateReportStatus = async (report_status: Rab["report_status"]) => {
@@ -167,6 +225,9 @@ export default function RabDetailPage() {
 
   // --- Nota dialog ---
   const openNewNota = () => {
+    setNotaVendor("");
+    setNotaNote("");
+    setNotaScanned(false);
     setEditingNota(null);
     setNotaDate(new Date().toISOString().slice(0, 10));
     setNotaItems([emptyReportItem(rab?.preparation || [])]);
@@ -176,8 +237,11 @@ export default function RabDetailPage() {
   };
 
   const openEditNota = (nota: Nota) => {
+    setNotaScanned(false);
     setEditingNota(nota);
     setNotaDate(nota.tanggal);
+    setNotaVendor(nota.vendor || "");
+    setNotaNote(nota.note || "");
     setNotaItems(nota.items.map(i => ({ ...i })));
     setNotaPreviewUrl(nota.receipt_url || "");
     setNotaFile(null);
@@ -209,11 +273,16 @@ export default function RabDetailPage() {
     setNotaScanning(true);
     try {
       const formData = new FormData();
-      formData.append("file", notaFile);
+      formData.append("image", notaFile);
       const res = await fetch("/api/analyze-receipt", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Server error " + res.status);
       const data = await res.json();
-      if (data.items?.length) {
-        setNotaItems(data.items.map((it: any) => ({
+      const first = Array.isArray(data.receipts) ? data.receipts[0] : null;
+      if (first?.receipt_date) setNotaDate(first.receipt_date);
+      if (first?.vendor) setNotaVendor(first.vendor);
+      if (first?.items?.length) {
+        setNotaScanned(true);
+        setNotaItems(first.items.map((it: any) => ({
           item_id: uuidv4(),
           preparation_item_id: null,
           name: it.name || "",
@@ -250,8 +319,10 @@ export default function RabDetailPage() {
       const newNota: Nota = {
         nota_id: editingNota?.nota_id || uuidv4(),
         receipt_url: receiptUrl,
-        ai_extracted: notaScanning || (editingNota?.ai_extracted ?? false),
+        ai_extracted: notaScanned || (editingNota?.ai_extracted ?? false),
         tanggal: notaDate,
+        vendor: notaVendor.trim(),
+        note: notaNote.trim(),
         nota_total,
         items: validItems,
       };
@@ -304,6 +375,8 @@ export default function RabDetailPage() {
 
   if (loading) return <Box sx={{ display: "flex", justifyContent: "center", p: 8 }}><CircularProgress /></Box>;
   if (!rab) return null;
+  const ledger = buildLedger(rab, catName);
+  const diffs = diffSummary(rab);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -327,8 +400,9 @@ export default function RabDetailPage() {
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>{rab.project_name}</Typography>
                 <Stack direction="row" sx={{ gap: 1, mt: 0.5 }}>
                   <Chip label={rab.type} size="small" color="primary" variant="outlined" />
-                  <Chip label={rab.rab_status.toUpperCase()} size="small" color={RAB_STATUS_COLOR[rab.rab_status]} />
-                  <Chip label={"Laporan: " + rab.report_status} size="small" color={REPORT_STATUS_COLOR[rab.report_status]} variant="outlined" />
+                  {rab.cad_number && <Chip label={rab.cad_number} size="small" />}
+                  <Chip label={RAB_LABEL[rab.rab_status] || rab.rab_status} size="small" color={RAB_STATUS_COLOR[rab.rab_status]} />
+                  <Chip label={"Laporan: " + (REPORT_LABEL[rab.report_status] || rab.report_status)} size="small" color={REPORT_STATUS_COLOR[rab.report_status]} variant="outlined" />
                 </Stack>
               </Box>
             </Stack>
@@ -346,18 +420,33 @@ export default function RabDetailPage() {
                 </Typography>
               </Box>
               <Box sx={{ textAlign: "right" }}>
-                <Typography variant="caption" color="text.secondary">Sisa</Typography>
+                <Typography variant="caption" color="text.secondary">{totalPrep - totalReport < 0 ? "Kelebihan" : "Sisa"}</Typography>
                 <Typography sx={{ fontWeight: 700 }} color={totalPrep - totalReport < 0 ? "error" : "text.primary"}>
-                  {formatRp(totalPrep - totalReport)}
+                  {formatRp(Math.abs(totalPrep - totalReport))}
                 </Typography>
               </Box>
             </Stack>
           </Stack>
 
+          {rab.note && (
+            <Box sx={{ mt: 2, p: 1.5, bgcolor: "grey.50", borderRadius: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontWeight: 600 }}>Catatan</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>{rab.note}</Typography>
+            </Box>
+          )}
+
           {/* Action buttons */}
           <Divider sx={{ my: 2 }} />
           <Stack direction="row" sx={{ gap: 1, flexWrap: "wrap" }}>
-            {rab.rab_status === "draft" && (
+            <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={printPdf}>
+              Print PDF
+            </Button>
+            {rab.rab_status !== "paid" && (
+              <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => router.push("/admin/rab/" + rab.id + "/edit")}>
+                Edit RAB
+              </Button>
+            )}
+            {(rab.rab_status === "draft" || rab.rab_status === "submitted") && (
               <Button
                 size="small"
                 variant="contained"
@@ -381,15 +470,15 @@ export default function RabDetailPage() {
                 Tandai Dicairkan
               </Button>
             )}
-            {rab.report_status === "draft" && (
+            {(rab.report_status === "draft" || rab.report_status === "submitted") && (
               <>
                 <Button
                   size="small"
                   variant="outlined"
                   color="success"
                   startIcon={<ApproveIcon />}
-                  onClick={() => updateReportStatus("approved")}
-                  disabled={saving}
+                  onClick={() => (diffs.length > 0 ? setDiffMode("approve") : updateReportStatus("approved"))}
+                  disabled={saving || !ledger.balanced}
                 >
                   Approve Laporan
                 </Button>
@@ -416,6 +505,21 @@ export default function RabDetailPage() {
               </Button>
             )}
           </Stack>
+          {(rab.report_status === "draft" || rab.report_status === "submitted") && diffs.length > 0 && (
+            <Alert severity="info" sx={{ mt: 2 }} action={<Button size="small" color="inherit" onClick={() => setDiffMode("view")}>Lihat Detail</Button>}>
+              Ada {diffs.length} perbedaan antara RAB dan laporan.
+            </Alert>
+          )}
+          {(rab.report_status === "draft" || rab.report_status === "submitted") && !ledger.balanced && (
+            <Alert severity="warning" sx={{ mt: 2 }} action={<Button size="small" color="inherit" onClick={() => setTab(3)}>Buka Buku Kas</Button>}>
+              Approve Laporan belum bisa dilakukan:{" "}
+              {(rab.report || []).length === 0
+                ? "belum ada nota."
+                : ledger.overspend
+                ? "ada kelebihan " + formatRp(-ledger.saldoBeforeRefund) + ", tapi masih ada catatan pengembalian. Perbarui pengembalian di tab Buku Kas."
+                : "saldo " + formatRp(ledger.saldo) + " belum dikembalikan. Catat pengembalian sisa di tab Buku Kas."}
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
@@ -424,6 +528,7 @@ export default function RabDetailPage() {
         <Tab label={`Preparation (${rab.preparation?.length || 0} item)`} />
         <Tab label={`Report / Nota (${rab.report?.length || 0} nota)`} />
         <Tab label="Matching" />
+        <Tab label="Buku Kas" />
       </Tabs>
 
       {/* Tab 0 — Preparation */}
@@ -475,10 +580,17 @@ export default function RabDetailPage() {
           <CardContent>
             <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>Nota Realisasi</Typography>
-              <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openNewNota}>
+              <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={openNewNota} disabled={!canReport}>
                 Tambah Nota
               </Button>
             </Stack>
+            {!canReport && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {rab.rab_status !== "paid"
+                  ? "Laporan realisasi bisa diisi setelah RAB berstatus Dicairkan."
+                  : "Laporan sudah disetujui dan tidak bisa diubah."}
+              </Alert>
+            )}
 
             {(!rab.report || rab.report.length === 0) ? (
               <Box sx={{ textAlign: "center", p: 4 }}>
@@ -491,22 +603,27 @@ export default function RabDetailPage() {
                     <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                       <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
                         <Typography sx={{ fontWeight: 700 }}>Nota {ni + 1}</Typography>
-                        <Typography variant="body2" color="text.secondary">{nota.tanggal}</Typography>
+                        <Typography variant="body2" color="text.secondary">{nota.tanggal}{nota.vendor ? " · " + nota.vendor : ""}</Typography>
                         {nota.ai_extracted && <Chip label="AI Scan" size="small" color="info" icon={<AIIcon />} />}
                       </Stack>
-                      <Stack direction="row" sx={{ gap: 1 }}>
-                        <Button size="small" onClick={() => openEditNota(nota)}>Edit</Button>
-                        <IconButton size="small" color="error" onClick={() => handleDeleteNota(nota.nota_id)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                      <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
+                        {nota.receipt_url && (
+                          <Button size="small" onClick={() => setPhotoView(nota.receipt_url)}>Lihat Foto Nota</Button>
+                        )}
+                        {canReport && (
+                          <>
+                            <Button size="small" onClick={() => openEditNota(nota)}>Edit</Button>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteNota(nota.nota_id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </>
+                        )}
                       </Stack>
                     </Stack>
-                    {nota.receipt_url && (
-                      <Box sx={{ mb: 1 }}>
-                        <a href={nota.receipt_url} target="_blank" rel="noreferrer">
-                          <Typography variant="body2" color="primary">Lihat Foto Nota</Typography>
-                        </a>
-                      </Box>
+                    {nota.note && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, whiteSpace: "pre-wrap" }}>
+                        Catatan: {nota.note}
+                      </Typography>
                     )}
                     <TableContainer component={Paper} variant="outlined">
                       <Table size="small">
@@ -726,6 +843,122 @@ export default function RabDetailPage() {
         );
       })()}
 
+      {/* Tab 3 — Buku Kas */}
+      {tab === 3 && (
+        <Card>
+          <CardContent>
+            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1, flexWrap: "wrap", gap: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Buku Kas (Expense Report)</Typography>
+              <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
+                {ledger.balanced && ledger.overspend ? (
+                  <Chip label={"Kelebihan " + formatRp(-ledger.saldoBeforeRefund) + " - siap disetujui"} size="small" color="warning" />
+                ) : ledger.balanced ? (
+                  <Chip label="Saldo nol - siap disetujui" size="small" color="success" />
+                ) : ledger.overspend ? (
+                  <Chip label={"Kelebihan " + formatRp(-ledger.saldoBeforeRefund) + " - perbarui pengembalian"} size="small" color="warning" />
+                ) : (
+                  <Chip label={"Saldo " + formatRp(ledger.saldo) + " harus dikembalikan"} size="small" color="warning" />
+                )}
+                {rab.report_status !== "approved" && ledger.refundNeeded !== ledger.refund && (
+                  <Button size="small" variant="outlined" onClick={saveRefund} disabled={saving}>
+                    {ledger.refund > 0 ? "Perbarui Pengembalian" : "Catat Pengembalian Sisa"}
+                  </Button>
+                )}
+              </Stack>
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+              Kategori pengeluaran diisi oleh admin. Laporan bisa disetujui kalau saldo nol, atau kalau ada kelebihan pengeluaran.
+            </Typography>
+            <TableContainer component={Paper} variant="outlined" sx={{ overflowX: "auto" }}>
+              <Table size="small" sx={{ minWidth: 900, "& .MuiInputBase-root": { fontSize: "0.8125rem" } }}>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: "grey.50" }}>
+                    <TableCell>Tanggal</TableCell>
+                    <TableCell sx={{ minWidth: 190 }}>Kategori Pengeluaran</TableCell>
+                    <TableCell>Rincian</TableCell>
+                    <TableCell align="right">Masuk</TableCell>
+                    <TableCell align="right">Keluar</TableCell>
+                    <TableCell align="right">Saldo</TableCell>
+                    <TableCell>Nota</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {ledger.rows.map(r => (
+                    <TableRow key={r.key}>
+                      <TableCell>{r.tanggal}</TableCell>
+                      <TableCell>
+                        {r.kind === "item" ? (
+                          <FormControl size="small" fullWidth disabled={rab.report_status === "approved"}>
+                            <Select
+                              value={r.categoryId || ""}
+                              displayEmpty
+                              onChange={e => setItemCategory(r.notaId!, r.itemId!, e.target.value)}
+                            >
+                              <MenuItem value=""><em>— Pilih —</em></MenuItem>
+                              {categories.map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Chip label={r.kategori} size="small" variant="outlined" />
+                        )}
+                      </TableCell>
+                      <TableCell>{r.rincian}</TableCell>
+                      <TableCell align="right">{r.masuk ? formatRp(r.masuk) : ""}</TableCell>
+                      <TableCell align="right">{r.keluar ? formatRp(r.keluar) : ""}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>{formatRp(r.saldo)}</TableCell>
+                      <TableCell>
+                        {r.receiptUrl ? (
+                          <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => setPhotoView(r.receiptUrl!)}>Lihat</Button>
+                        ) : ""}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow sx={{ bgcolor: "grey.50" }}>
+                    <TableCell colSpan={3}><Typography sx={{ fontWeight: 700 }}>Total</Typography></TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{formatRp(ledger.totalMasuk)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{formatRp(ledger.totalKeluar)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{formatRp(ledger.saldo)}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={!!photoView} onClose={() => setPhotoView(null)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          Foto Nota
+          <IconButton size="small" onClick={() => setPhotoView(null)}><CloseIcon fontSize="small" /></IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {photoView && (
+            <Box component="img" src={photoView} alt="Foto nota" sx={{ width: "100%", maxHeight: "75vh", objectFit: "contain", borderRadius: 1 }} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={diffMode !== null} onClose={() => setDiffMode(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Perbedaan RAB dan Laporan</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            {diffMode === "approve" ? "Periksa perbedaan berikut sebelum menyetujui laporan." : "Perbedaan yang ditemukan antara rencana (RAB) dan realisasi:"}
+          </Typography>
+          <Stack sx={{ gap: 1 }}>{diffs.map((d, i) => (
+            <Alert key={i} severity="warning" icon={false} sx={{ py: 0 }}>{d}</Alert>
+          ))}</Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDiffMode(null)}>{diffMode === "approve" ? "Batal" : "Tutup"}</Button>
+          {diffMode === "approve" && (
+            <Button variant="contained" color="success" disabled={saving || !ledger.balanced} onClick={async () => { await updateReportStatus("approved"); setDiffMode(null); }}>
+              Tetap Setujui
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
       {/* Nota Dialog */}
       <Dialog open={notaDialogOpen} onClose={() => setNotaDialogOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>{editingNota ? "Edit Nota" : "Tambah Nota Realisasi"}</DialogTitle>
@@ -741,6 +974,14 @@ export default function RabDetailPage() {
                 value={notaDate}
                 onChange={e => setNotaDate(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <TextField
+                label="Toko / Lokasi Pembelian"
+                size="small"
+                value={notaVendor}
+                onChange={e => setNotaVendor(e.target.value)}
+                placeholder="Nama toko dan lokasi"
+                sx={{ minWidth: 260 }}
               />
               <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
                 <Button
@@ -782,6 +1023,16 @@ export default function RabDetailPage() {
                 )}
               </Stack>
             </Stack>
+
+            <TextField
+              label="Catatan Nota (opsional)"
+              size="small"
+              fullWidth
+              multiline
+              minRows={2}
+              value={notaNote}
+              onChange={e => setNotaNote(e.target.value)}
+            />
 
             <Divider />
 

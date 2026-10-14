@@ -21,6 +21,9 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 NEXT_PUBLIC_FIREBASE_*  # di .env
 ```
 
+## Fitur RAB
+Spesifikasi dan gap analysis ada di `docs/rab/RAB_SPEC.md` (sumber: `docs/rab/APLIKASI RAB.docx`). Baca sebelum mengubah fitur RAB. Koleksi Firestore: `rab`, `rab_categories`. Halaman: `app/admin/rab/*`, `app/staff/rab/*`.
+
 ## Struktur fitur utama
 ```
 app/admin/

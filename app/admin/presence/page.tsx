@@ -1001,7 +1001,7 @@ export default function PresenceAdminPage() {
                                 sx={{ width: 40, height: 40, borderRadius: "8px", objectFit: "cover" }}
                               />
                             )}
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={(e) => { e.stopPropagation(); router.push("/admin/users/" + pres.user_id); }}>
                               {getUserName(pres.user_id)}
                             </Typography>
                           </Stack>
@@ -1157,7 +1157,7 @@ export default function PresenceAdminPage() {
                       ) : (
                         paged.map((rate) => (
                           <TableRow key={rate.id}>
-                            <TableCell sx={{ fontWeight: 500 }}>{getUserName(rate.user_id)}</TableCell>
+                            <TableCell sx={{ fontWeight: 500 }}><Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={() => router.push("/admin/users/" + rate.user_id)}>{getUserName(rate.user_id)}</Typography></TableCell>
                             <TableCell>{getProjectName(rate.project_id)}</TableCell>
                             <TableCell sx={{ fontWeight: 600, color: "success.main" }}>
                               {formatPrice(rate.cost)}
@@ -1395,7 +1395,7 @@ export default function PresenceAdminPage() {
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>NAMA KARYAWAN</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: "primary.main", cursor: "pointer", "&:hover": { textDecoration: "underline" } }} onClick={() => router.push("/admin/users/" + selectedPresence.user_id)}>
                     {getUserName(selectedPresence.user_id)}
                   </Typography>
                 </Grid>

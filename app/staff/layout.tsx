@@ -15,6 +15,7 @@ import {
   HomeRounded,
   CheckCircleOutlineRounded,
   ReceiptLongRounded,
+  AssignmentRounded,
   PersonRounded,
 } from "@mui/icons-material";
 
@@ -43,14 +44,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     ? 1
     : pathname.startsWith("/staff/klaim")
     ? 2
-    : pathname.startsWith("/staff/profil")
+    : pathname.startsWith("/staff/rab")
     ? 3
+    : pathname.startsWith("/staff/profil")
+    ? 4
     : 0;
 
   const navItems = [
     { label: "Home", icon: <HomeRounded />, href: "/staff" },
     { label: "Aktivitas", icon: <CheckCircleOutlineRounded />, href: "/staff/aktivitas" },
     { label: "Klaim", icon: <ReceiptLongRounded />, href: "/staff/klaim" },
+    { label: "RAB", icon: <AssignmentRounded />, href: "/staff/rab" },
     { label: "Profil", icon: <PersonRounded />, href: "/staff/profil" },
   ];
 
