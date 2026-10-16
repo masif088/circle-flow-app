@@ -120,3 +120,95 @@ export async function downloadRabPdf(rab: any, opts: RabPdfOptions) {
   const base = (rab.cad_number || rab.project_name || "RAB").toString().replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_");
   pdf.save(`CashAdvance_${base}_${(rab.created_at || "").slice(0, 10)}.pdf`);
 }
+
+export async function downloadExpenseReportPdf(
+  rab: any,
+  opts: { pemohon: string; pemohonJabatan?: string; catName: (id: string) => string }
+) {
+  const { default: JsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+  const { buildLedger } = await import("./rab-ledger");
+
+  const ledger = buildLedger(rab, opts.catName);
+  const pdf = new JsPDF({ unit: "mm", format: "a4" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const left = 14;
+  const right = pageW - 14;
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.text("CIG ENERGY", left, 18);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.text("+6285736366040  |  cvcigenergy@gmail.com", right, 12, { align: "right" });
+  pdf.text("Jalan Raya Sidomulyo, Ds. Sidomulyo, Kec. Wates,", right, 16, { align: "right" });
+  pdf.text("Kab. Kediri Jawa Timur Kode Pos : 64174", right, 20, { align: "right" });
+  pdf.setLineWidth(0.4);
+  pdf.line(left, 24, right, 24);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("EXPENSE REPORT", pageW / 2, 33, { align: "center" });
+  pdf.setFontSize(10);
+  pdf.text(rab.type === "Penambahan MP" ? "O&M PENAMBAHAN MP" : "O&M OPERASIONAL MP", pageW / 2, 39, { align: "center" });
+
+  const info: [string, string][] = [
+    ["Pemohon", opts.pemohon || "-"],
+    ["Referensi Cash Advance", rab.cad_number || "-"],
+    ["Site Projek", rab.project_name || "-"],
+    ["Tanggal Pengajuan", fmtDateId(rab.created_at)],
+  ];
+  let y = 48;
+  for (const [k, v] of info) {
+    pdf.setFont("helvetica", "normal");
+    pdf.text(k, left, y);
+    pdf.text(":", left + 46, y);
+    pdf.setFont("helvetica", "bold");
+    pdf.text(String(v), left + 50, y);
+    y += 6;
+  }
+
+  autoTable(pdf, {
+    startY: y + 4,
+    head: [["TANGGAL", "KATEGORI PENGELUARAN", "RINCIAN", "MASUK", "KELUAR", "SALDO"]],
+    body: ledger.rows.map((r) => [
+      r.tanggal,
+      r.kategori || "-",
+      r.rincian,
+      r.masuk ? fmtRp(r.masuk) : "",
+      r.keluar ? fmtRp(r.keluar) : "",
+      fmtRp(r.saldo),
+    ]),
+    theme: "grid",
+    styles: { fontSize: 8.5, cellPadding: 1.8, lineColor: [0, 0, 0], lineWidth: 0.2, textColor: [0, 0, 0] },
+    headStyles: { fillColor: [255, 224, 130], textColor: [0, 0, 0], halign: "center", fontStyle: "bold" },
+    columnStyles: {
+      0: { cellWidth: 22, halign: "center" },
+      1: { cellWidth: 38 },
+      3: { halign: "right", cellWidth: 26 },
+      4: { halign: "right", cellWidth: 26 },
+      5: { halign: "right", cellWidth: 28, fillColor: [201, 218, 248] },
+    },
+  });
+
+  let sy = (pdf as any).lastAutoTable.finalY + 14;
+  if (sy > 240) { pdf.addPage(); sy = 30; }
+  pdf.setFontSize(9);
+  pdf.setFont("helvetica", "normal");
+  pdf.text("Diajukan Oleh,", left + 30, sy, { align: "center" });
+  pdf.setFont("helvetica", "bold");
+  pdf.text(opts.pemohon || "", left + 30, sy + 26, { align: "center" });
+  pdf.setFont("helvetica", "normal");
+  if (opts.pemohonJabatan) pdf.text(opts.pemohonJabatan, left + 30, sy + 31, { align: "center" });
+
+  if (rab.report_status === "approved") {
+    pdf.setLineWidth(0.6);
+    pdf.rect(right - 42, sy + 12, 42, 11);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.text("DISETUJUI", right - 21, sy + 19.5, { align: "center" });
+  }
+
+  const base = (rab.cad_number || rab.project_name || "RAB").toString().replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_");
+  pdf.save(`ExpenseReport_${base}_${(rab.created_at || "").slice(0, 10)}.pdf`);
+}

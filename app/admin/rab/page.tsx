@@ -109,6 +109,9 @@ export default function RabListPage() {
           <Typography variant="h6" sx={{ fontWeight: 700 }}>RAB (Rencana Anggaran Biaya)</Typography>
         </Stack>
         <Stack direction="row" sx={{ gap: 1 }}>
+          <Button variant="outlined" onClick={() => router.push("/admin/rab/rekap")}>
+            Rekap Semua PIC
+          </Button>
           <Button
             variant="outlined"
             startIcon={<CategoryIcon />}

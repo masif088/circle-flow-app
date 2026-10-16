@@ -7,7 +7,7 @@ import { collection, getDocs, onSnapshot, query, where } from "firebase/firestor
 import {
   Box, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Chip, Grid, Stack, FormControl, InputLabel, Select,
-  MenuItem, TablePagination, Button, CircularProgress,
+  MenuItem, TablePagination, Button, CircularProgress, Switch, FormControlLabel, Alert,
 } from "@mui/material";
 import { buildCashRows, withSaldo, BULAN } from "@/lib/cashbook";
 
@@ -28,6 +28,7 @@ export default function BukuKasPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [filterProject, setFilterProject] = useState("");
+  const [includeUpah, setIncludeUpah] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
 
@@ -63,10 +64,10 @@ export default function BukuKasPage() {
   }, []);
 
   const allRows = useMemo(() => {
-    const base = buildCashRows({ rabs, manual, presences, wageMap, userNames, catMap, projectNames });
+    const base = buildCashRows({ rabs, manual, presences, wageMap, userNames, catMap, projectNames, includeUpah });
     const filtered = filterProject ? base.filter((r) => r.projectId === filterProject) : base;
     return withSaldo(filtered);
-  }, [rabs, manual, presences, wageMap, userNames, catMap, projectNames, filterProject]);
+  }, [rabs, manual, presences, wageMap, userNames, catMap, projectNames, filterProject, includeUpah]);
 
   const years = useMemo(() => {
     const set = new Set<number>([now.getFullYear()]);
@@ -92,6 +93,22 @@ export default function BukuKasPage() {
 
   useEffect(() => { setPage(0); }, [monthPrefix, filterProject]);
 
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
+    const header = ["Tanggal", "Proyek", "No. CAD", "Kategori", "Rincian", "Masuk", "Keluar", "Saldo"];
+    const body = monthRows.map((r) => [r.tanggal, r.projectName, r.cad, r.kategori, r.rincian, r.masuk || "", r.keluar || "", r.saldo]);
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ["Buku Kas " + BULAN[month] + " " + year + (filterProject ? " - " + (projectNames[filterProject] || "") : "")],
+      ["Saldo awal", current.opening, "Masuk", current.masuk, "Keluar", current.keluar, "Saldo akhir", current.closing],
+      [],
+      header,
+      ...body,
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, BULAN[month].slice(0, 31));
+    XLSX.writeFile(wb, "BukuKas_" + year + "_" + String(month + 1).padStart(2, "0") + ".xlsx");
+  };
+
   if (loading) {
     return <Box sx={{ display: "flex", justifyContent: "center", p: 8 }}><CircularProgress /></Box>;
   }
@@ -105,7 +122,11 @@ export default function BukuKasPage() {
             Seluruh transaksi semua proyek: RAB yang dicairkan, nota, upah harian, dan input manual. Dibagi per bulan.
           </Typography>
         </Box>
-        <Stack direction="row" sx={{ gap: 1.5 }}>
+        <Stack direction="row" sx={{ gap: 1.5, alignItems: "center", flexWrap: "wrap" }}>
+          <FormControlLabel
+            control={<Switch size="small" checked={includeUpah} onChange={(e) => setIncludeUpah(e.target.checked)} />}
+            label={<Typography variant="caption">Sertakan upah harian</Typography>}
+          />
           <FormControl size="small" sx={{ minWidth: 220 }}>
             <InputLabel>Proyek</InputLabel>
             <Select value={filterProject} label="Proyek" onChange={(e) => setFilterProject(e.target.value)}>
@@ -164,7 +185,16 @@ export default function BukuKasPage() {
         </CardContent>
       </Card>
 
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>{BULAN[month]} {year}</Typography>
+      {includeUpah && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Upah harian dihitung otomatis dari kehadiran yang disetujui. Kalau gaji orang yang sama juga sudah ada di RAB Penambahan MP, matikan "Sertakan upah harian" supaya tidak terhitung dua kali.
+        </Alert>
+      )}
+
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>{BULAN[month]} {year}</Typography>
+        <Button variant="outlined" size="small" onClick={exportExcel} disabled={monthRows.length === 0}>Export Excel</Button>
+      </Stack>
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[

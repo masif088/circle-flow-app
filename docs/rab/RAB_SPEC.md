@@ -62,21 +62,44 @@ Klik RAB untuk cek dan menyetujui, dengan bukti nota transaksi.
 ### 5c. Data Rekap Transaksi (seluruh transaksi yang sudah di-report)
 Kolom: No, Tanggal, Kategori Pengeluaran, Site Projek, Rincian, Masuk, Keluar, Jumlah (saldo), Nota Pembayaran (link), Tanggal Report. Total Masuk dan Keluar di atas tabel. Hanya transaksi dari report yang sudah disetujui yang muncul, dan pilihan kategori diambil dari sini.
 
-## Perbandingan dengan implementasi saat ini
+## Status implementasi
 
 | Kebutuhan dokumen | Status |
 |---|---|
 | Pengajuan Operasional (item, qty, satuan, harga, total) | Ada (admin dan PWA) |
-| Nomor Cash Advance `RAB 001` dan "CAD ke-" | Belum |
-| Export PDF form pengajuan + blok tanda tangan | Belum |
-| Pengajuan MP berbasis orang (nama, jabatan, kehadiran, gaji/hari, tanggal awal masuk, kolom tanggal) | Belum. Saat ini hanya dropdown posisi + qty orang/hari |
-| Tanggal pengajuan dikunci hari ini | Belum (tanggal diambil otomatis saat dibuat, belum ada field) |
-| Jenis Freelance | Belum (saat ini Operasional / Penambahan MP) |
-| Alur Laporan RAB: pilih site, upload nota | Sebagian. Nota diisi dari detail RAB, belum ada pilih site |
-| Laporan berbentuk buku kas Masuk / Keluar / Saldo | Belum. Saat ini daftar nota per item |
-| Syarat saldo nol + baris Pengembalian RAB sebelum submit | Belum |
-| Kategori pengeluaran diisi Super Admin | Belum. Saat ini kategori diisi pengaju per item |
-| Status Pending / Disetujui / Dibayar | Ada (draft, diajukan, approved, paid), label belum sama |
-| Rekap RAB All PIC (pengajuan vs realisasi vs selisih) | Belum (hanya ringkasan per RAB) |
-| Data Rekap Transaksi seluruh report (filter kategori, link nota) | Belum |
-| Cap DISETUJUI dan export PDF Expense Report | Belum |
+| Nomor Cash Advance "RAB n" per pemohon, reset tiap tahun | Ada (otomatis, counter di ) |
+| Print PDF form Cash Advance + blok tanda tangan (Diajukan Oleh, Menyetujui PIC O&M ATW) | Ada, bisa sebelum approve |
+| Pengajuan MP berbasis orang (Posisi - Nama, Gaji/Hari, catatan tanggal) | Sebagian. Pilih orang dan gaji/hari ada; Tanggal Awal Masuk dan kolom tanggal kehadiran belum |
+| Persetujuan dua tingkat untuk form MP (PIC ATW lalu Super Admin) | Belum |
+| Jenis Freelance | Belum (Operasional / Penambahan MP) |
+| Laporan berbentuk buku kas Masuk / Keluar / Saldo | Ada |
+| Saldo nol + baris Pengembalian RAB sebelum submit/approve (kelebihan boleh) | Ada |
+| Kategori pengeluaran diisi Super Admin, wajib terisi sebelum approve | Ada |
+| Cap DISETUJUI dan export PDF Expense Report | Ada (PDF Expense Report; cap muncul saat laporan disetujui) |
+| Daftar Pengajuan RAB untuk approve (Pending / Disetujui / Dibayar) | Ada (halaman /admin/rab) |
+| Rekap RAB All PIC (pengajuan, realisasi, selisih, status) | Ada (/admin/rab/rekap) |
+| Data Rekap Transaksi gabungan per bulan | Ada (/admin/buku-kas, export Excel per bulan) |
+| Alur laporan: pilih site lalu upload nota | Sebagian. Nota diisi dari detail RAB per site |
+
+## Catatan keamanan dan data
+
+- Aturan Firestore untuk koleksi RAB sudah ditulis di  (staff hanya RAB miliknya; approve, cairkan, revisi hanya admin). **Belum di-deploy**: jalankan [1m[37m===[39m Deploying to 'circle-flow-3795f'...[22m
+
+[36m[1mi [22m[39m deploying [1mfirestore[22m
+[36m[1mi  firestore:[22m[39m ensuring required API [1mfirestore.googleapis.com[22m is enabled...
+[36m[1mi  firestore:[22m[39m ensuring required API [1mfirestore.googleapis.com[22m is enabled...
+[36m[1mi [22m[39m [1m[36mfirestore:[39m[22m reading indexes from [1mfirestore.indexes.json[22m...
+[36m[1mi  cloud.firestore:[22m[39m checking [1mfirestore.rules[22m for compilation errors...
+[32m[1m+  cloud.firestore:[22m[39m rules file [1mfirestore.rules[22m compiled successfully
+[36m[1mi  firestore:[22m[39m uploading rules [1mfirestore.rules[22m...
+[36m[1mi [22m[39m [1m[36mfirestore: [39m[22mdeploying indexes...
+[36m[1mi  firestore:[22m[39m there are 1 indexes defined in your project that are not present in your firestore indexes file. To delete them, run this command with the --force flag.
+[32m[1m+ [22m[39m [1m[32mfirestore:[39m[22m deployed indexes in [1mfirestore.indexes.json[22m successfully for (default) database
+[32m[1m+  firestore:[22m[39m released rules [1mfirestore.rules[22m to [1mcloud.firestore[22m
+
+[32m[1m+ [22m[39m [1m[4mDeploy complete![24m[22m
+
+[1mProject Console:[22m https://console.firebase.google.com/project/circle-flow-3795f/overview setelah ditinjau dan diuji dengan emulator.
+- Perubahan laporan memakai transaksi Firestore () supaya edit bersamaan admin dan staff tidak saling menimpa. Riwayat persetujuan tersimpan di field .
+- Buku Kas menghitung upah harian dari kehadiran. Matikan saklar "Sertakan upah harian" kalau gaji yang sama sudah ada di RAB Penambahan MP, supaya tidak terhitung dua kali.
+- Laporan masih berupa array di satu dokumen RAB (batas 1 MB). Kalau nota makin banyak, pindahkan ke sub-koleksi.

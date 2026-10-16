@@ -10,7 +10,7 @@ import {
   Box, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Chip, Grid, TablePagination, Button, Stack, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel,
-  Select, MenuItem, Alert, CircularProgress,
+  Select, MenuItem, Alert, CircularProgress, Switch, FormControlLabel,
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon, Receipt as ReceiptIcon } from "@mui/icons-material";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +33,7 @@ export default function ProjectBukuKas({ projectId }: { projectId: string }) {
   const [wageMap, setWageMap] = useState<Record<string, number>>({});
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [includeUpah, setIncludeUpah] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -83,7 +84,7 @@ export default function ProjectBukuKas({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   const { rows, totalMasuk, totalKeluar, totalUpah, rabCount } = useMemo(() => {
-    const base = buildCashRows({ rabs, manual, presences, wageMap, userNames, catMap, projectNames: {} });
+    const base = buildCashRows({ rabs, manual, presences, wageMap, userNames, catMap, projectNames: {}, includeUpah });
     return {
       rows: withSaldo(base) as Row[],
       totalMasuk: base.reduce((s, x) => s + x.masuk, 0),
@@ -91,7 +92,7 @@ export default function ProjectBukuKas({ projectId }: { projectId: string }) {
       totalUpah: base.filter((x) => x.source === "upah").reduce((s, x) => s + x.keluar, 0),
       rabCount: rabs.filter((r) => r.rab_status === "paid").length,
     };
-  }, [rabs, manual, presences, wageMap, userNames, catMap]);
+  }, [rabs, manual, presences, wageMap, userNames, catMap, includeUpah]);
 
   const saldoAkhir = totalMasuk - totalKeluar;
 
@@ -165,7 +166,12 @@ export default function ProjectBukuKas({ projectId }: { projectId: string }) {
               (otomatis dari kehadiran yang disetujui dan tarif upah pekerja), dan input manual.
             </Typography>
           </Box>
-          <Stack direction="row" sx={{ gap: 1 }}>
+          <Stack direction="row" sx={{ gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+            <FormControlLabel
+              sx={{ mr: 1 }}
+              control={<Switch size="small" checked={includeUpah} onChange={(e) => setIncludeUpah(e.target.checked)} />}
+              label={<Typography variant="caption">Sertakan upah harian</Typography>}
+            />
             <Button variant="outlined" color="success" onClick={() => openAdd("masuk")}>+ Uang Masuk</Button>
             <Button variant="outlined" color="error" onClick={() => openAdd("keluar")}>+ Uang Keluar</Button>
           </Stack>

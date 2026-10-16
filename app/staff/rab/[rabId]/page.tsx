@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { doc, onSnapshot, collection, getDocs, updateDoc, getDoc } from "firebase/firestore";
 import { Box, Typography, Card, CardContent, Chip, Stack, IconButton, CircularProgress, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { buildLedger, diffSummary } from "@/lib/rab-ledger";
-import { downloadRabPdf } from "@/lib/rab-pdf";
+import { downloadRabPdf, downloadExpenseReportPdf } from "@/lib/rab-pdf";
 import { mutateRab } from "@/lib/rab-tx";
 import { createAdminNotif } from "@/lib/notif";
 import { useAuth } from "@/context/AuthContext";
@@ -94,6 +94,14 @@ export default function StaffRabDetailPage() {
       if (u.exists()) jabatan = ((u.data().position as string) || "").toUpperCase();
     } catch {}
     await downloadRabPdf(rab, { pemohon: rab.created_by_name || "", pemohonJabatan: jabatan });
+  };
+  const printExpenseReport = async () => {
+    let jabatan = "";
+    try {
+      const u = await getDoc(doc(db, "users", rab.created_by));
+      if (u.exists()) jabatan = ((u.data().position as string) || "").toUpperCase();
+    } catch {}
+    await downloadExpenseReportPdf(rab, { pemohon: rab.created_by_name || "", pemohonJabatan: jabatan, catName: (id) => catMap[id] || "" });
   };
   const saveRefund = async () => {
     const amount = Math.max(ledger.saldoBeforeRefund, 0);
@@ -224,6 +232,12 @@ export default function StaffRabDetailPage() {
                 </Stack>
               </CardContent>
             </Card>
+
+            {notas.length > 0 && (
+              <Button fullWidth variant="outlined" startIcon={<PictureAsPdfRounded />} onClick={printExpenseReport} sx={{ mb: 1.5, borderRadius: 2 }}>
+                Print Expense Report
+              </Button>
+            )}
 
             {notas.length > 0 && (
               <Card sx={{ borderRadius: 2, mb: 1.5 }}>

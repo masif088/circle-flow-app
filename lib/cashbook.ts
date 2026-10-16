@@ -27,10 +27,11 @@ export interface CashbookInput {
   userNames: Record<string, string>;
   catMap: Record<string, string>;
   projectNames: Record<string, string>;
+  includeUpah?: boolean;
 }
 
 export function buildCashRows(input: CashbookInput): CashRow[] {
-  const { rabs, manual, presences, wageMap, userNames, catMap, projectNames } = input;
+  const { rabs, manual, presences, wageMap, userNames, catMap, projectNames, includeUpah = true } = input;
   const all: CashRow[] = [];
   const pname = (id: string, fallback?: string) => projectNames[id] || fallback || id;
 
@@ -55,7 +56,7 @@ export function buildCashRows(input: CashbookInput): CashRow[] {
   }
 
   const seen = new Set<string>();
-  for (const p of presences) {
+  for (const p of includeUpah ? presences : []) {
     if (p.status !== "Approved" || !p.created_at || !p.project_id) continue;
     const day = String(p.created_at).slice(0, 10);
     const k = p.user_id + ":" + p.project_id + ":" + day;

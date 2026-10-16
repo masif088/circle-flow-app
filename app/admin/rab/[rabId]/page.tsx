@@ -31,7 +31,7 @@ import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import { buildLedger, diffSummary } from "@/lib/rab-ledger";
-import { downloadRabPdf } from "@/lib/rab-pdf";
+import { downloadRabPdf, downloadExpenseReportPdf } from "@/lib/rab-pdf";
 import { mutateRab } from "@/lib/rab-tx";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { app } from "@/lib/firebase";
@@ -190,6 +190,20 @@ export default function RabDetailPage() {
       }
     } catch {}
     await downloadRabPdf(rab, { pemohon, pemohonJabatan: jabatan });
+  };
+
+  const printExpenseReport = async () => {
+    if (!rab) return;
+    let pemohon = rab.created_by_name || "";
+    let jabatan = "";
+    try {
+      const u = await getDoc(doc(db, "users", rab.created_by));
+      if (u.exists()) {
+        pemohon = (u.data().name as string) || pemohon;
+        jabatan = ((u.data().position as string) || "").toUpperCase();
+      }
+    } catch {}
+    await downloadExpenseReportPdf(rab, { pemohon, pemohonJabatan: jabatan, catName });
   };
 
   const saveRefund = async () => {
@@ -451,6 +465,11 @@ export default function RabDetailPage() {
             <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={printPdf}>
               Print PDF
             </Button>
+            {(rab.report || []).length > 0 && (
+              <Button size="small" variant="outlined" startIcon={<PdfIcon />} onClick={printExpenseReport}>
+                Print Expense Report
+              </Button>
+            )}
             {rab.rab_status !== "paid" && (
               <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => router.push("/admin/rab/" + rab.id + "/edit")}>
                 Edit RAB
