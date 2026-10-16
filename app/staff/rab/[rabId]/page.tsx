@@ -7,6 +7,9 @@ import { doc, onSnapshot, collection, getDocs, updateDoc, getDoc } from "firebas
 import { Box, Typography, Card, CardContent, Chip, Stack, IconButton, CircularProgress, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { buildLedger, diffSummary } from "@/lib/rab-ledger";
 import { downloadRabPdf } from "@/lib/rab-pdf";
+import { mutateRab } from "@/lib/rab-tx";
+import { createAdminNotif } from "@/lib/notif";
+import { useAuth } from "@/context/AuthContext";
 import { ArrowBackRounded, AddRounded, AutoAwesomeRounded, PictureAsPdfRounded } from "@mui/icons-material";
 
 const RAB_STATUS_LABEL: Record<string, string> = {
@@ -43,6 +46,7 @@ const fmtDate = (s: string) =>
 
 export default function StaffRabDetailPage() {
   const { rabId } = useParams() as { rabId: string };
+  const { user } = useAuth();
   const router = useRouter();
   const [rab, setRab] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -93,16 +97,20 @@ export default function StaffRabDetailPage() {
   };
   const saveRefund = async () => {
     const amount = Math.max(ledger.saldoBeforeRefund, 0);
-    const refund = amount > 0 ? { tanggal: new Date().toISOString().slice(0, 10), amount } : null;
-    await updateDoc(doc(db, "rab", rab.id), { refund });
+    await mutateRab(db, rab.id, (d) => {
+      const amt = Math.max(buildLedger(d, (id) => catMap[id] || "").saldoBeforeRefund, 0);
+      return { refund: amt > 0 ? { tanggal: new Date().toISOString().slice(0, 10), amount: amt } : null };
+    });
   };
   const submitRab = async () => {
     if (!confirm("Ajukan RAB ini ke admin? Setelah diajukan tidak bisa diubah.")) return;
-    await updateDoc(doc(db, "rab", rab.id), { rab_status: "submitted" });
+    await mutateRab(db, rab.id, () => ({ rab_status: "submitted" }), { action: "RAB diajukan", by: user?.uid || "", by_name: rab.created_by_name || "" });
+    createAdminNotif({ title: "Pengajuan RAB baru", body: (rab.created_by_name || "Staff") + " mengajukan RAB " + (rab.cad_number || "") + " - " + (rab.project_name || ""), link: "/admin/rab/" + rab.id, type: "rab_submitted" });
   };
   const diffs = diffSummary(rab);
   const doSubmitReport = async () => {
-    await updateDoc(doc(db, "rab", rab.id), { report_status: "submitted" });
+    await mutateRab(db, rab.id, () => ({ report_status: "submitted" }), { action: "Laporan diajukan", by: user?.uid || "", by_name: rab.created_by_name || "" });
+    createAdminNotif({ title: "Laporan RAB diajukan", body: (rab.created_by_name || "Staff") + " mengajukan laporan RAB " + (rab.cad_number || "") + " - " + (rab.project_name || ""), link: "/admin/rab/" + rab.id, type: "rab_report_submitted" });
     setDiffOpen(false);
   };
   const submitReport = async () => {

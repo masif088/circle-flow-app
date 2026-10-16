@@ -32,6 +32,7 @@ import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import { buildLedger, diffSummary } from "@/lib/rab-ledger";
 import { downloadRabPdf } from "@/lib/rab-pdf";
+import { mutateRab } from "@/lib/rab-tx";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { app } from "@/lib/firebase";
 
@@ -81,6 +82,7 @@ interface Rab {
   created_at: string;
   created_by: string;
   note?: string;
+  history?: { action: string; by: string; by_name: string; at: string }[];
   cad_number?: string;
   created_by_name?: string;
   refund?: { tanggal: string; amount: number } | null;
@@ -113,7 +115,7 @@ const emptyReportItem = (prepItems: PrepItem[]): ReportItem => ({
 export default function RabDetailPage() {
   const { rabId } = useParams<{ rabId: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const storage = getStorage(app);
 
   const [rab, setRab] = useState<Rab | null>(null);
@@ -169,8 +171,9 @@ export default function RabDetailPage() {
     setSaving(true);
     try {
       const extra = rab_status === "paid" ? { paid_at: new Date().toISOString() } : {};
-      await updateDoc(doc(db, "rab", rab.id), { rab_status, ...extra });
-      setRab(prev => prev ? { ...prev, rab_status, ...extra } : prev);
+      const label = rab_status === "approved" ? "RAB disetujui" : rab_status === "paid" ? "RAB dicairkan" : "Status RAB: " + rab_status;
+      const updated = await mutateRab(db, rab.id, () => ({ rab_status, ...extra }), { action: label, by: user?.uid || "", by_name: userProfile?.name || "" });
+      setRab(updated as Rab);
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
   };
@@ -191,25 +194,26 @@ export default function RabDetailPage() {
 
   const saveRefund = async () => {
     if (!rab) return;
-    const before = buildLedger(rab, catName).saldoBeforeRefund;
-    const amount = Math.max(before, 0);
-    const refund = amount > 0 ? { tanggal: new Date().toISOString().slice(0, 10), amount } : null;
     setSaving(true);
     try {
-      await updateDoc(doc(db, "rab", rab.id), { refund });
-      setRab(prev => prev ? { ...prev, refund } : prev);
+      const updated = await mutateRab(db, rab.id, (d) => {
+        const amount = Math.max(buildLedger(d, catName).saldoBeforeRefund, 0);
+        return { refund: amount > 0 ? { tanggal: new Date().toISOString().slice(0, 10), amount } : null };
+      });
+      setRab(updated as Rab);
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
   };
 
   const setItemCategory = async (notaId: string, itemId: string, categoryId: string) => {
     if (!rab) return;
-    const updatedReport = (rab.report || []).map(n =>
-      n.nota_id !== notaId ? n : { ...n, items: n.items.map(i => i.item_id === itemId ? { ...i, category_id: categoryId } : i) }
-    );
-    setRab(prev => prev ? { ...prev, report: updatedReport } : prev);
     try {
-      await updateDoc(doc(db, "rab", rab.id), { report: updatedReport });
+      const updated = await mutateRab(db, rab.id, (d) => ({
+        report: (d.report || []).map((n: any) =>
+          n.nota_id !== notaId ? n : { ...n, items: n.items.map((i: any) => i.item_id === itemId ? { ...i, category_id: categoryId } : i) }
+        ),
+      }));
+      setRab(updated as Rab);
     } catch (e: any) { setError(e.message); }
   };
 
@@ -217,8 +221,9 @@ export default function RabDetailPage() {
     if (!rab) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, "rab", rab.id), { report_status });
-      setRab(prev => prev ? { ...prev, report_status } : prev);
+      const label = report_status === "approved" ? "Laporan disetujui" : report_status === "revision" ? "Laporan diminta revisi" : "Status laporan: " + report_status;
+      const updated = await mutateRab(db, rab.id, () => ({ report_status }), { action: label, by: user?.uid || "", by_name: userProfile?.name || "" });
+      setRab(updated as Rab);
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
   };
@@ -327,19 +332,15 @@ export default function RabDetailPage() {
         items: validItems,
       };
 
-      const updatedReport = editingNota
-        ? (rab.report || []).map(n => n.nota_id === editingNota.nota_id ? newNota : n)
-        : [...(rab.report || []), newNota];
-
-      const newReportStatus: Rab["report_status"] =
-        rab.report_status === "unreported" ? "draft" : rab.report_status;
-
-      await updateDoc(doc(db, "rab", rab.id), {
-        report: updatedReport,
-        report_status: newReportStatus,
+      const updated = await mutateRab(db, rab.id, (d) => {
+        const existing: any[] = d.report || [];
+        const exists = editingNota && existing.some((n) => n.nota_id === editingNota.nota_id);
+        return {
+          report: exists ? existing.map((n) => n.nota_id === editingNota!.nota_id ? newNota : n) : [...existing, newNota],
+          report_status: d.report_status === "unreported" ? "draft" : d.report_status,
+        };
       });
-
-      setRab(prev => prev ? { ...prev, report: updatedReport, report_status: newReportStatus } : prev);
+      setRab(updated as Rab);
       setNotaDialogOpen(false);
     } catch (e: any) { setError(e.message || "Gagal simpan nota"); }
     finally { setSaving(false); setNotaUploading(false); }
@@ -347,9 +348,10 @@ export default function RabDetailPage() {
 
   const handleDeleteNota = async (nota_id: string) => {
     if (!rab) return;
-    const updatedReport = rab.report.filter(n => n.nota_id !== nota_id);
-    await updateDoc(doc(db, "rab", rab.id), { report: updatedReport });
-    setRab(prev => prev ? { ...prev, report: updatedReport } : prev);
+    try {
+      const updated = await mutateRab(db, rab.id, (d) => ({ report: (d.report || []).filter((n: any) => n.nota_id !== nota_id) }));
+      setRab(updated as Rab);
+    } catch (e: any) { setError(e.message); }
   };
 
   // --- Matching ---
@@ -366,7 +368,13 @@ export default function RabDetailPage() {
     }));
     setRab(prev => (prev ? { ...prev, report: updatedReport } : prev));
     try {
-      await updateDoc(doc(db, "rab", rab.id), { report: updatedReport });
+      const updated = await mutateRab(db, rab.id, (d) => ({
+        report: (d.report || []).map((n: any) => ({
+          ...n,
+          items: n.items.map((i: any) => (i.item_id === itemId ? { ...i, preparation_item_id: prepId } : i)),
+        })),
+      }));
+      setRab(updated as Rab);
     } catch (e: any) {
       setRab(prev => (prev ? { ...prev, report: prevReport } : prev));
       setError("Gagal menyimpan matching: " + (e?.message || e));
@@ -377,6 +385,8 @@ export default function RabDetailPage() {
   if (!rab) return null;
   const ledger = buildLedger(rab, catName);
   const diffs = diffSummary(rab);
+  const uncategorized = (rab.report || []).flatMap(n => n.items).filter(i => !i.category_id).length;
+  const canApproveReport = ledger.balanced && uncategorized === 0;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -478,7 +488,7 @@ export default function RabDetailPage() {
                   color="success"
                   startIcon={<ApproveIcon />}
                   onClick={() => (diffs.length > 0 ? setDiffMode("approve") : updateReportStatus("approved"))}
-                  disabled={saving || !ledger.balanced}
+                  disabled={saving || !canApproveReport}
                 >
                   Approve Laporan
                 </Button>
@@ -510,6 +520,11 @@ export default function RabDetailPage() {
               Ada {diffs.length} perbedaan antara RAB dan laporan.
             </Alert>
           )}
+          {(rab.report_status === "draft" || rab.report_status === "submitted") && ledger.balanced && uncategorized > 0 && (
+            <Alert severity="warning" sx={{ mt: 2 }} action={<Button size="small" color="inherit" onClick={() => setTab(3)}>Buka Buku Kas</Button>}>
+              Approve Laporan belum bisa dilakukan: {uncategorized} item pengeluaran belum diberi kategori. Isi kategori di tab Buku Kas.
+            </Alert>
+          )}
           {(rab.report_status === "draft" || rab.report_status === "submitted") && !ledger.balanced && (
             <Alert severity="warning" sx={{ mt: 2 }} action={<Button size="small" color="inherit" onClick={() => setTab(3)}>Buka Buku Kas</Button>}>
               Approve Laporan belum bisa dilakukan:{" "}
@@ -519,6 +534,16 @@ export default function RabDetailPage() {
                 ? "ada kelebihan " + formatRp(-ledger.saldoBeforeRefund) + ", tapi masih ada catatan pengembalian. Perbarui pengembalian di tab Buku Kas."
                 : "saldo " + formatRp(ledger.saldo) + " belum dikembalikan. Catat pengembalian sisa di tab Buku Kas."}
             </Alert>
+          )}
+          {(rab.history || []).length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>RIWAYAT</Typography>
+              {[...(rab.history || [])].reverse().map((h, i) => (
+                <Typography key={i} variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  {new Date(h.at).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} - {h.action}{h.by_name ? " oleh " + h.by_name : ""}
+                </Typography>
+              ))}
+            </Box>
           )}
         </CardContent>
       </Card>
@@ -952,7 +977,7 @@ export default function RabDetailPage() {
         <DialogActions>
           <Button onClick={() => setDiffMode(null)}>{diffMode === "approve" ? "Batal" : "Tutup"}</Button>
           {diffMode === "approve" && (
-            <Button variant="contained" color="success" disabled={saving || !ledger.balanced} onClick={async () => { await updateReportStatus("approved"); setDiffMode(null); }}>
+            <Button variant="contained" color="success" disabled={saving || !canApproveReport} onClick={async () => { await updateReportStatus("approved"); setDiffMode(null); }}>
               Tetap Setujui
             </Button>
           )}

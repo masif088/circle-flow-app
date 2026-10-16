@@ -67,6 +67,55 @@ service cloud.firestore {
       allow delete: if isLoggedIn() && (isAdminOrManager() || resource.data.user_id == request.auth.uid);
     }
 
+    // Rules for RAB (Rencana Anggaran Biaya)
+    // Staff hanya boleh melihat RAB miliknya, mengedit/mengajukan saat masih draft,
+    // dan mengisi laporan setelah dicairkan. Approve, cairkan, dan revisi hanya admin.
+    match /rab/{rabId} {
+      allow read: if isLoggedIn() && (isAdminOrManager() || resource.data.created_by == request.auth.uid);
+      allow create: if isLoggedIn() && (isAdminOrManager() || (
+        request.resource.data.created_by == request.auth.uid
+        && request.resource.data.rab_status in ['draft', 'submitted']
+        && request.resource.data.report_status == 'unreported'
+      ));
+      allow update: if isLoggedIn() && (isAdminOrManager() || (
+        resource.data.created_by == request.auth.uid
+        && request.resource.data.created_by == resource.data.created_by
+        && (
+          (
+            resource.data.rab_status == 'draft'
+            && request.resource.data.rab_status in ['draft', 'submitted']
+            && request.resource.data.report_status == resource.data.report_status
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['project_id', 'project_name', 'cad_number', 'note', 'preparation', 'rab_status', 'updated_at', 'history'])
+          )
+          ||
+          (
+            resource.data.rab_status == 'paid'
+            && resource.data.report_status in ['unreported', 'draft', 'revision']
+            && request.resource.data.rab_status == 'paid'
+            && request.resource.data.report_status in ['unreported', 'draft', 'submitted']
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['report', 'report_status', 'refund', 'history'])
+          )
+        )
+      ));
+      allow delete: if isAdminOrManager();
+    }
+
+    // Penghitung nomor RAB per user per tahun: id = {uid}_{tahun}
+    match /rab_counters/{counterId} {
+      allow read, write: if isLoggedIn() && (isAdminOrManager() || counterId.matches(request.auth.uid + '_[0-9]{4}'));
+    }
+
+    match /rab_categories/{categoryId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdminOrManager();
+    }
+
+    match /project_cashbook/{entryId} {
+      allow read, write: if isAdminOrManager();
+    }
+
     // Default rule for other collections
     match /{document=**} {
       allow read, write: if isLoggedIn();

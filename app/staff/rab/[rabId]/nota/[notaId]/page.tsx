@@ -15,6 +15,7 @@ import {
   AutoAwesomeRounded, DeleteRounded,
 } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
+import { mutateRab } from "@/lib/rab-tx";
 
 interface ReportItem {
   item_id: string;
@@ -146,9 +147,6 @@ export default function StaffNotaPage() {
     }
   };
 
-  const saveReport = async (report: any[], status: string) => {
-    await updateDoc(doc(db, "rab", rabId), { report, report_status: status });
-  };
 
   const handleSave = async () => {
     if (!rab || !user) return;
@@ -172,10 +170,14 @@ export default function StaffNotaPage() {
         nota_total: valid.reduce((s, i) => s + (i.total || 0), 0),
         items: valid,
       };
-      const existing: any[] = rab.report || [];
-      const report = isNew ? [...existing, nota] : existing.map((n) => (n.nota_id === notaId ? nota : n));
-      const status = rab.report_status === "unreported" || rab.report_status === "revision" ? "draft" : rab.report_status;
-      await saveReport(report, status);
+      await mutateRab(db, rabId, (d) => {
+        const existing: any[] = d.report || [];
+        const exists = existing.some((n) => n.nota_id === nota.nota_id);
+        return {
+          report: exists ? existing.map((n) => (n.nota_id === nota.nota_id ? nota : n)) : [...existing, nota],
+          report_status: ["unreported", "revision"].includes(d.report_status) ? "draft" : d.report_status,
+        };
+      });
       router.replace(`/staff/rab/${rabId}`);
     } catch (e: any) {
       setToast({ msg: "Gagal menyimpan: " + (e?.message || e), sev: "error" });
@@ -188,8 +190,10 @@ export default function StaffNotaPage() {
     if (!confirm("Hapus nota ini?")) return;
     setSaving(true);
     try {
-      const report = (rab.report || []).filter((n: any) => n.nota_id !== notaId);
-      await saveReport(report, report.length === 0 ? "unreported" : rab.report_status);
+      await mutateRab(db, rabId, (d) => {
+        const report = (d.report || []).filter((n: any) => n.nota_id !== notaId);
+        return { report, report_status: report.length === 0 ? "unreported" : d.report_status };
+      });
       router.replace(`/staff/rab/${rabId}`);
     } catch (e: any) {
       setToast({ msg: "Gagal menghapus: " + (e?.message || e), sev: "error" });

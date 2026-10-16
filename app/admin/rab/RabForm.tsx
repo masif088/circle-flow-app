@@ -163,6 +163,7 @@ export default function RabForm({ rabId }: { rabId?: string }) {
         report_status: "unreported",
         preparation: validItems.map(i => ({ ...i, unit: isMP ? "orang/hari" : i.unit })),
         report: [],
+        history: [{ action: asDraft ? "RAB dibuat (draft)" : "RAB dibuat dan disetujui", by: user?.uid || "", by_name: userProfile?.name || "", at: new Date().toISOString() }],
       });
       router.push(`/admin/rab/${docRef.id}`);
     } catch (e: any) {

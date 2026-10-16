@@ -12,6 +12,7 @@ import {
 import { ArrowBackRounded, AddRounded, RemoveCircleRounded } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import { nextRabNumber } from "@/lib/rab-number";
+import { createAdminNotif } from "@/lib/notif";
 
 type RabType = "Operasional" | "Penambahan MP";
 
@@ -152,6 +153,9 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
           preparation: valid.map((i) => ({ ...i, unit: isMP ? "orang/hari" : i.unit })),
           updated_at: new Date().toISOString(),
         });
+        if (submit) {
+          createAdminNotif({ title: "Pengajuan RAB baru", body: (userData?.name || "Staff") + " mengajukan RAB " + (cadNumber || "") + " - " + (activeProjects[projectId] || existingProject), link: "/admin/rab/" + rabId, type: "rab_submitted" });
+        }
         router.replace("/staff/rab/" + rabId);
         return;
       }
@@ -169,7 +173,11 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
         report_status: "unreported",
         preparation: valid.map((i) => ({ ...i, unit: isMP ? "orang/hari" : i.unit })),
         report: [],
+        history: [{ action: submit ? "RAB diajukan" : "RAB dibuat (draft)", by: user.uid, by_name: userData?.name || "", at: new Date().toISOString() }],
       });
+      if (submit) {
+        createAdminNotif({ title: "Pengajuan RAB baru", body: (userData?.name || "Staff") + " mengajukan RAB " + cadAuto + " - " + (activeProjects[projectId] || ""), link: "/admin/rab", type: "rab_submitted" });
+      }
       router.replace("/staff/rab");
     } catch (e: any) {
       setToast({ msg: "Gagal mengajukan: " + (e?.message || e), sev: "error" });
