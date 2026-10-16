@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon, Receipt as ReceiptIcon } from "@mui/icons-material";
 import { useAuth } from "@/context/AuthContext";
-import { buildLedger } from "@/lib/rab-ledger";
+import { buildCashRows, withSaldo, CashRow } from "@/lib/cashbook";
 
 const formatRp = (n: number) => "Rp " + Math.round(n || 0).toLocaleString("id-ID");
 const today = () => new Date().toISOString().slice(0, 10);
@@ -22,23 +22,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const RAB_LABEL: Record<string, string> = { draft: "Draft", submitted: "Diajukan", approved: "Disetujui", paid: "Dicairkan" };
 const REPORT_LABEL: Record<string, string> = { unreported: "Belum Dilaporkan", draft: "Draft", submitted: "Diajukan", approved: "Disetujui", revision: "Perlu Revisi" };
 
-type Source = "rab" | "upah" | "manual";
-
-interface Row {
-  key: string;
-  source: Source;
-  rabId?: string;
-  manualId?: string;
-  cad: string;
-  tanggal: string;
-  kategori: string;
-  rincian: string;
-  masuk: number;
-  keluar: number;
-  saldo: number;
-  receiptUrl?: string;
-  raw?: any;
-}
+type Row = CashRow & { saldo: number };
 
 export default function ProjectBukuKas({ projectId }: { projectId: string }) {
   const router = useRouter();
@@ -81,7 +65,7 @@ export default function ProjectBukuKas({ projectId }: { projectId: string }) {
       onSnapshot(query(collection(db, "cost_people_on_project"), where("project_id", "==", projectId)),
         (s) => {
           const m: Record<string, number> = {};
-          s.docs.forEach((d) => (m[d.data().user_id] = d.data().cost || 0));
+          s.docs.forEach((d) => (m[d.data().user_id + "_" + projectId] = d.data().cost || 0));
           setWageMap(m);
         }, () => {}),
     ];
@@ -99,78 +83,13 @@ export default function ProjectBukuKas({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   const { rows, totalMasuk, totalKeluar, totalUpah, rabCount } = useMemo(() => {
-    const all: Omit<Row, "saldo">[] = [];
-
-    const paid = rabs.filter((r) => r.rab_status === "paid");
-    for (const r of paid) {
-      const ledger = buildLedger(r, (id) => catMap[id] || "");
-      for (const l of ledger.rows) {
-        all.push({
-          key: "rab:" + r.id + ":" + l.key,
-          source: "rab",
-          rabId: r.id,
-          cad: r.cad_number || "",
-          tanggal: l.kind === "masuk" ? (r.paid_at || r.created_at || "").slice(0, 10) : l.tanggal,
-          kategori: l.kategori,
-          rincian: l.rincian,
-          masuk: l.masuk,
-          keluar: l.keluar,
-          receiptUrl: l.receiptUrl,
-        });
-      }
-    }
-
-    // Upah harian: satu baris per pekerja per hari kehadiran yang disetujui
-    const seen = new Set<string>();
-    let totalUpah = 0;
-    for (const p of presences) {
-      if (p.status !== "Approved" || !p.created_at) continue;
-      const day = String(p.created_at).slice(0, 10);
-      const k = p.user_id + ":" + day;
-      if (seen.has(k)) continue;
-      seen.add(k);
-      const rate = p.cost_on_presence || wageMap[p.user_id] || 0;
-      if (rate <= 0) continue;
-      totalUpah += rate;
-      all.push({
-        key: "upah:" + k,
-        source: "upah",
-        cad: "",
-        tanggal: day,
-        kategori: "UPAH HARIAN",
-        rincian: "Upah harian - " + (userNames[p.user_id] || p.user_id),
-        masuk: 0,
-        keluar: rate,
-      });
-    }
-
-    for (const m of manual) {
-      all.push({
-        key: "manual:" + m.id,
-        source: "manual",
-        manualId: m.id,
-        cad: "",
-        tanggal: m.tanggal || "",
-        kategori: m.type === "masuk" ? "KAS MASUK" : m.kategori || "",
-        rincian: m.rincian || "",
-        masuk: m.type === "masuk" ? m.amount || 0 : 0,
-        keluar: m.type === "keluar" ? m.amount || 0 : 0,
-        raw: m,
-      });
-    }
-
-    all.sort((a, b) => a.tanggal.localeCompare(b.tanggal) || b.masuk - a.masuk);
-    let saldo = 0;
-    const withSaldo: Row[] = all.map((x) => {
-      saldo += x.masuk - x.keluar;
-      return { ...x, saldo };
-    });
+    const base = buildCashRows({ rabs, manual, presences, wageMap, userNames, catMap, projectNames: {} });
     return {
-      rows: withSaldo,
-      totalMasuk: all.reduce((s, x) => s + x.masuk, 0),
-      totalKeluar: all.reduce((s, x) => s + x.keluar, 0),
-      totalUpah,
-      rabCount: paid.length,
+      rows: withSaldo(base) as Row[],
+      totalMasuk: base.reduce((s, x) => s + x.masuk, 0),
+      totalKeluar: base.reduce((s, x) => s + x.keluar, 0),
+      totalUpah: base.filter((x) => x.source === "upah").reduce((s, x) => s + x.keluar, 0),
+      rabCount: rabs.filter((r) => r.rab_status === "paid").length,
     };
   }, [rabs, manual, presences, wageMap, userNames, catMap]);
 

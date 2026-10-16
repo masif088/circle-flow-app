@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { ArrowBackRounded, AddRounded, RemoveCircleRounded } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
+import { nextRabNumber } from "@/lib/rab-number";
 
 type RabType = "Operasional" | "Penambahan MP";
 
@@ -154,13 +155,14 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
         router.replace("/staff/rab/" + rabId);
         return;
       }
+      const cadAuto = await nextRabNumber(db, user.uid, new Date().getFullYear());
       await addDoc(collection(db, "rab"), {
         created_at: new Date().toISOString(),
         created_by: user.uid,
         project_id: projectId,
         project_name: activeProjects[projectId] || "",
         type,
-        cad_number: cadNumber.trim(),
+        cad_number: cadAuto,
         created_by_name: userData?.name || "",
         note: note.trim(),
         rab_status: submit ? "submitted" : "draft",
@@ -203,13 +205,9 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
                   ))}
                 </Select>
               </FormControl>
-              <TextField
-                size="small" fullWidth
-                label="Nomor CAD (manual)"
-                placeholder="contoh: RAB 001"
-                value={cadNumber}
-                onChange={(e) => setCadNumber(e.target.value)}
-              />
+              <Typography variant="caption" color="text.secondary">
+                {isEdit ? "Nomor CAD: " + (cadNumber || "-") : "Nomor CAD dibuat otomatis saat diajukan (RAB 1, RAB 2, ...)."}
+              </Typography>
               <TextField
                 size="small" fullWidth multiline minRows={2}
                 label="Catatan (opsional)"

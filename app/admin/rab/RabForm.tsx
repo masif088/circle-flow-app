@@ -17,6 +17,7 @@ import {
   Save as SaveIcon,
 } from "@mui/icons-material";
 import { useAuth } from "@/context/AuthContext";
+import { nextRabNumber } from "@/lib/rab-number";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 
@@ -148,13 +149,14 @@ export default function RabForm({ rabId }: { rabId?: string }) {
         router.push("/admin/rab/" + rabId);
         return;
       }
+      const cadAuto = await nextRabNumber(db, user?.uid || "", new Date().getFullYear());
       const docRef = await addDoc(collection(db, "rab"), {
         created_at: new Date().toISOString(),
         created_by: user?.uid || "",
         project_id: projectId,
         project_name: projectName,
         type,
-        cad_number: cadNumber.trim(),
+        cad_number: cadAuto,
         created_by_name: userProfile?.name || "",
         note: note.trim(),
         rab_status: asDraft ? "draft" : "approved",
@@ -233,14 +235,19 @@ export default function RabForm({ rabId }: { rabId?: string }) {
               </Select>
             </FormControl>
           </Stack>
-          <TextField
-            size="small" fullWidth
-            label="Nomor CAD (manual)"
-            placeholder="contoh: RAB 001"
-            value={cadNumber}
-            onChange={e => setCadNumber(e.target.value)}
-            sx={{ mt: 2 }}
-          />
+          {isEdit ? (
+            <TextField
+              size="small" fullWidth
+              label="Nomor CAD"
+              value={cadNumber}
+              onChange={e => setCadNumber(e.target.value)}
+              sx={{ mt: 2 }}
+            />
+          ) : (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
+              Nomor CAD dibuat otomatis (RAB 1, RAB 2, ... per pemohon, kembali ke 1 tiap ganti tahun).
+            </Typography>
+          )}
           <TextField
             size="small" fullWidth multiline minRows={2}
             label="Catatan (opsional)"
