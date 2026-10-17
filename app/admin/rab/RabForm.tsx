@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, query, orderBy, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, orderBy, where, doc, getDoc, updateDoc } from "firebase/firestore";
 import {
   Box, Typography, Card, CardContent, Button, Stack, TextField,
   FormControl, InputLabel, Select, MenuItem, Breadcrumbs, Alert,
@@ -70,6 +70,7 @@ export default function RabForm({ rabId }: { rabId?: string }) {
   const [cadNumber, setCadNumber] = useState("");
   const isMP = type === "Penambahan MP";
   const isEdit = !!rabId;
+  const [ownerId, setOwnerId] = useState("");
   const [loadingDoc, setLoadingDoc] = useState(!!rabId);
   const [rabStatus, setRabStatus] = useState("");
 
@@ -82,6 +83,7 @@ export default function RabForm({ rabId }: { rabId?: string }) {
       setProjectId(d.project_id || "");
       setProjectName(d.project_name || "");
       setCadNumber(d.cad_number || "");
+      setOwnerId(d.created_by || "");
       setNote(d.note || "");
       setRabStatus(d.rab_status || "draft");
       setItems((d.preparation || []).length ? d.preparation.map((i: any) => ({ note: "", ...i })) : [emptyItem()]);
@@ -138,6 +140,16 @@ export default function RabForm({ rabId }: { rabId?: string }) {
     setError("");
     try {
       if (rabId) {
+        const wanted = cadNumber.trim();
+        if (wanted) {
+          const same = await getDocs(query(collection(db, "rab"), where("created_by", "==", ownerId)));
+          const clash = same.docs.find((x) => x.id !== rabId && !x.data().deleted_at && String(x.data().cad_number || "").trim().toLowerCase() === wanted.toLowerCase());
+          if (clash) {
+            setError("Nomor CAD \"" + wanted + "\" sudah dipakai RAB lain milik pemohon ini.");
+            setSaving(false);
+            return;
+          }
+        }
         await updateDoc(doc(db, "rab", rabId), {
           project_id: projectId,
           project_name: projectName,
@@ -149,7 +161,8 @@ export default function RabForm({ rabId }: { rabId?: string }) {
         router.push("/admin/rab/" + rabId);
         return;
       }
-      const cadAuto = await nextRabNumber(db, user?.uid || "", new Date().getFullYear());
+      // Nomor hanya diberikan kalau RAB langsung disetujui; selain itu menunggu approval.
+      const cadAuto = asDraft ? "" : await nextRabNumber(db, user?.uid || "", new Date().getFullYear());
       const docRef = await addDoc(collection(db, "rab"), {
         created_at: new Date().toISOString(),
         created_by: user?.uid || "",
@@ -246,7 +259,7 @@ export default function RabForm({ rabId }: { rabId?: string }) {
             />
           ) : (
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-              Nomor CAD dibuat otomatis (RAB 1, RAB 2, ... per pemohon, kembali ke 1 tiap ganti tahun).
+              Nomor CAD diberikan otomatis saat RAB disetujui (RAB 1, RAB 2, ... per pemohon, kembali ke 1 tiap ganti tahun).
             </Typography>
           )}
           <TextField

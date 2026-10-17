@@ -82,7 +82,7 @@ service cloud.firestore {
         && request.resource.data.created_by == resource.data.created_by
         && (
           (
-            resource.data.rab_status == 'draft'
+            resource.data.rab_status in ['draft', 'submitted']
             && request.resource.data.rab_status in ['draft', 'submitted']
             && request.resource.data.report_status == resource.data.report_status
             && request.resource.data.diff(resource.data).affectedKeys()
@@ -97,9 +97,18 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['report', 'report_status', 'refund', 'history'])
           )
+          ||
+          (
+            resource.data.rab_status == 'paid'
+            && resource.data.report_status == 'submitted'
+            && request.resource.data.rab_status == 'paid'
+            && request.resource.data.report_status == 'draft'
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['report_status', 'history'])
+          )
         )
       ));
-      allow delete: if isAdminOrManager();
+      allow delete: if isAdmin();
     }
 
     // Penghitung nomor RAB per user per tahun: id = {uid}_{tahun}

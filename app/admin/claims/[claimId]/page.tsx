@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import DeleteClaimDialog from "@/app/_components/DeleteClaimDialog";
 import { createAdminNotif } from "@/lib/notif";
 import { db } from "@/lib/firebase";
 import {
@@ -98,7 +99,9 @@ interface Claim {
 export default function ClaimDetailPage() {
   const { claimId } = useParams() as { claimId: string };
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
+  const isAdmin = userProfile?.role === "admin";
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const [claim, setClaim] = useState<Claim | null>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -626,21 +629,13 @@ export default function ClaimDetailPage() {
           >
             {generatingPdf ? "Membuat PDF..." : "Export PDF"}
           </Button>
-          {claim.status === "rejected" && (
+          {isAdmin && (
             <Button
               variant="outlined"
               color="error"
               startIcon={<DeleteIcon />}
               disabled={actionLoading}
-              onClick={async () => {
-                if (!confirm("Hapus klaim yang ditolak ini? Tindakan tidak bisa dibatalkan.")) return;
-                try {
-                  await deleteDoc(doc(db, "expense_claims", claimId));
-                  router.push("/admin/claims");
-                } catch {
-                  setError("Gagal menghapus klaim.");
-                }
-              }}
+              onClick={() => setDeleteOpen(true)}
               sx={{ textTransform: "none", borderRadius: 1 }}
             >
               Hapus Klaim
@@ -979,6 +974,12 @@ export default function ClaimDetailPage() {
           <Box component="img" src={lightbox} onClick={e => e.stopPropagation()} sx={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 1, boxShadow: 24 }} />
         </Box>
       )}
+
+      <DeleteClaimDialog
+        claim={deleteOpen && claim ? claim : null}
+        onClose={() => setDeleteOpen(false)}
+        onDeleted={() => { setDeleteOpen(false); router.push("/admin/claims"); }}
+      />
     </Box>
   );
 }

@@ -19,6 +19,9 @@ import {
   PersonRounded,
 } from "@mui/icons-material";
 
+// Menu Klaim disembunyikan sementara. Ubah ke true untuk menampilkannya lagi.
+const SHOW_KLAIM = false;
+
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
@@ -32,6 +35,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    if (!SHOW_KLAIM && pathname.startsWith("/staff/klaim")) {
+      router.replace("/staff");
+    }
+  }, [pathname, router]);
+
   if (loading || !user) {
     return (
       <Box sx={{ display: "flex", minHeight: "100dvh", alignItems: "center", justifyContent: "center", bgcolor: "#f0f2f5" }}>
@@ -40,23 +49,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const navValue = pathname.startsWith("/staff/aktivitas")
-    ? 1
-    : pathname.startsWith("/staff/klaim")
-    ? 2
-    : pathname.startsWith("/staff/rab")
-    ? 3
-    : pathname.startsWith("/staff/profil")
-    ? 4
-    : 0;
-
   const navItems = [
     { label: "Home", icon: <HomeRounded />, href: "/staff" },
     { label: "Aktivitas", icon: <CheckCircleOutlineRounded />, href: "/staff/aktivitas" },
-    { label: "Klaim", icon: <ReceiptLongRounded />, href: "/staff/klaim" },
+    ...(SHOW_KLAIM ? [{ label: "Klaim", icon: <ReceiptLongRounded />, href: "/staff/klaim" }] : []),
     { label: "RAB", icon: <AssignmentRounded />, href: "/staff/rab" },
     { label: "Profil", icon: <PersonRounded />, href: "/staff/profil" },
   ];
+
+  const activeIdx = navItems.findIndex((item) => item.href !== "/staff" && pathname.startsWith(item.href));
+  const navValue = activeIdx >= 0 ? activeIdx : 0;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100dvh", bgcolor: "#f0f2f5" }}>

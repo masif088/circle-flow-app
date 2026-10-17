@@ -8,9 +8,10 @@ import { Box, Typography, Card, CardContent, Chip, Stack, IconButton, CircularPr
 import { buildLedger, diffSummary } from "@/lib/rab-ledger";
 import { downloadRabPdf, downloadExpenseReportPdf } from "@/lib/rab-pdf";
 import { mutateRab } from "@/lib/rab-tx";
+import { staffStatus } from "@/lib/rab-status";
 import { createAdminNotif } from "@/lib/notif";
 import { useAuth } from "@/context/AuthContext";
-import { ArrowBackRounded, AddRounded, AutoAwesomeRounded, PictureAsPdfRounded } from "@mui/icons-material";
+import { ArrowBackRounded, AddRounded, AutoAwesomeRounded, PictureAsPdfRounded, EditRounded, WarningAmberRounded, InfoOutlined } from "@mui/icons-material";
 
 const RAB_STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -75,11 +76,11 @@ export default function StaffRabDetailPage() {
   if (loading) {
     return <Box sx={{ textAlign: "center", pt: 10 }}><CircularProgress sx={{ color: "#2563eb" }} /></Box>;
   }
-  if (!rab) {
+  if (!rab || rab.deleted_at) {
     return <Box sx={{ textAlign: "center", pt: 10 }}><Typography color="text.secondary">RAB tidak ditemukan.</Typography></Box>;
   }
 
-  const sc = RAB_STATUS_COLOR[rab.rab_status] || RAB_STATUS_COLOR.draft;
+  const sv = staffStatus(rab);
   const items: any[] = rab.preparation || [];
   const total = items.reduce((s, i) => s + (i.total || 0), 0);
   const notas: any[] = rab.report || [];
@@ -103,19 +104,16 @@ export default function StaffRabDetailPage() {
     } catch {}
     await downloadExpenseReportPdf(rab, { pemohon: rab.created_by_name || "", pemohonJabatan: jabatan, catName: (id) => catMap[id] || "" });
   };
-  const saveRefund = async () => {
-    const amount = Math.max(ledger.saldoBeforeRefund, 0);
-    await mutateRab(db, rab.id, (d) => {
-      const amt = Math.max(buildLedger(d, (id) => catMap[id] || "").saldoBeforeRefund, 0);
-      return { refund: amt > 0 ? { tanggal: new Date().toISOString().slice(0, 10), amount: amt } : null };
-    });
+  const withdrawReport = async () => {
+    if (!confirm("Tarik laporan ini untuk diedit? Laporan harus diajukan lagi setelah selesai diubah.")) return;
+    await mutateRab(db, rab.id, () => ({ report_status: "draft" }), { action: "Laporan ditarik untuk diedit", by: user?.uid || "", by_name: rab.created_by_name || "" });
   };
   const submitRab = async () => {
     if (!confirm("Ajukan RAB ini ke admin? Setelah diajukan tidak bisa diubah.")) return;
     await mutateRab(db, rab.id, () => ({ rab_status: "submitted" }), { action: "RAB diajukan", by: user?.uid || "", by_name: rab.created_by_name || "" });
     createAdminNotif({ title: "Pengajuan RAB baru", body: (rab.created_by_name || "Staff") + " mengajukan RAB " + (rab.cad_number || "") + " - " + (rab.project_name || ""), link: "/admin/rab/" + rab.id, type: "rab_submitted" });
   };
-  const diffs = diffSummary(rab);
+  const diffs = diffSummary(rab, { includeMatching: false });
   const doSubmitReport = async () => {
     await mutateRab(db, rab.id, () => ({ report_status: "submitted" }), { action: "Laporan diajukan", by: user?.uid || "", by_name: rab.created_by_name || "" });
     createAdminNotif({ title: "Laporan RAB diajukan", body: (rab.created_by_name || "Staff") + " mengajukan laporan RAB " + (rab.cad_number || "") + " - " + (rab.project_name || ""), link: "/admin/rab/" + rab.id, type: "rab_report_submitted" });
@@ -136,22 +134,32 @@ export default function StaffRabDetailPage() {
       </Stack>
 
       <Box sx={{ px: 2, pt: 2 }}>
-        <Card sx={{ borderRadius: 2, mb: 2 }}>
-          <CardContent>
-            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-              <Typography sx={{ fontWeight: 700, flex: 1, pr: 1 }}>{rab.project_name || "-"}</Typography>
+        <Card sx={{ borderRadius: 2, mb: 1.5 }}>
+          <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography variant="body1" sx={{ fontWeight: 800, lineHeight: 1.3 }}>
+                  {rab.cad_number ? rab.cad_number + " - " + rab.type : rab.type}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                  {rab.project_name || "-"} · {fmtDate(rab.created_at)}
+                </Typography>
+              </Box>
               <Chip
-                label={RAB_STATUS_LABEL[rab.rab_status] || rab.rab_status}
+                label={sv.label}
                 size="small"
-                sx={{ bgcolor: sc.bg, color: sc.color, fontWeight: 600, fontSize: "0.7rem" }}
+                sx={{ bgcolor: sv.bg, color: sv.color, fontWeight: 600, fontSize: "0.7rem", flexShrink: 0 }}
               />
             </Stack>
-            <Stack direction="row" sx={{ gap: 1, alignItems: "center", mb: 1 }}>
-              <Chip label={rab.type} size="small" variant="outlined" sx={{ fontSize: "0.7rem" }} />
-              {rab.cad_number && <Chip label={rab.cad_number} size="small" sx={{ fontSize: "0.7rem" }} />}
-              <Typography variant="caption" color="text.secondary">{fmtDate(rab.created_at)}</Typography>
+
+            <Stack
+              direction="row"
+              sx={{ justifyContent: "space-between", alignItems: "baseline", mt: 1.5, pt: 1.25, borderTop: "1px solid #f1f5f9" }}
+            >
+              <Typography variant="caption" color="text.secondary">Total anggaran</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: "#2563eb" }}>{fmtRp(total)}</Typography>
             </Stack>
-            <Typography sx={{ fontWeight: 800, color: "#2563eb" }}>{fmtRp(total)}</Typography>
+
             {rab.note && (
               <Box sx={{ mt: 1.5, p: 1.25, bgcolor: "#f8fafc", borderRadius: 1 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontWeight: 600 }}>Catatan</Typography>
@@ -161,15 +169,16 @@ export default function StaffRabDetailPage() {
           </CardContent>
         </Card>
 
-        <Button fullWidth variant="outlined" startIcon={<PictureAsPdfRounded />} onClick={printPdf} sx={{ mb: 1.5, borderRadius: 2 }}>
-          Print PDF
-        </Button>
-
-        {rab.rab_status === "draft" && (
-          <Button fullWidth variant="outlined" onClick={() => router.push("/staff/rab/" + rab.id + "/edit")} sx={{ mb: 1.5, borderRadius: 2 }}>
-            Edit RAB
+        <Stack direction="row" sx={{ gap: 1, mb: 1.5 }}>
+          <Button variant="outlined" startIcon={<PictureAsPdfRounded />} onClick={printPdf} sx={{ flex: 1, borderRadius: 2 }}>
+            Print PDF
           </Button>
-        )}
+          {(rab.rab_status === "draft" || rab.rab_status === "submitted") && (
+            <Button variant="outlined" startIcon={<EditRounded />} onClick={() => router.push("/staff/rab/" + rab.id + "/edit")} sx={{ flex: 1, borderRadius: 2 }}>
+              Edit RAB
+            </Button>
+          )}
+        </Stack>
 
         {rab.rab_status === "draft" && (
           <Button fullWidth variant="contained" onClick={submitRab} sx={{ mb: 2, bgcolor: "#2563eb", borderRadius: 2 }}>
@@ -218,78 +227,6 @@ export default function StaffRabDetailPage() {
               )}
             </Stack>
 
-            {rab.report_status === "revision" && (
-              <Alert severity="warning" sx={{ mb: 1.5 }}>Laporan perlu direvisi. Perbaiki nota lalu simpan ulang.</Alert>
-            )}
-
-            <Card sx={{ borderRadius: 2, mb: 1.5 }}>
-              <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                  <Typography variant="caption" color="text.secondary">Realisasi / Anggaran</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: totalReport > total ? "#dc2626" : "#16a34a" }}>
-                    {fmtRp(totalReport)} / {fmtRp(total)}
-                  </Typography>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {notas.length > 0 && (
-              <Button fullWidth variant="outlined" startIcon={<PictureAsPdfRounded />} onClick={printExpenseReport} sx={{ mb: 1.5, borderRadius: 2 }}>
-                Print Expense Report
-              </Button>
-            )}
-
-            {notas.length > 0 && (
-              <Card sx={{ borderRadius: 2, mb: 1.5 }}>
-                <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                  <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Buku Kas</Typography>
-                  {ledger.rows.map((r) => (
-                    <Stack key={r.key} direction="row" sx={{ justifyContent: "space-between", gap: 1, py: 0.75, borderBottom: "1px solid #f1f5f9" }}>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.rincian}</Typography>
-                        <Typography variant="caption" color="text.secondary">{r.tanggal}{r.kategori ? " · " + r.kategori : ""}</Typography>
-                      </Box>
-                      <Box sx={{ textAlign: "right", flexShrink: 0 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: r.masuk ? "#16a34a" : "#dc2626" }}>
-                          {r.masuk ? "+" + fmtRp(r.masuk) : "-" + fmtRp(r.keluar)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">Saldo {fmtRp(r.saldo)}</Typography>
-                      </Box>
-                    </Stack>
-                  ))}
-                  <Stack direction="row" sx={{ justifyContent: "space-between", mt: 1.5 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Saldo Akhir</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 800, color: ledger.saldo === 0 ? "#16a34a" : "#dc2626" }}>{fmtRp(ledger.saldo)}</Typography>
-                  </Stack>
-                </CardContent>
-              </Card>
-            )}
-
-            {canReport && notas.length > 0 && ledger.refundNeeded !== ledger.refund && (
-              <Button fullWidth variant="outlined" onClick={saveRefund} sx={{ mb: 1.5, borderRadius: 2 }}>
-                {ledger.refund > 0 ? "Perbarui Pengembalian" : "Catat Pengembalian Sisa"} ({fmtRp(ledger.refundNeeded)})
-              </Button>
-            )}
-
-            {ledger.overspend && (
-              <Alert severity="info" sx={{ mb: 1.5 }}>Ada kelebihan pengeluaran {fmtRp(-ledger.saldoBeforeRefund)} dari RAB.</Alert>
-            )}
-
-            {canReport && diffs.length > 0 && (
-              <Alert severity="warning" sx={{ mb: 1.5 }}>Ada {diffs.length} perbedaan antara RAB dan laporan. Periksa sebelum mengajukan.</Alert>
-            )}
-
-            {canReport && rab.report_status === "draft" && notas.length > 0 && (
-              <>
-                {!ledger.balanced && (
-                  <Alert severity="warning" sx={{ mb: 1.5 }}>Laporan baru bisa diajukan kalau saldo sudah nol. Kembalikan sisa RAB dan catat pengembaliannya, atau pastikan perbarui pengembalian kalau ada kelebihan.</Alert>
-                )}
-                <Button fullWidth variant="contained" onClick={submitReport} disabled={!ledger.balanced} sx={{ mb: 1.5, bgcolor: "#2563eb", borderRadius: 2 }}>
-                  Ajukan Laporan
-                </Button>
-              </>
-            )}
-
             {notas.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", py: 3 }}>
                 Belum ada nota. Tambahkan nota realisasi pengeluaran.
@@ -318,6 +255,81 @@ export default function StaffRabDetailPage() {
                 </Card>
               ))
             )}
+
+            {rab.report_status === "revision" && (
+              <Box sx={{ mb: 1.5, p: 1.75, bgcolor: "#fff4e5", color: "#663c00", borderRadius: 1 }}>
+                <Stack direction="row" sx={{ gap: 1.25, alignItems: "flex-start" }}>
+                  <WarningAmberRounded sx={{ color: "#ed6c02", fontSize: 22, mt: "1px" }} />
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    Laporan perlu direvisi. Perbaiki nota lalu simpan ulang.
+                  </Typography>
+                </Stack>
+                {rab.revision_note && (
+                  <Box sx={{ mt: 1.25, p: 1.25, bgcolor: "rgba(255,255,255,0.7)", borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>{rab.revision_note}</Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {rab.report_status === "submitted" && (
+              <Box sx={{ mb: 1.5, p: 1.75, bgcolor: "#e5f6fd", color: "#014361", borderRadius: 1 }}>
+                <Stack direction="row" sx={{ gap: 1.25, alignItems: "flex-start" }}>
+                  <InfoOutlined sx={{ color: "#0288d1", fontSize: 22, mt: "1px" }} />
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    Laporan sudah diajukan dan menunggu admin. Tarik kembali kalau ada yang perlu diubah.
+                  </Typography>
+                </Stack>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                  onClick={withdrawReport}
+                  sx={{ mt: 1.25, borderRadius: 1.5, whiteSpace: "nowrap", color: "#014361", borderColor: "rgba(1,67,97,0.35)", bgcolor: "rgba(255,255,255,0.6)" }}
+                >
+                  Tarik &amp; Edit
+                </Button>
+              </Box>
+            )}
+
+            <Card sx={{ borderRadius: 2, mb: 1.5 }}>
+              <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+                <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                  <Typography variant="caption" color="text.secondary">Realisasi / Anggaran</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: totalReport > total ? "#dc2626" : "#16a34a" }}>
+                    {fmtRp(totalReport)} / {fmtRp(total)}
+                  </Typography>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {notas.length > 0 && (
+              <Button fullWidth variant="outlined" startIcon={<PictureAsPdfRounded />} onClick={printExpenseReport} sx={{ mb: 1.5, borderRadius: 2 }}>
+                Print Expense Report
+              </Button>
+            )}
+
+            {ledger.overspend && (
+              <Alert severity="info" sx={{ mb: 1.5 }}>Ada kelebihan pengeluaran {fmtRp(-ledger.saldoBeforeRefund)} dari RAB. Pastikan laporan disertai bukti kuat (foto nota yang jelas) untuk diajukan reimbursement.</Alert>
+            )}
+
+            {canReport && diffs.length > 0 && (
+              <Alert severity="warning" sx={{ mb: 1.5 }}>Ada {diffs.length} perbedaan antara RAB dan laporan. Periksa sebelum mengajukan.</Alert>
+            )}
+
+            {canReport && rab.report_status === "draft" && notas.length > 0 && (
+              <>
+                {!ledger.balanced && (
+                  <Alert severity="warning" sx={{ mb: 1.5 }}>
+                    Ada sisa dana {fmtRp(ledger.saldo)}. Saat laporan diajukan, sisa ini otomatis dicatat sebagai pengembalian.
+                  </Alert>
+                )}
+                <Button fullWidth variant="contained" onClick={submitReport} sx={{ mb: 1.5, bgcolor: "#2563eb", borderRadius: 2 }}>
+                  Ajukan Laporan
+                </Button>
+              </>
+            )}
+
           </Box>
         )}
       </Box>

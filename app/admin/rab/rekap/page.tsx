@@ -63,7 +63,7 @@ export default function RekapRabPage() {
 
   const rows = useMemo(() => {
     return rabs
-      .filter((r) => r.rab_status === "approved" || r.rab_status === "paid")
+      .filter((r) => (r.rab_status === "approved" || r.rab_status === "paid") && !r.deleted_at)
       .map((r) => {
         const pengajuan = (r.preparation || []).reduce((s: number, i: any) => s + (i.total || 0), 0);
         const realisasi = (r.report || []).reduce((s: number, n: any) => s + (n.nota_total || 0), 0);

@@ -28,7 +28,7 @@ export default function BukuKasPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [filterProject, setFilterProject] = useState("");
-  const [includeUpah, setIncludeUpah] = useState(true);
+  const [includeUpah, setIncludeUpah] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
 

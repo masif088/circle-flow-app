@@ -6,8 +6,9 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Box, Typography, Card, CardContent, Chip, Stack, Fab, CircularProgress } from "@mui/material";
-import { AddRounded, CalendarTodayRounded } from "@mui/icons-material";
+import { AddRounded } from "@mui/icons-material";
 import StaffHeader from "@/app/_components/StaffHeader";
+import { staffStatus } from "@/lib/rab-status";
 
 const RAB_STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -38,7 +39,7 @@ export default function StaffRabPage() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const all = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r: any) => !r.deleted_at);
         all.sort((a: any, b: any) => (b.created_at || "").localeCompare(a.created_at || ""));
         setRabs(all);
         setLoading(false);
@@ -64,7 +65,7 @@ export default function StaffRabPage() {
           </Box>
         ) : (
           rabs.map((r: any) => {
-            const sc = RAB_STATUS_COLOR[r.rab_status] || RAB_STATUS_COLOR.draft;
+            const sv = staffStatus(r);
             const total = (r.preparation || []).reduce((s: number, i: any) => s + (i.total || 0), 0);
             return (
               <Card
@@ -72,23 +73,30 @@ export default function StaffRabPage() {
                 sx={{ borderRadius: 2, mb: 2, cursor: "pointer", "&:hover": { boxShadow: 4 } }}
                 onClick={() => router.push(`/staff/rab/${r.id}`)}
               >
-                <CardContent>
-                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 700, flex: 1, pr: 1 }}>
-                      {r.project_name || "-"}
-                    </Typography>
+                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 800, lineHeight: 1.3 }}>
+                        {r.cad_number ? r.cad_number + " - " + r.type : r.type}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                        {r.project_name || "-"} · {fmtDate(r.created_at)}
+                      </Typography>
+                    </Box>
                     <Chip
-                      label={RAB_STATUS_LABEL[r.rab_status] || r.rab_status}
+                      label={sv.label}
                       size="small"
-                      sx={{ bgcolor: sc.bg, color: sc.color, fontWeight: 600, fontSize: "0.7rem" }}
+                      sx={{ bgcolor: sv.bg, color: sv.color, fontWeight: 600, fontSize: "0.7rem", flexShrink: 0 }}
                     />
                   </Stack>
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
-                    <Chip label={r.type} size="small" variant="outlined" sx={{ fontSize: "0.7rem" }} />
-                    <CalendarTodayRounded sx={{ fontSize: 12, color: "#9ca3af" }} />
-                    <Typography variant="caption" color="text.secondary">{fmtDate(r.created_at)}</Typography>
+
+                  <Stack
+                    direction="row"
+                    sx={{ justifyContent: "space-between", alignItems: "baseline", mt: 1.5, pt: 1.25, borderTop: "1px solid #f1f5f9" }}
+                  >
+                    <Typography variant="caption" color="text.secondary">Total anggaran</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 800, color: "#2563eb" }}>{fmtRp(total)}</Typography>
                   </Stack>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: "#2563eb" }}>{fmtRp(total)}</Typography>
                 </CardContent>
               </Card>
             );

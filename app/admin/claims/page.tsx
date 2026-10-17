@@ -3,6 +3,8 @@ import { buildFilename } from "@/lib/filename";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import DeleteClaimDialog from "@/app/_components/DeleteClaimDialog";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy, where, deleteDoc, doc } from "firebase/firestore";
 import {
@@ -72,6 +74,9 @@ const STATUS_COLOR: Record<string, "default" | "warning" | "info" | "success" | 
 
 export default function ClaimsPage() {
   const router = useRouter();
+  const { userProfile } = useAuth();
+  const isAdmin = userProfile?.role === "admin";
+  const [claimToDelete, setClaimToDelete] = useState<any | null>(null);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
   const [usersMap, setUsersMap] = useState<Record<string, string>>({});
@@ -162,11 +167,7 @@ export default function ClaimsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleDeleteClaim = async (id: string) => {
-    if (!confirm("Hapus klaim yang ditolak ini? Tindakan tidak bisa dibatalkan.")) return;
-    await deleteDoc(doc(db, "expense_claims", id));
-    setClaims(prev => prev.filter(c => c.id !== id));
-  };
+  const handleDeleteClaim = (id: string) => setClaimToDelete(claims.find((c) => c.id === id) || null);
 
   const totalAmount = filtered.reduce((s, c) => s + (c.total_amount || 0), 0);
   const totalReimburse = filtered.reduce((s, c) => s + (c.reimbursement_amount || 0), 0);
@@ -297,7 +298,7 @@ export default function ClaimsPage() {
                                 <ViewIcon />
                               </IconButton>
                             </Tooltip>
-                            {(c.status === "cancelled" || c.status === "rejected") && (
+                            {isAdmin && (
                               <Tooltip title="Hapus Klaim">
                                 <IconButton size="small" color="error" onClick={() => handleDeleteClaim(c.id)}>
                                   <DeleteIcon />
@@ -315,6 +316,12 @@ export default function ClaimsPage() {
           )}
         </CardContent>
       </Card>
+
+      <DeleteClaimDialog
+        claim={claimToDelete}
+        onClose={() => setClaimToDelete(null)}
+        onDeleted={(id) => { setClaims((prev) => prev.filter((c) => c.id !== id)); setClaimToDelete(null); }}
+      />
     </Box>
   );
 }

@@ -70,14 +70,19 @@ export function buildLedger(rab: any, catName: (id: string) => string): Ledger {
   }
 
   const saldoBeforeRefund = saldo;
-  const refund = rab?.refund?.amount || 0;
+  // Sisa dana otomatis menjadi pengembalian begitu laporan diajukan atau disetujui.
+  const finalized = rab?.report_status === "submitted" || rab?.report_status === "approved";
+  const refundNeeded = Math.max(saldoBeforeRefund, 0);
+  const refund = finalized ? refundNeeded : 0;
+  const submittedEntry = [...(rab?.history || [])].reverse().find((h: any) => h.action === "Laporan diajukan");
+  const refundDate = String(submittedEntry?.at || rab?.refund?.tanggal || rab?.paid_at || rab?.created_at || "").slice(0, 10);
   if (refund > 0) {
     saldo -= refund;
     totalKeluar += refund;
     rows.push({
       key: "refund",
       kind: "refund",
-      tanggal: rab.refund.tanggal || "",
+      tanggal: refundDate,
       kategori: REFUND_LABEL,
       rincian: "Pengembalian RAB " + (rab?.project_name || ""),
       masuk: 0,
@@ -87,14 +92,14 @@ export function buildLedger(rab: any, catName: (id: string) => string): Ledger {
   }
 
   const overspend = saldoBeforeRefund < 0;
-  const refundNeeded = Math.max(saldoBeforeRefund, 0);
-  const balanced = notas.length > 0 && (saldo === 0 || (overspend && refund === 0));
+  const balanced = notas.length > 0 && (saldo === 0 || overspend);
   return { rows, totalMasuk, totalKeluar, saldo, saldoBeforeRefund, refund, refundNeeded, overspend, balanced };
 }
 
 const rp = (n: number) => "Rp " + Math.round(n || 0).toLocaleString("id-ID");
 
-export function diffSummary(rab: any): string[] {
+export function diffSummary(rab: any, opts: { includeMatching?: boolean } = {}): string[] {
+  const includeMatching = opts.includeMatching !== false;
   const prep: any[] = rab?.preparation || [];
   const notas: any[] = rab?.report || [];
   if (notas.length === 0) return [];
@@ -105,10 +110,12 @@ export function diffSummary(rab: any): string[] {
   const totalPrep = prep.reduce((s, p) => s + (p.total || 0), 0);
   const totalReport = reportItems.reduce((s, i) => s + (i.total || 0), 0);
   if (totalReport > totalPrep) {
-    out.push("Realisasi " + rp(totalReport) + " melebihi RAB " + rp(totalPrep) + " (kelebihan " + rp(totalReport - totalPrep) + ").");
+    out.push("Realisasi " + rp(totalReport) + " melebihi RAB " + rp(totalPrep) + " (kelebihan " + rp(totalReport - totalPrep) + "). Pastikan laporan disertai bukti kuat (foto nota yang jelas) untuk diajukan reimbursement.");
   } else if (totalReport < totalPrep) {
-    out.push("Realisasi " + rp(totalReport) + " lebih kecil dari RAB " + rp(totalPrep) + " (sisa " + rp(totalPrep - totalReport) + ").");
+    out.push("Realisasi " + rp(totalReport) + " lebih kecil dari RAB " + rp(totalPrep) + " (sisa " + rp(totalPrep - totalReport) + "). Sisa akan otomatis dicatat sebagai pengembalian.");
   }
+
+  if (!includeMatching) return out;
 
   const unplanned = reportItems.filter((i) => !i.preparation_item_id || !prepIds.has(i.preparation_item_id));
   if (unplanned.length > 0) {

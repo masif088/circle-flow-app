@@ -4,14 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, getDoc, updateDoc, onSnapshot, doc, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, getDoc, updateDoc, onSnapshot, doc } from "firebase/firestore";
 import {
   Box, Typography, Card, CardContent, Button, TextField, MenuItem, Select,
   FormControl, InputLabel, CircularProgress, Snackbar, Alert, IconButton, Stack,
 } from "@mui/material";
 import { ArrowBackRounded, AddRounded, RemoveCircleRounded } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
-import { nextRabNumber } from "@/lib/rab-number";
+import { mutateRab } from "@/lib/rab-tx";
 import { createAdminNotif } from "@/lib/notif";
 
 type RabType = "Operasional" | "Penambahan MP";
@@ -51,7 +51,6 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
   const [projectId, setProjectId] = useState("");
   const [note, setNote] = useState("");
   const [items, setItems] = useState<PrepItem[]>([newItem(false)]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [people, setPeople] = useState<{ uid: string; name: string; position: string; label: string }[]>([]);
   const [cadNumber, setCadNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -61,6 +60,7 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
   const isEdit = !!rabId;
   const [loadingDoc, setLoadingDoc] = useState(!!rabId);
   const [existingProject, setExistingProject] = useState("");
+  const [currentStatus, setCurrentStatus] = useState("");
 
   useEffect(() => {
     if (!rabId) return;
@@ -68,7 +68,8 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
       .then((snap) => {
         if (!snap.exists()) { router.replace("/staff/rab"); return; }
         const d: any = snap.data();
-        if (d.rab_status !== "draft") { router.replace("/staff/rab/" + rabId); return; }
+        if (d.rab_status !== "draft" && d.rab_status !== "submitted") { router.replace("/staff/rab/" + rabId); return; }
+        setCurrentStatus(d.rab_status);
         setType(d.type || "");
         setProjectId(d.project_id || "");
         setExistingProject(d.project_name || "");
@@ -89,9 +90,6 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
   }, [user]);
 
   useEffect(() => {
-    getDocs(query(collection(db, "rab_categories"), orderBy("name")))
-      .then((snap) => setCategories(snap.docs.map((d) => ({ id: d.id, name: d.data().name }))))
-      .catch(() => {});
     getDocs(collection(db, "users"))
       .then((snap) => {
         const list = snap.docs
@@ -144,29 +142,39 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
     setSubmitting(true);
     try {
       if (rabId) {
-        await updateDoc(doc(db, "rab", rabId), {
-          project_id: projectId,
-          project_name: activeProjects[projectId] || existingProject,
-          cad_number: cadNumber.trim(),
-          note: note.trim(),
-          rab_status: submit ? "submitted" : "draft",
-          preparation: valid.map((i) => ({ ...i, unit: isMP ? "orang/hari" : i.unit })),
-          updated_at: new Date().toISOString(),
-        });
+        const wasSubmitted = currentStatus === "submitted";
+        await mutateRab(
+          db,
+          rabId,
+          (d) => {
+            if (d.rab_status !== "draft" && d.rab_status !== "submitted") {
+              throw new Error("RAB sudah diproses admin dan tidak bisa diubah lagi.");
+            }
+            return {
+              project_id: projectId,
+              project_name: activeProjects[projectId] || existingProject,
+              cad_number: cadNumber.trim(),
+              note: note.trim(),
+              rab_status: submit ? "submitted" : "draft",
+              preparation: valid.map((i) => ({ ...i, unit: isMP ? "orang/hari" : i.unit })),
+              updated_at: new Date().toISOString(),
+            };
+          },
+          { action: wasSubmitted ? "RAB diubah saat menunggu persetujuan" : submit ? "RAB diajukan" : "RAB diubah (draft)", by: user.uid, by_name: userData?.name || "" }
+        );
         if (submit) {
-          createAdminNotif({ title: "Pengajuan RAB baru", body: (userData?.name || "Staff") + " mengajukan RAB " + (cadNumber || "") + " - " + (activeProjects[projectId] || existingProject), link: "/admin/rab/" + rabId, type: "rab_submitted" });
+          createAdminNotif({ title: wasSubmitted ? "Pengajuan RAB diperbarui" : "Pengajuan RAB baru", body: (userData?.name || "Staff") + " mengajukan RAB " + (cadNumber || "") + " - " + (activeProjects[projectId] || existingProject), link: "/admin/rab/" + rabId, type: "rab_submitted" });
         }
         router.replace("/staff/rab/" + rabId);
         return;
       }
-      const cadAuto = await nextRabNumber(db, user.uid, new Date().getFullYear());
       await addDoc(collection(db, "rab"), {
         created_at: new Date().toISOString(),
         created_by: user.uid,
         project_id: projectId,
         project_name: activeProjects[projectId] || "",
         type,
-        cad_number: cadAuto,
+        cad_number: "",
         created_by_name: userData?.name || "",
         note: note.trim(),
         rab_status: submit ? "submitted" : "draft",
@@ -176,7 +184,7 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
         history: [{ action: submit ? "RAB diajukan" : "RAB dibuat (draft)", by: user.uid, by_name: userData?.name || "", at: new Date().toISOString() }],
       });
       if (submit) {
-        createAdminNotif({ title: "Pengajuan RAB baru", body: (userData?.name || "Staff") + " mengajukan RAB " + cadAuto + " - " + (activeProjects[projectId] || ""), link: "/admin/rab", type: "rab_submitted" });
+        createAdminNotif({ title: "Pengajuan RAB baru", body: (userData?.name || "Staff") + " mengajukan RAB baru untuk " + (activeProjects[projectId] || ""), link: "/admin/rab", type: "rab_submitted" });
       }
       router.replace("/staff/rab");
     } catch (e: any) {
@@ -214,7 +222,7 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
                 </Select>
               </FormControl>
               <Typography variant="caption" color="text.secondary">
-                {isEdit ? "Nomor CAD: " + (cadNumber || "-") : "Nomor CAD dibuat otomatis saat diajukan (RAB 1, RAB 2, ...)."}
+                {isEdit ? "Nomor CAD: " + (cadNumber || "-") : "Nomor CAD diberikan otomatis setelah RAB disetujui admin."}
               </Typography>
               <TextField
                 size="small" fullWidth multiline minRows={2}
@@ -268,14 +276,6 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
                   </IconButton>
                 </Stack>
 
-                <FormControl size="small" fullWidth disabled={!type}>
-                  <InputLabel>Kategori</InputLabel>
-                  <Select value={item.category_id} label="Kategori" onChange={(e) => updateItem(idx, { category_id: e.target.value })}>
-                    <MenuItem value=""><em>Tanpa kategori</em></MenuItem>
-                    {categories.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-
                 <Stack direction="row" sx={{ gap: 1 }}>
                   <TextField
                     size="small" type="number" label={isMP ? "Jml Orang/Hari" : "Qty"} disabled={!type}
@@ -318,6 +318,15 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
           <Typography sx={{ fontWeight: 800, color: "#2563eb" }}>{fmtRp(total)}</Typography>
         </Stack>
 
+        {currentStatus === "submitted" ? (
+          <Button
+            fullWidth variant="contained" size="large" onClick={() => handleSubmit(true)}
+            disabled={submitting || !type || projectEntries.length === 0}
+            sx={{ bgcolor: "#2563eb", borderRadius: 2, py: 1.25 }}
+          >
+            {submitting ? <CircularProgress size={22} color="inherit" /> : "Simpan Perubahan"}
+          </Button>
+        ) : (
         <Stack sx={{ gap: 1.5 }}>
           <Button
             fullWidth variant="contained" size="large" onClick={() => handleSubmit(true)}
@@ -334,6 +343,7 @@ export default function StaffRabForm({ rabId }: { rabId?: string }) {
             Simpan sebagai Draft
           </Button>
         </Stack>
+        )}
       </Box>
 
       <Snackbar open={!!toast} autoHideDuration={4000} onClose={() => setToast(null)}>

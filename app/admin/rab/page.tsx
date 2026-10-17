@@ -10,7 +10,7 @@ import {
   Box, Typography, Card, CardContent, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Button, Chip,
   TextField, FormControl, InputLabel, Select, MenuItem, Stack,
-  CircularProgress, IconButton, Tooltip,
+  CircularProgress, IconButton, Tooltip, Switch, FormControlLabel,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -23,6 +23,7 @@ import Link from "next/link";
 
 interface Rab {
   id: string;
+  deleted_at?: string | null;
   project_id: string;
   project_name: string;
   type: "Operasional" | "Penambahan MP";
@@ -71,6 +72,7 @@ export default function RabListPage() {
   const [loading, setLoading] = useState(true);
   const [filterRabStatus, setFilterRabStatus] = useState("");
   const [filterProject, setFilterProject] = useState("");
+  const [showDeleted, setShowDeleted] = useState(false);
   const [filterReportStatus, setFilterReportStatus] = useState("");
   const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
 
@@ -92,6 +94,7 @@ export default function RabListPage() {
   };
 
   const filtered = rabs.filter(r => {
+    if (showDeleted ? !r.deleted_at : r.deleted_at) return false;
     if (filterRabStatus && r.rab_status !== filterRabStatus) return false;
     if (filterProject && r.project_id !== filterProject) return false;
     if (filterReportStatus && r.report_status !== filterReportStatus) return false;
@@ -175,6 +178,10 @@ export default function RabListPage() {
                 <MenuItem value="revision">Perlu Revisi</MenuItem>
               </Select>
             </FormControl>
+            <FormControlLabel
+              control={<Switch size="small" checked={showDeleted} onChange={(e) => setShowDeleted(e.target.checked)} />}
+              label={<Typography variant="caption">Tampilkan RAB terhapus</Typography>}
+            />
           </Stack>
         </CardContent>
       </Card>

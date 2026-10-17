@@ -33,6 +33,7 @@ import { v4 as uuidv4 } from "uuid";
 import { buildLedger, diffSummary } from "@/lib/rab-ledger";
 import { downloadRabPdf, downloadExpenseReportPdf } from "@/lib/rab-pdf";
 import { mutateRab } from "@/lib/rab-tx";
+import { nextRabNumber } from "@/lib/rab-number";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { app } from "@/lib/firebase";
 
@@ -84,6 +85,10 @@ interface Rab {
   note?: string;
   history?: { action: string; by: string; by_name: string; at: string }[];
   cad_number?: string;
+  revision_note?: string;
+  deleted_at?: string | null;
+  deleted_by_name?: string | null;
+  paid_at?: string;
   created_by_name?: string;
   refund?: { tanggal: string; amount: number } | null;
   preparation: PrepItem[];
@@ -137,6 +142,11 @@ export default function RabDetailPage() {
   const [notaScanned, setNotaScanned] = useState(false);
   const [photoView, setPhotoView] = useState<string | null>(null);
   const [diffMode, setDiffMode] = useState<"approve" | "view" | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [revisionOpen, setRevisionOpen] = useState(false);
+  const [revisionNote, setRevisionNote] = useState("");
+  const [deleteText, setDeleteText] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [notaPreviewUrl, setNotaPreviewUrl] = useState("");
   const [editingNota, setEditingNota] = useState<Nota | null>(null);
 
@@ -160,7 +170,7 @@ export default function RabDetailPage() {
 
   const canReport = rab?.rab_status === "paid" && rab?.report_status !== "approved";
 
-  const catName = (id: string) => categories.find(c => c.id === id)?.name || id || "—";
+  const catName = (id: string) => categories.find(c => c.id === id)?.name || "—";
 
   const totalPrep = (rab?.preparation || []).reduce((s, i) => s + (i.total || 0), 0);
   const totalReport = (rab?.report || []).reduce((s, n) => s + (n.nota_total || 0), 0);
@@ -170,9 +180,14 @@ export default function RabDetailPage() {
     if (!rab) return;
     setSaving(true);
     try {
-      const extra = rab_status === "paid" ? { paid_at: new Date().toISOString() } : {};
+      const extra: Record<string, any> = rab_status === "paid" ? { paid_at: new Date().toISOString() } : {};
+      // Nomor CAD diberikan sekali, saat RAB pertama kali disetujui, atas nama pemohon.
+      let cadNew = "";
+      if ((rab_status === "approved" || rab_status === "paid") && !rab.cad_number) {
+        cadNew = await nextRabNumber(db, rab.created_by, new Date().getFullYear());
+      }
       const label = rab_status === "approved" ? "RAB disetujui" : rab_status === "paid" ? "RAB dicairkan" : "Status RAB: " + rab_status;
-      const updated = await mutateRab(db, rab.id, () => ({ rab_status, ...extra }), { action: label, by: user?.uid || "", by_name: userProfile?.name || "" });
+      const updated = await mutateRab(db, rab.id, (d) => ({ rab_status, ...extra, ...(!d.cad_number && cadNew ? { cad_number: cadNew } : {}) }), { action: label, by: user?.uid || "", by_name: userProfile?.name || "" });
       setRab(updated as Rab);
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
@@ -206,14 +221,34 @@ export default function RabDetailPage() {
     await downloadExpenseReportPdf(rab, { pemohon, pemohonJabatan: jabatan, catName });
   };
 
-  const saveRefund = async () => {
+  const handleDeleteRab = async () => {
+    if (!rab) return;
+    setDeleting(true);
+    try {
+      await mutateRab(
+        db,
+        rab.id,
+        () => ({ deleted_at: new Date().toISOString(), deleted_by: user?.uid || "", deleted_by_name: userProfile?.name || "" }),
+        { action: "RAB dihapus (diarsipkan)", by: user?.uid || "", by_name: userProfile?.name || "" }
+      );
+      router.push("/admin/rab");
+    } catch (e: any) {
+      setError("Gagal menghapus RAB: " + (e?.message || e));
+      setDeleting(false);
+      setDeleteOpen(false);
+    }
+  };
+
+  const handleRestoreRab = async () => {
     if (!rab) return;
     setSaving(true);
     try {
-      const updated = await mutateRab(db, rab.id, (d) => {
-        const amount = Math.max(buildLedger(d, catName).saldoBeforeRefund, 0);
-        return { refund: amount > 0 ? { tanggal: new Date().toISOString().slice(0, 10), amount } : null };
-      });
+      const updated = await mutateRab(
+        db,
+        rab.id,
+        () => ({ deleted_at: null, deleted_by: null, deleted_by_name: null }),
+        { action: "RAB dipulihkan", by: user?.uid || "", by_name: userProfile?.name || "" }
+      );
       setRab(updated as Rab);
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
@@ -231,11 +266,29 @@ export default function RabDetailPage() {
     } catch (e: any) { setError(e.message); }
   };
 
+  const submitRevision = async () => {
+    if (!rab) return;
+    const note = revisionNote.trim();
+    setSaving(true);
+    try {
+      const updated = await mutateRab(
+        db,
+        rab.id,
+        () => ({ report_status: "revision", revision_note: note }),
+        { action: "Laporan diminta revisi" + (note ? ": " + note : ""), by: user?.uid || "", by_name: userProfile?.name || "" }
+      );
+      setRab(updated as Rab);
+      setRevisionOpen(false);
+      setRevisionNote("");
+    } catch (e: any) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+
   const updateReportStatus = async (report_status: Rab["report_status"]) => {
     if (!rab) return;
     setSaving(true);
     try {
-      const label = report_status === "approved" ? "Laporan disetujui" : report_status === "revision" ? "Laporan diminta revisi" : "Status laporan: " + report_status;
+      const label = report_status === "approved" ? "Laporan disetujui" : report_status === "draft" && rab.report_status === "approved" ? "Laporan dibuka kembali" : report_status === "revision" ? "Laporan diminta revisi" : "Status laporan: " + report_status;
       const updated = await mutateRab(db, rab.id, () => ({ report_status }), { action: label, by: user?.uid || "", by_name: userProfile?.name || "" });
       setRab(updated as Rab);
     } catch (e: any) { setError(e.message); }
@@ -400,7 +453,7 @@ export default function RabDetailPage() {
   const ledger = buildLedger(rab, catName);
   const diffs = diffSummary(rab);
   const uncategorized = (rab.report || []).flatMap(n => n.items).filter(i => !i.category_id).length;
-  const canApproveReport = ledger.balanced && uncategorized === 0;
+  const canApproveReport = (rab.report || []).length > 0 && uncategorized === 0;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -411,6 +464,15 @@ export default function RabDetailPage() {
       </Breadcrumbs>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
+      {rab.deleted_at && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={userProfile?.role === "admin" ? <Button size="small" color="inherit" onClick={handleRestoreRab} disabled={saving}>Pulihkan RAB</Button> : undefined}
+        >
+          RAB ini sudah dihapus{rab.deleted_by_name ? " oleh " + rab.deleted_by_name : ""} dan tidak tampil di daftar, Buku Kas, maupun aplikasi pemohon. Nomor CAD tetap terpakai.
+        </Alert>
+      )}
 
       {/* Header */}
       <Card sx={{ mb: 2 }}>
@@ -433,6 +495,15 @@ export default function RabDetailPage() {
 
             {/* Summary */}
             <Stack direction="row" sx={{ gap: 3, flexWrap: "wrap" }}>
+              <Box sx={{ textAlign: "right" }}>
+                <Typography variant="caption" color="text.secondary">Dibuat</Typography>
+                <Typography sx={{ fontWeight: 700 }}>
+                  {rab.created_at ? new Date(rab.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-"}
+                </Typography>
+                {rab.created_by_name && (
+                  <Typography variant="caption" color="text.secondary">{rab.created_by_name}</Typography>
+                )}
+              </Box>
               <Box sx={{ textAlign: "right" }}>
                 <Typography variant="caption" color="text.secondary">Anggaran</Typography>
                 <Typography sx={{ fontWeight: 700 }} color="primary">{formatRp(totalPrep)}</Typography>
@@ -470,9 +541,14 @@ export default function RabDetailPage() {
                 Print Expense Report
               </Button>
             )}
-            {rab.rab_status !== "paid" && (
+            {rab.rab_status !== "paid" && !rab.deleted_at && (
               <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => router.push("/admin/rab/" + rab.id + "/edit")}>
                 Edit RAB
+              </Button>
+            )}
+            {userProfile?.role === "admin" && !rab.deleted_at && (rab.rab_status === "draft" || rab.rab_status === "submitted") && (
+              <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => { setDeleteText(""); setDeleteOpen(true); }}>
+                Hapus RAB
               </Button>
             )}
             {(rab.rab_status === "draft" || rab.rab_status === "submitted") && (
@@ -516,12 +592,23 @@ export default function RabDetailPage() {
                   variant="outlined"
                   color="error"
                   startIcon={<RevisionIcon />}
-                  onClick={() => updateReportStatus("revision")}
+                  onClick={() => { setRevisionNote(""); setRevisionOpen(true); }}
                   disabled={saving}
                 >
                   Revisi Laporan
                 </Button>
               </>
+            )}
+            {rab.report_status === "approved" && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="warning"
+                onClick={() => { if (confirm("Buka kembali laporan yang sudah disetujui? Statusnya kembali ke Draft dan perlu disetujui ulang.")) updateReportStatus("draft"); }}
+                disabled={saving}
+              >
+                Buka Kembali Laporan
+              </Button>
             )}
             {rab.report_status === "revision" && (
               <Button
@@ -539,19 +626,22 @@ export default function RabDetailPage() {
               Ada {diffs.length} perbedaan antara RAB dan laporan.
             </Alert>
           )}
-          {(rab.report_status === "draft" || rab.report_status === "submitted") && ledger.balanced && uncategorized > 0 && (
+          {(rab.report_status === "draft" || rab.report_status === "submitted") && (rab.report || []).length > 0 && uncategorized > 0 && (
             <Alert severity="warning" sx={{ mt: 2 }} action={<Button size="small" color="inherit" onClick={() => setTab(3)}>Buka Buku Kas</Button>}>
               Approve Laporan belum bisa dilakukan: {uncategorized} item pengeluaran belum diberi kategori. Isi kategori di tab Buku Kas.
             </Alert>
           )}
-          {(rab.report_status === "draft" || rab.report_status === "submitted") && !ledger.balanced && (
+          {(rab.report_status === "draft" || rab.report_status === "submitted") && (rab.report || []).length === 0 && (
+            <Alert severity="warning" sx={{ mt: 2 }}>Approve Laporan belum bisa dilakukan: belum ada nota.</Alert>
+          )}
+          {(rab.report_status === "draft" || rab.report_status === "submitted") && (rab.report || []).length > 0 && !ledger.balanced && (
             <Alert severity="warning" sx={{ mt: 2 }} action={<Button size="small" color="inherit" onClick={() => setTab(3)}>Buka Buku Kas</Button>}>
-              Approve Laporan belum bisa dilakukan:{" "}
-              {(rab.report || []).length === 0
-                ? "belum ada nota."
-                : ledger.overspend
-                ? "ada kelebihan " + formatRp(-ledger.saldoBeforeRefund) + ", tapi masih ada catatan pengembalian. Perbarui pengembalian di tab Buku Kas."
-                : "saldo " + formatRp(ledger.saldo) + " belum dikembalikan. Catat pengembalian sisa di tab Buku Kas."}
+              Ada sisa dana {formatRp(ledger.saldo)}. Saat laporan disetujui, sisa ini otomatis dicatat sebagai pengembalian.
+            </Alert>
+          )}
+          {rab.report_status === "revision" && rab.revision_note && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              <strong>Catatan revisi:</strong> {rab.revision_note}
             </Alert>
           )}
           {(rab.history || []).length > 0 && (
@@ -894,24 +984,19 @@ export default function RabDetailPage() {
             <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1, flexWrap: "wrap", gap: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>Buku Kas (Expense Report)</Typography>
               <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
-                {ledger.balanced && ledger.overspend ? (
-                  <Chip label={"Kelebihan " + formatRp(-ledger.saldoBeforeRefund) + " - siap disetujui"} size="small" color="warning" />
-                ) : ledger.balanced ? (
-                  <Chip label="Saldo nol - siap disetujui" size="small" color="success" />
-                ) : ledger.overspend ? (
-                  <Chip label={"Kelebihan " + formatRp(-ledger.saldoBeforeRefund) + " - perbarui pengembalian"} size="small" color="warning" />
+                {ledger.overspend ? (
+                  <Chip label={"Kelebihan " + formatRp(-ledger.saldoBeforeRefund)} size="small" color="warning" />
+                ) : ledger.refund > 0 ? (
+                  <Chip label={"Sisa " + formatRp(ledger.refund) + " dikembalikan otomatis"} size="small" color="success" />
+                ) : ledger.saldo === 0 ? (
+                  <Chip label="Saldo nol" size="small" color="success" />
                 ) : (
-                  <Chip label={"Saldo " + formatRp(ledger.saldo) + " harus dikembalikan"} size="small" color="warning" />
-                )}
-                {rab.report_status !== "approved" && ledger.refundNeeded !== ledger.refund && (
-                  <Button size="small" variant="outlined" onClick={saveRefund} disabled={saving}>
-                    {ledger.refund > 0 ? "Perbarui Pengembalian" : "Catat Pengembalian Sisa"}
-                  </Button>
+                  <Chip label={"Sisa " + formatRp(ledger.saldo) + " akan dicatat sebagai pengembalian saat laporan diajukan"} size="small" color="warning" />
                 )}
               </Stack>
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-              Kategori pengeluaran diisi oleh admin. Laporan bisa disetujui kalau saldo nol, atau kalau ada kelebihan pengeluaran.
+              Kategori pengeluaran diisi oleh admin. Sisa dana otomatis dicatat sebagai pengembalian saat laporan diajukan atau disetujui.
             </Typography>
             <TableContainer component={Paper} variant="outlined" sx={{ overflowX: "auto" }}>
               <Table size="small" sx={{ minWidth: 900, "& .MuiInputBase-root": { fontSize: "0.8125rem" } }}>
@@ -1000,6 +1085,72 @@ export default function RabDetailPage() {
               Tetap Setujui
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onClose={() => !deleting && setDeleteOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Hapus RAB?</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            RAB dipindahkan ke arsip terhapus dan bisa dipulihkan admin kapan saja. Nomor CAD tetap terpakai dan tidak akan dipakai ulang.
+          </Alert>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            RAB <strong>{rab.cad_number || "tanpa nomor"}</strong> - <strong>{rab.project_name}</strong> akan disembunyikan beserta data berikut (tetap tersimpan):
+          </Typography>
+          <Typography variant="body2" component="div" sx={{ mb: 1.5 }}>
+            <ul style={{ margin: 0, paddingLeft: 20 }}>
+              <li>{(rab.preparation || []).length} item rencana anggaran ({formatRp(totalPrep)})</li>
+              <li>{(rab.report || []).length} nota realisasi ({formatRp(totalReport)})</li>
+              <li>catatan, riwayat persetujuan, dan pencatatan pengembalian</li>
+            </ul>
+          </Typography>
+          {rab.rab_status === "paid" && (
+            <Alert severity="warning" sx={{ mb: 1.5 }}>
+              RAB ini sudah dicairkan. Selama terhapus, dana masuk dan seluruh pengeluarannya tidak dihitung di Buku Kas proyek maupun Buku Kas keseluruhan.
+            </Alert>
+          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Pemohon tidak akan lagi melihat RAB ini di aplikasinya.
+          </Typography>
+          {(rab.rab_status === "paid" || (rab.report || []).length > 0) && (
+            <TextField
+              size="small" fullWidth autoFocus
+              label={"Ketik HAPUS untuk konfirmasi"}
+              value={deleteText}
+              onChange={e => setDeleteText(e.target.value)}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteOpen(false)} disabled={deleting}>Batal</Button>
+          <Button
+            variant="contained" color="error" onClick={handleDeleteRab}
+            disabled={deleting || ((rab.rab_status === "paid" || (rab.report || []).length > 0) && deleteText.trim().toUpperCase() !== "HAPUS")}
+          >
+            {deleting ? "Menghapus..." : "Hapus RAB"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={revisionOpen} onClose={() => !saving && setRevisionOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Minta Revisi Laporan</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Tulis bagian mana yang perlu diperbaiki. Catatan ini akan terlihat oleh pemohon di aplikasinya, dan laporan terbuka kembali untuk diedit.
+          </Typography>
+          <TextField
+            autoFocus fullWidth multiline minRows={3}
+            label="Catatan revisi"
+            placeholder="contoh: Foto nota BBM kurang jelas, mohon upload ulang."
+            value={revisionNote}
+            onChange={e => setRevisionNote(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRevisionOpen(false)} disabled={saving}>Batal</Button>
+          <Button variant="contained" color="error" onClick={submitRevision} disabled={saving || !revisionNote.trim()}>
+            {saving ? "Mengirim..." : "Kirim Revisi"}
+          </Button>
         </DialogActions>
       </Dialog>
 

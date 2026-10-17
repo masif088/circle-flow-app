@@ -282,17 +282,6 @@ export default function StaffNotaPage() {
                   </IconButton>
                 </Stack>
 
-                <FormControl size="small" fullWidth disabled={!canReport}>
-                  <InputLabel>Hubungkan ke item RAB</InputLabel>
-                  <Select
-                    value={item.preparation_item_id || ""} label="Hubungkan ke item RAB"
-                    onChange={(e) => updateItem(idx, { preparation_item_id: (e.target.value as string) || null })}
-                  >
-                    <MenuItem value=""><em>Tak terduga (tidak ada di RAB)</em></MenuItem>
-                    {preparation.map((p) => <MenuItem key={p.item_id} value={p.item_id}>{p.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-
 
                 <Stack direction="row" sx={{ gap: 1 }}>
                   <TextField

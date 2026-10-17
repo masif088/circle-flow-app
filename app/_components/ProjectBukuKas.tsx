@@ -33,7 +33,7 @@ export default function ProjectBukuKas({ projectId }: { projectId: string }) {
   const [wageMap, setWageMap] = useState<Record<string, number>>({});
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [includeUpah, setIncludeUpah] = useState(true);
+  const [includeUpah, setIncludeUpah] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -90,7 +90,7 @@ export default function ProjectBukuKas({ projectId }: { projectId: string }) {
       totalMasuk: base.reduce((s, x) => s + x.masuk, 0),
       totalKeluar: base.reduce((s, x) => s + x.keluar, 0),
       totalUpah: base.filter((x) => x.source === "upah").reduce((s, x) => s + x.keluar, 0),
-      rabCount: rabs.filter((r) => r.rab_status === "paid").length,
+      rabCount: rabs.filter((r) => r.rab_status === "paid" && !r.deleted_at).length,
     };
   }, [rabs, manual, presences, wageMap, userNames, catMap, includeUpah]);
 

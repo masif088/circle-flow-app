@@ -35,7 +35,7 @@ export function buildCashRows(input: CashbookInput): CashRow[] {
   const all: CashRow[] = [];
   const pname = (id: string, fallback?: string) => projectNames[id] || fallback || id;
 
-  for (const r of rabs.filter((x) => x.rab_status === "paid")) {
+  for (const r of rabs.filter((x) => x.rab_status === "paid" && !x.deleted_at)) {
     const ledger = buildLedger(r, (id) => catMap[id] || "");
     for (const l of ledger.rows) {
       all.push({
